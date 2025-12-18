@@ -43,7 +43,7 @@ global.channel = "https://whatsapp.com/channel/0029VbBZ4YX4inoqvA74nA20"
 global.github = "https://github.com/melodiabl/OguriCap-Bot.git"
 global.gmail = "melodiayaoivv@gmail.com"
 global.ch = {
-ch1: "120363401404146384@newsletter"
+ch1: "120363404287449613@newsletter"
 }
 
 //*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
