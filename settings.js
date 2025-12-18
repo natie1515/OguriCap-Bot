@@ -31,8 +31,8 @@ global.dev = "© ⍴᥆ᥕᥱʳᥱძ ᑲᥡ ᴹᴱᴸᴼᴰᴵᴬ"
 global.author = "© ꮇᥲძᥱ ᥕі𝗍һ ᑲᥡ ᎷᎬᏞᏫᎠᏆᎪ"
 global.etiqueta = "M͟ᴇ͟ʟ͟ᴏ͟ᴅ͟ɪ͟ᴀ"
 global.currency = "¥enes"
-global.banner = "https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1742678744381.jpeg"
-global.icono = "https://raw.githubusercontent.com/The-King-Destroy/Adiciones/main/Contenido/1742678797993.jpeg"
+global.banner = "https://files.catbox.moe/ezrsc9.jpg"
+global.icono = "https://files.catbox.moe/yuiki1.jpg"
 global.catalogo = fs.readFileSync('./lib/catalogo.jpg')
 
 //*─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─*
