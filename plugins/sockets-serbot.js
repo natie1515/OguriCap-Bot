@@ -1,4 +1,6 @@
 const { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } = (await import("@whiskeysockets/baileys"))
+import pkg from "@whiskeysockets/baileys"
+const { proto, generateWAMessageFromContent } = pkg
 import qrcode from "qrcode"
 import NodeCache from "node-cache"
 import fs from "fs"
@@ -124,8 +126,46 @@ if (qr && mcode) {
 let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
 secret = secret.match(/.{1,4}/g)?.join("-")
 txtCode = await conn.sendMessage(m.chat, {text : rtx2}, { quoted: m })
-codeBot = await m.reply(secret)
-console.log(secret)
+const content = {
+  viewOnceMessage: {
+    message: {
+      interactiveMessage: proto.Message.InteractiveMessage.create({
+        body: proto.Message.InteractiveMessage.Body.create({
+          text: secret
+        }),
+        footer: proto.Message.InteractiveMessage.Footer.create({
+          text: ''
+        }),
+        header: proto.Message.InteractiveMessage.Header.create({
+          title: '',
+          hasMediaAttachment: false
+        }),
+        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+          buttons: [
+            {
+              name: 'cta_copy',
+              buttonParamsJson: JSON.stringify({
+                display_text: '📋 COPIAR CÓDIGO',
+                copy_code: secret
+              })
+            }
+          ]
+        })
+      })
+    }
+  }
+}
+
+const msg = generateWAMessageFromContent(
+  m.chat,
+  content,
+  { quoted: m }
+)
+
+codeBot = msg
+await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
+
+    console.log(secret)
 }
 if (txtCode && txtCode.key) {
 setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 30000)
