@@ -1,6 +1,6 @@
 <h1 align="center">☆ᴏɢᴜʀɪ ᴄᴀᴘ☆</h1>
 
-<img src= "https://files.catbox.moe/om9jai.jpg">
+<img src= "https://files.catbox.moe/ezrsc9.jpg">
 </p>
 
 ### *`❕️ Información importante`*
