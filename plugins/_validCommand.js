@@ -19,6 +19,8 @@ if (command === 'mute') return
 if (chat.isMute && !owner) return
 if (command === 'bot') return
 if (chat.isBanned && !owner) return
+const globalState = global.db?.data?.panel?.botGlobalState
+if (m.isGroup && globalState?.isOn === false && !owner) return
 if (validCommand(command, global.plugins)) {
 } else {
 const comando = command

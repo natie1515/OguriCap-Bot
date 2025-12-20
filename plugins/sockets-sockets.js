@@ -59,7 +59,7 @@ conn.reply(m.chat, '✩ Tu sesión ha sido cerrada exitosamente.', m)
 setTimeout(async () => {
 await global.conns[index].logout()
 global.conns.splice(index, 1)
-const sessionPath = path.join(global.jadi, cleanId)
+const sessionPath = conn.sessionPath || path.join(global.jadi, conn.subbotCode || cleanId)
 if (fs.existsSync(sessionPath)) {
 fs.rmSync(sessionPath, { recursive: true, force: true })
 console.log(`⚠︎ Sesión de ${cleanId} eliminada de ${sessionPath}`)

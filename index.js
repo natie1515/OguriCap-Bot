@@ -20,6 +20,8 @@ import { Boom } from '@hapi/boom'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
 import { Low, JSONFile } from 'lowdb'
 import store from './lib/store.js'
+import qrcode from 'qrcode'
+import { format } from 'util'
 const { proto } = (await import('@whiskeysockets/baileys')).default
 import pkg from 'google-libphonenumber'
 const { PhoneNumberUtil } = pkg
@@ -29,7 +31,7 @@ import readline, { createInterface } from 'readline'
 import NodeCache from 'node-cache'
 const { CONNECTING } = ws
 const { chain } = lodash
-const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3001
 
 let { say } = cfonts
 console.log(chalk.magentaBright('\n❀ Iniciando...'))
@@ -99,15 +101,27 @@ const textOption = chalk.cyan
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
 const question = (texto) => new Promise((resolver) => rl.question(texto, resolver))
 let opcion
+
+// Verificar si hay argumento --no-prompt para modo panel (sin preguntas interactivas)
+const noPrompt = process.argv.includes("--no-prompt") || process.env.NO_PROMPT === '1'
+
 if (methodCodeQR) {
 opcion = '1'
 }
-if (!methodCodeQR && !methodCode && !fs.existsSync(`./${sessions}/creds.json`)) {
-do {
-opcion = await question(colors("Seleccione una opción:\n") + qrOption("1. Con código QR\n") + textOption("2. Con código de texto de 8 dígitos\n--> "))
-if (!/^[1-2]$/.test(opcion)) {
-console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`))
-}} while (opcion !== '1' && opcion !== '2' || fs.existsSync(`./${sessions}/creds.json`))
+if (!methodCodeQR && !methodCode && !fs.existsSync(`./${global.sessions}/creds.json`)) {
+if (noPrompt) {
+  // Modo panel: usar QR por defecto sin preguntar
+  opcion = '1'
+  console.log(chalk.cyan('[ ✿ ] Modo panel activo - Usando QR por defecto'))
+  console.log(chalk.cyan('[ ✿ ] Puedes conectar desde el panel web o escanear el QR en la terminal'))
+} else {
+  // Modo terminal: preguntar al usuario
+  do {
+  opcion = await question(colors("Seleccione una opción:\n") + qrOption("1. Con código QR\n") + textOption("2. Con código de texto de 8 dígitos\n--> "))
+  if (!/^[1-2]$/.test(opcion)) {
+  console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`))
+  }} while (opcion !== '1' && opcion !== '2' || fs.existsSync(`./${global.sessions}/creds.json`))
+}
 }
 console.info = () => {}
 const connectionOptions = {
@@ -141,7 +155,16 @@ maxIdleTimeMs: 60000,
 global.conn = makeWASocket(connectionOptions)
 conn.ev.on("creds.update", saveCreds)
 
-if (!fs.existsSync(`./${sessions}/creds.json`)) {
+// Iniciar Panel API
+if (process.env.PANEL_API !== '0') {
+try {
+const { startPanelApi } = await import('./lib/panel-api.js')
+startPanelApi({ port: process.env.PANEL_PORT || PORT }).catch(console.error)
+} catch (e) {
+console.error('panel-api error:', e)
+}}
+
+if (!fs.existsSync(`./${global.sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
 if (!conn.authState.creds.registered) {
@@ -170,16 +193,55 @@ if (!opts['test']) {
 if (global.db) setInterval(async () => {
 if (global.db.data) await global.db.write()
 if (opts['autocleartmp'] && (global.support || {}).find) {
-const tmp = [os.tmpdir(), 'tmp', `${jadi}`]
+const tmp = [os.tmpdir(), 'tmp', `${global.jadi}`]
 tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
 }}, 30 * 1000)
 }
 
+// Variables globales para el panel
+global.panelApiMainQr = null
+global.panelApiMainDisconnect = false
+global.reauthInProgress = false
+global.panelApiLastSeen = null
+global.stopped = 'connecting' // Estado inicial de conexión
+
 async function connectionUpdate(update) {
-const { connection, lastDisconnect, isNewLogin } = update
-global.stopped = connection
+const { connection, lastDisconnect, isNewLogin, qr } = update
+
+// Actualizar estado global para el panel
+if (connection) {
+  global.stopped = connection
+}
+
 if (isNewLogin) conn.isInit = true
 const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
+
+// Actualizar QR para el panel
+if (qr) {
+global.panelApiMainQr = qr
+// Emitir QR via Socket.IO
+try {
+  const { emitBotQR } = await import('./lib/socket-io.js')
+  emitBotQR(qr)
+} catch {}
+}
+
+// Actualizar último seen
+if (connection === 'open') {
+global.panelApiLastSeen = new Date().toISOString()
+global.stopped = 'open'
+// Emitir conexión via Socket.IO
+try {
+  const { emitBotConnected, emitBotStatus } = await import('./lib/socket-io.js')
+  emitBotConnected(conn.user?.id)
+  emitBotStatus()
+} catch {}
+}
+
+if (connection === 'connecting') {
+global.stopped = 'connecting'
+}
+
 if (code && code !== DisconnectReason.loggedOut && conn?.ws.socket == null) {
 await global.reloadHandler(true).catch(console.error)
 global.timestamp.connect = new Date()
@@ -194,9 +256,26 @@ const userJid = jidNormalizedUser(conn.user.id)
 const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
 await joinChannels(conn)
 console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
+// Limpiar QR del panel
+global.panelApiMainQr = null
+global.panelApiMainDisconnect = false
+global.reauthInProgress = false
 }
 let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
 if (connection === "close") {
+global.stopped = 'close'
+// Emitir desconexión via Socket.IO
+try {
+  const { emitBotDisconnected, emitBotStatus } = await import('./lib/socket-io.js')
+  emitBotDisconnected(reason)
+  emitBotStatus()
+} catch {}
+
+// Si el panel solicitó desconexión, no reconectar
+if (global.panelApiMainDisconnect) {
+console.log(chalk.yellow("→ Bot desconectado desde el panel"))
+return
+}
 if ([401, 440, 428, 405].includes(reason)) {
 console.log(chalk.red(`→ (${code}) › Cierra la session Principal.`))
 }
@@ -247,19 +326,19 @@ process.on('unhandledRejection', (reason, promise) => {
 console.error("Rechazo no manejado detectado:", reason)
 })
 
-global.rutaJadiBot = join(__dirname, `./${jadi}`)
+global.rutaJadiBot = join(__dirname, `./${global.jadi}`)
 if (global.yukiJadibts) {
 if (!existsSync(global.rutaJadiBot)) {
 mkdirSync(global.rutaJadiBot, { recursive: true })
-console.log(chalk.bold.cyan(`ꕥ La carpeta: ${jadi} se creó correctamente.`))
+console.log(chalk.bold.cyan(`ꕥ La carpeta: ${global.jadi} se creó correctamente.`))
 } else {
-console.log(chalk.bold.cyan(`ꕥ La carpeta: ${jadi} ya está creada.`))
+console.log(chalk.bold.cyan(`ꕥ La carpeta: ${global.jadi} ya está creada.`))
 }
-const readRutaJadiBot = readdirSync(rutaJadiBot)
+const readRutaJadiBot = readdirSync(global.rutaJadiBot)
 if (readRutaJadiBot.length > 0) {
 const creds = 'creds.json'
 for (const gjbts of readRutaJadiBot) {
-const botPath = join(rutaJadiBot, gjbts)
+const botPath = join(global.rutaJadiBot, gjbts)
 if (existsSync(botPath) && statSync(botPath).isDirectory()) {
 const readBotPath = readdirSync(botPath)
 if (readBotPath.includes(creds)) {

@@ -57,7 +57,7 @@ yukiJBOptions.args = args
 yukiJBOptions.usedPrefix = usedPrefix
 yukiJBOptions.command = command
 yukiJBOptions.fromCommand = true
-yukiJadiBot(yukiJBOptions)
+void yukiJadiBot(yukiJBOptions)
 global.db.data.users[m.sender].Subs = new Date * 1
 }
 handler.help = ['qr', 'code']
@@ -67,6 +67,8 @@ export default handler
 
 export async function yukiJadiBot(options) {
 let { pathYukiJadiBot, m, conn, args, usedPrefix, command } = options
+const api = options?.api || null
+args = Array.isArray(args) ? args : (typeof args === 'string' ? args.trim().split(/\s+/).filter(Boolean) : [])
 if (command === 'code') {
 command = 'qr'
 args.unshift('code')
@@ -84,11 +86,24 @@ fs.mkdirSync(pathYukiJadiBot, { recursive: true })}
 try {
 args[0] && args[0] != undefined ? fs.writeFileSync(pathCreds, JSON.stringify(JSON.parse(Buffer.from(args[0], "base64").toString("utf-8")), null, '\t')) : ""
 } catch {
-conn.reply(m.chat, `ꕥ Use correctamente el comando » ${usedPrefix + command}`, m)
-return
+if (m?.chat) conn.reply(m.chat, `ꕥ Use correctamente el comando » ${usedPrefix + command}`, m)
+return { success: false, error: 'args invalidos' }
 }
 const comb = Buffer.from(crm1 + crm2 + crm3 + crm4, "base64")
-exec(comb.toString("utf-8"), async (err, stdout, stderr) => {
+return await new Promise((resolve) => exec(comb.toString("utf-8"), async (err, stdout, stderr) => {
+let resolved = false
+const resolveOnce = (payload) => {
+if (resolved) return
+resolved = true
+resolve(payload)
+}
+const sessionCode = api?.code || path.basename(pathYukiJadiBot)
+const resolvedSessionPath = path.resolve(pathYukiJadiBot)
+if (api) {
+const timeoutMs = Number(api.timeoutMs || 45000)
+if (Number.isFinite(timeoutMs) && timeoutMs > 0) setTimeout(() => resolveOnce({ success: false, error: 'timeout' }), timeoutMs)
+}
+try {
 const drmer = Buffer.from(drm1 + drm2, `base64`)
 let { version, isLatest } = await fetchLatestBaileysVersion()
 const msgRetry = (MessageRetryMap) => { }
@@ -105,34 +120,59 @@ version: version,
 generateHighQualityLinkPreview: true
 }
 let sock = makeWASocket(connectionOptions)
+sock.subbotCode = sessionCode
+sock.sessionPath = resolvedSessionPath
 sock.isInit = false
 let isInit = true
 setTimeout(async () => {
 if (!sock.user) {
-try { fs.rmSync(pathYukiJadiBot, { recursive: true, force: true }) } catch {}
+const subbotCodeCleanup = path.basename(pathYukiJadiBot)
+try { fs.rmSync(resolvedSessionPath, { recursive: true, force: true }) } catch {}
 try { sock.ws?.close() } catch {}
 sock.ev.removeAllListeners()
 let i = global.conns.indexOf(sock)
 if (i >= 0) global.conns.splice(i, 1)
-console.log(`[AUTO-LIMPIEZA] Sesión ${path.basename(pathYukiJadiBot)} eliminada credenciales invalidos.`)
+console.log(`[AUTO-LIMPIEZA] Sesión ${subbotCodeCleanup} eliminada credenciales invalidos.`)
+// Emitir evento de subbot eliminado al panel
+try {
+  const { emitSubbotDeleted, emitSubbotDisconnected } = await import('../lib/socket-io.js')
+  emitSubbotDisconnected(subbotCodeCleanup, 'auto-limpieza')
+  emitSubbotDeleted(subbotCodeCleanup)
+} catch {}
+// Eliminar de la base de datos del panel
+try {
+  if (global.db?.data?.panel?.subbots?.[subbotCodeCleanup]) {
+    delete global.db.data.panel.subbots[subbotCodeCleanup]
+  }
+} catch {}
+resolveOnce({ success: false, error: 'auto-limpieza' })
 }}, 60000)
 async function connectionUpdate(update) {
 const { connection, lastDisconnect, isNewLogin, qr } = update
 if (isNewLogin) sock.isInit = false
 if (qr && !mcode) {
+try {
+api?.onUpdate?.({ qr_data: qr, estado: 'activo', updated_at: new Date().toISOString() })
+} catch {}
+resolveOnce({ success: true, qr })
 if (m?.chat) {
 txtQR = await conn.sendMessage(m.chat, { image: await qrcode.toBuffer(qr, { scale: 8 }), caption: rtx.trim()}, { quoted: m})
-} else {
-return 
-}
 if (txtQR && txtQR.key) {
-setTimeout(() => { conn.sendMessage(m.sender, { delete: txtQR.key })}, 30000)
+if (m?.sender) setTimeout(() => { conn.sendMessage(m.sender, { delete: txtQR.key })}, 30000)
+}
 }
 return
 } 
 if (qr && mcode) {
-let secret = await sock.requestPairingCode((m.sender.split`@`[0]))
+const pairingNumber = api?.pairingNumber || (m?.sender ? m.sender.split`@`[0] : '')
+if (!pairingNumber) return resolveOnce({ success: false, error: 'pairingNumber requerido' })
+let secret = await sock.requestPairingCode(pairingNumber)
 secret = secret.match(/.{1,4}/g)?.join("-")
+try {
+api?.onUpdate?.({ pairingCode: secret, numero: pairingNumber, estado: 'activo', updated_at: new Date().toISOString() })
+} catch {}
+resolveOnce({ success: true, pairingCode: secret })
+if (m?.chat) {
 txtCode = await conn.sendMessage(m.chat, {text : rtx2}, { quoted: m })
 const content = {
   viewOnceMessage: {
@@ -175,11 +215,12 @@ await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 
     console.log(secret)
 }
+}
 if (txtCode && txtCode.key) {
-setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 30000)
+if (m?.sender) setTimeout(() => { conn.sendMessage(m.sender, { delete: txtCode.key })}, 30000)
 }
 if (codeBot && codeBot.key) {
-setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key })}, 30000)
+if (m?.sender) setTimeout(() => { conn.sendMessage(m.sender, { delete: codeBot.key })}, 30000)
 }
 const endSesion = async (loaded) => {
 if (!loaded) {
@@ -217,7 +258,20 @@ if (options.fromCommand) m?.chat ? await conn.sendMessage(`${path.basename(pathY
 } catch (error) {
 console.error(chalk.bold.yellow(`⚠︎ Error 405 no se pudo enviar mensaje a: +${path.basename(pathYukiJadiBot)}`))
 }
+const subbotCode = path.basename(pathYukiJadiBot)
 fs.rmdirSync(pathYukiJadiBot, { recursive: true })
+// Emitir evento de subbot eliminado al panel
+try {
+  const { emitSubbotDeleted, emitSubbotDisconnected } = await import('../lib/socket-io.js')
+  emitSubbotDisconnected(subbotCode, reason)
+  emitSubbotDeleted(subbotCode)
+} catch {}
+// Eliminar de la base de datos del panel
+try {
+  if (global.db?.data?.panel?.subbots?.[subbotCode]) {
+    delete global.db.data.panel.subbots[subbotCode]
+  }
+} catch {}
 }
 if (reason === 500) {
 console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Conexión perdida en la sesión (+${path.basename(pathYukiJadiBot)}). Borrando datos...\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
@@ -230,7 +284,20 @@ await creloadHandler(true).catch(console.error)
 }
 if (reason === 403) {
 console.log(chalk.bold.magentaBright(`\n╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡\n┆ Sesión cerrada o cuenta en soporte para la sesión (+${path.basename(pathYukiJadiBot)}).\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄ • • • ┄┄┄┄┄┄┄┄┄┄┄┄┄┄⟡`))
+const subbotCode403 = path.basename(pathYukiJadiBot)
 fs.rmdirSync(pathYukiJadiBot, { recursive: true })
+// Emitir evento de subbot eliminado al panel
+try {
+  const { emitSubbotDeleted, emitSubbotDisconnected } = await import('../lib/socket-io.js')
+  emitSubbotDisconnected(subbotCode403, reason)
+  emitSubbotDeleted(subbotCode403)
+} catch {}
+// Eliminar de la base de datos del panel
+try {
+  if (global.db?.data?.panel?.subbots?.[subbotCode403]) {
+    delete global.db.data.panel.subbots[subbotCode403]
+  }
+} catch {}
 }}
 if (global.db.data == null) loadDatabase()
 if (connection == `open`) {
@@ -239,19 +306,37 @@ await joinChannels(conn)
 let userName, userJid 
 userName = sock.authState.creds.me.name || 'Anónimo'
 userJid = sock.authState.creds.me.jid || `${path.basename(pathYukiJadiBot)}@s.whatsapp.net`
+try {
+const phone = sock?.user?.jid ? String(sock.user.jid).split('@')[0] : String(userJid).split('@')[0]
+api?.onUpdate?.({ numero: phone || null, qr_data: null, pairingCode: null, estado: 'activo', updated_at: new Date().toISOString() })
+} catch {}
 console.log(chalk.bold.cyanBright(`\n❒⸺⸺⸺⸺【• SUB-BOT •】⸺⸺⸺⸺❒\n│\n│ ❍ ${userName} (+${path.basename(pathYukiJadiBot)}) conectado exitosamente.\n│\n❒⸺⸺⸺【• CONECTADO •】⸺⸺⸺❒`))
 sock.isInit = true
 global.conns.push(sock)
 m?.chat ? await conn.sendMessage(m.chat, { text: isSubBotConnected(m.sender) ? `@${m.sender.split('@')[0]}, ya estás conectado, leyendo mensajes entrantes...` : `❀ Has registrado un nuevo *Sub-Bot!* [@${m.sender.split('@')[0]}]\n\n> Puedes ver la información del bot usando el comando *#infobot*`, mentions: [m.sender] }, { quoted: m }) : ''
+resolveOnce({ success: true, open: true })
 }}
 setInterval(async () => {
 if (!sock.user) {
+const subbotCodeInterval = sock?.subbotCode || 'unknown'
 try { sock.ws.close() } catch (e) {}
 sock.ev.removeAllListeners()
 let i = global.conns.indexOf(sock)
 if (i < 0) return
 delete global.conns[i]
 global.conns.splice(i, 1)
+// Emitir evento de subbot eliminado al panel
+try {
+  const { emitSubbotDeleted, emitSubbotDisconnected } = await import('../lib/socket-io.js')
+  emitSubbotDisconnected(subbotCodeInterval, 'interval-cleanup')
+  emitSubbotDeleted(subbotCodeInterval)
+} catch {}
+// Eliminar de la base de datos del panel
+try {
+  if (global.db?.data?.panel?.subbots?.[subbotCodeInterval]) {
+    delete global.db.data.panel.subbots[subbotCodeInterval]
+  }
+} catch {}
 }}, 60000)
 let handler = await import('../handler.js')
 let creloadHandler = async function (restatConn) {
@@ -283,7 +368,10 @@ isInit = false
 return true
 }
 creloadHandler(false)
-})
+} catch (e) {
+resolveOnce({ success: false, error: e?.message || String(e) })
+}
+}))
 }
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 function sleep(ms) {

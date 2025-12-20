@@ -1,0 +1,237 @@
+/**
+ * Plugin de registro para el panel
+ * Permite a los usuarios registrarse y obtener acceso al panel
+ */
+
+const ensureStore = () => {
+  if (!global.db.data.panel) global.db.data.panel = {}
+  if (!global.db.data.panel.registros) global.db.data.panel.registros = {}
+  if (!global.db.data.panel.registrosCounter) global.db.data.panel.registrosCounter = 0
+}
+
+const nextId = () => {
+  global.db.data.panel.registrosCounter = (global.db.data.panel.registrosCounter || 0) + 1
+  return global.db.data.panel.registrosCounter
+}
+
+let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
+  ensureStore()
+  const panel = global.db.data.panel
+  const user = global.db.data.users[m.sender]
+  const panelUrl = process.env.PANEL_URL || `http://localhost:${process.env.PANEL_PORT || 3001}`
+
+  switch (command) {
+    case 'reg':
+    case 'registro':
+    case 'register': {
+      // Verificar si ya está registrado
+      const existingReg = Object.values(panel.registros || {}).find(r => r.wa_jid === m.sender)
+      if (existingReg) {
+        return m.reply(`✅ *Ya estás registrado*\n\n📱 Usuario: @${m.sender.split('@')[0]}\n🆔 ID: #${existingReg.id}\n📅 Fecha: ${new Date(existingReg.fecha_registro).toLocaleDateString()}\n\n🌐 *Accede al panel:*\n${panelUrl}\n\n👤 Usuario: ${existingReg.username || 'admin'}\n🔑 Contraseña: La que configuraste o la por defecto`)
+      }
+
+      const raw = (args || []).join(' ').trim()
+      
+      if (!raw) {
+        return m.reply(`📝 *Registro en el Panel*\n\nUso: ${usedPrefix}${command} <nombre de usuario>\n\nEjemplo:\n${usedPrefix}${command} MiNombre\n\n💡 El nombre de usuario será tu identificador en el panel.`)
+      }
+
+      const username = raw.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20)
+      if (username.length < 3) {
+        return m.reply(`❌ El nombre de usuario debe tener al menos 3 caracteres alfanuméricos`)
+      }
+
+      // Verificar si el username ya existe
+      const usernameExists = Object.values(panel.registros || {}).find(r => r.username?.toLowerCase() === username.toLowerCase())
+      if (usernameExists) {
+        return m.reply(`❌ El nombre de usuario "${username}" ya está en uso. Elige otro.`)
+      }
+
+      const id = nextId()
+      const now = new Date().toISOString()
+      const registro = {
+        id,
+        wa_jid: m.sender,
+        wa_number: m.sender.split('@')[0],
+        username,
+        nombre: m.pushName || username,
+        rol: 'usuario',
+        fecha_registro: now,
+        activo: true,
+        verificado: false
+      }
+
+      panel.registros[id] = registro
+
+      // También agregar a usuarios del panel si no existe
+      if (!panel.users) panel.users = {}
+      const userId = Object.keys(panel.users).length + 1
+      panel.users[userId] = {
+        id: userId,
+        username,
+        email: '',
+        whatsapp_number: m.sender.split('@')[0],
+        rol: 'usuario',
+        fecha_registro: now,
+        activo: true
+      }
+
+      // Marcar usuario como registrado en la DB principal
+      if (user) {
+        user.registered = true
+        user.registeredAt = now
+        user.panelUsername = username
+      }
+
+      const mensaje = [
+        `✅ *¡Registro Exitoso!*`,
+        ``,
+        `📱 *Tu información:*`,
+        `• Usuario: ${username}`,
+        `• WhatsApp: ${m.sender.split('@')[0]}`,
+        `• ID: #${id}`,
+        ``,
+        `🌐 *Acceso al Panel:*`,
+        `${panelUrl}`,
+        ``,
+        `📋 *Instrucciones:*`,
+        `1. Abre el enlace del panel en tu navegador`,
+        `2. Ingresa con tu usuario: ${username}`,
+        `3. La contraseña por defecto es vacía (solo presiona Enter)`,
+        `4. Una vez dentro, puedes cambiar tu contraseña`,
+        ``,
+        `💡 *Funciones del Panel:*`,
+        `• Ver estadísticas del bot`,
+        `• Gestionar grupos`,
+        `• Ver aportes y pedidos`,
+        `• Configurar el bot`,
+        ``,
+        `¡Gracias por registrarte! 🎉`
+      ].join('\n')
+
+      // Emitir evento Socket.IO
+      try {
+        const { emitNotification } = await import('../lib/socket-io.js')
+        emitNotification({
+          type: 'success',
+          title: 'Nuevo Registro',
+          message: `${username} se ha registrado desde WhatsApp`
+        })
+      } catch {}
+
+      return conn.reply(m.chat, mensaje, m, { mentions: [m.sender] })
+    }
+
+    case 'miregistro':
+    case 'myregister':
+    case 'miperfil': {
+      const registro = Object.values(panel.registros || {}).find(r => r.wa_jid === m.sender)
+      
+      if (!registro) {
+        return m.reply(`❌ No estás registrado.\n\nUsa ${usedPrefix}reg <nombre> para registrarte.`)
+      }
+
+      const mensaje = [
+        `📋 *Tu Perfil de Registro*`,
+        ``,
+        `🆔 ID: #${registro.id}`,
+        `👤 Usuario: ${registro.username}`,
+        `📱 WhatsApp: ${registro.wa_number}`,
+        `📛 Nombre: ${registro.nombre}`,
+        `🎭 Rol: ${registro.rol}`,
+        `📅 Registrado: ${new Date(registro.fecha_registro).toLocaleDateString()}`,
+        `✅ Estado: ${registro.activo ? 'Activo' : 'Inactivo'}`,
+        ``,
+        `🌐 Panel: ${panelUrl}`
+      ].join('\n')
+
+      return m.reply(mensaje)
+    }
+
+    case 'panelinfo':
+    case 'infopanel': {
+      const totalRegistros = Object.keys(panel.registros || {}).length
+      
+      const mensaje = [
+        `🌐 *Información del Panel*`,
+        ``,
+        `📊 *Estadísticas:*`,
+        `• Usuarios registrados: ${totalRegistros}`,
+        `• Grupos: ${Object.keys(panel.groups || {}).length}`,
+        `• Aportes: ${(global.db.data.aportes || []).length}`,
+        `• Pedidos: ${Object.keys(panel.pedidos || {}).length}`,
+        ``,
+        `🔗 *Acceso:*`,
+        `${panelUrl}`,
+        ``,
+        `📝 *Comandos:*`,
+        `• ${usedPrefix}reg <nombre> - Registrarse`,
+        `• ${usedPrefix}miregistro - Ver tu perfil`,
+        `• ${usedPrefix}panelinfo - Esta información`,
+        ``,
+        `💡 Regístrate para acceder a todas las funciones del panel.`
+      ].join('\n')
+
+      return m.reply(mensaje)
+    }
+
+    case 'delreg':
+    case 'eliminarregistro': {
+      if (!isOwner) return m.reply('❌ Solo el owner puede eliminar registros')
+
+      const target = args[0]
+      if (!target) {
+        return m.reply(`Uso: ${usedPrefix}${command} <id o @usuario>`)
+      }
+
+      let registro = null
+      const mentioned = m.mentionedJid?.[0]
+
+      if (mentioned) {
+        registro = Object.values(panel.registros || {}).find(r => r.wa_jid === mentioned)
+      } else {
+        const id = parseInt(target)
+        if (id) {
+          registro = panel.registros[id]
+        } else {
+          registro = Object.values(panel.registros || {}).find(r => 
+            r.username?.toLowerCase() === target.toLowerCase() ||
+            r.wa_number === target.replace(/[^0-9]/g, '')
+          )
+        }
+      }
+
+      if (!registro) {
+        return m.reply(`❌ Registro no encontrado`)
+      }
+
+      delete panel.registros[registro.id]
+      return m.reply(`✅ Registro de ${registro.username} (#${registro.id}) eliminado`)
+    }
+
+    case 'listregs':
+    case 'registros': {
+      if (!isOwner) return m.reply('❌ Solo el owner puede ver todos los registros')
+
+      const registros = Object.values(panel.registros || {})
+      if (!registros.length) {
+        return m.reply(`📋 No hay usuarios registrados`)
+      }
+
+      const lista = registros.slice(0, 20).map((r, i) => 
+        `${i + 1}. ${r.username} (@${r.wa_number}) - ${r.rol}`
+      ).join('\n')
+
+      return m.reply(`📋 *Usuarios Registrados (${registros.length})*\n\n${lista}`)
+    }
+
+    default:
+      return null
+  }
+}
+
+handler.help = ['reg', 'registro', 'miregistro', 'panelinfo', 'delreg', 'registros']
+handler.tags = ['tools', 'panel']
+handler.command = ['reg', 'registro', 'register', 'miregistro', 'myregister', 'miperfil', 'panelinfo', 'infopanel', 'delreg', 'eliminarregistro', 'listregs', 'registros']
+
+export default handler

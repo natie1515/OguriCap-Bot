@@ -13,6 +13,8 @@ const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(function (
 clearTimeout(this)
 resolve()
 }, ms))
+// Moved outside handler for better performance
+const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
 
 export async function handler(chatUpdate) {
 this.msgqueque = this.msgqueque || []
@@ -135,15 +137,33 @@ await delay(time)
 }
  
 if (m.isBaileys) return
+global.panelApiLastSeen = new Date().toISOString()
 m.exp += Math.ceil(Math.random() * 10)
 let usedPrefix
-const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
-const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
-const userGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) === m.sender) : {}) || {}
-const botGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) == this.user.jid) : {}) || {}
-const isRAdmin = userGroup?.admin == "superadmin" || false
-const isAdmin = isRAdmin || userGroup?.admin == "admin" || false
-const isBotAdmin = botGroup?.admin || false
+
+// Optimized: Single groupMetadata call with caching
+let groupMetadata = {}
+let participants = []
+let userGroup = {}
+let botGroup = {}
+let isRAdmin = false
+let isAdmin = false
+let isBotAdmin = false
+
+if (m.isGroup) {
+const cachedMeta = conn.chats[m.chat]?.metadata
+const rawMeta = cachedMeta || await this.groupMetadata(m.chat).catch(_ => null) || {}
+groupMetadata = { ...rawMeta }
+if (rawMeta.participants) {
+groupMetadata.participants = rawMeta.participants.map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid }))
+}
+participants = (groupMetadata.participants || []).map(p => ({ id: p.jid, jid: p.jid, lid: p.lid, admin: p.admin }))
+userGroup = participants.find(u => conn.decodeJid(u.jid) === m.sender) || {}
+botGroup = participants.find(u => conn.decodeJid(u.jid) == this.user.jid) || {}
+isRAdmin = userGroup?.admin == "superadmin"
+isAdmin = isRAdmin || userGroup?.admin == "admin"
+isBotAdmin = !!botGroup?.admin
+}
 
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "./plugins")
 for (const name in global.plugins) {
@@ -168,7 +188,6 @@ if (!opts["restrict"])
 if (plugin.tags && plugin.tags.includes("admin")) {
 continue
 }
-const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
 const pluginPrefix = plugin.customPrefix || conn.prefix || global.prefix
 const match = (pluginPrefix instanceof RegExp ?
 [[pluginPrefix.exec(m.text), pluginPrefix]] :
@@ -228,21 +247,50 @@ if ((m.id.startsWith("NJX-") || (m.id.startsWith("BAE5") && m.id.length === 16) 
 
 if (global.db.data.chats[m.chat].primaryBot && global.db.data.chats[m.chat].primaryBot !== this.user.jid) {
 const primaryBotConn = global.conns.find(conn => conn.user.jid === global.db.data.chats[m.chat].primaryBot && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED)
-const participants = m.isGroup ? (await this.groupMetadata(m.chat).catch(() => ({ participants: [] }))).participants : []
+// Reuse already fetched participants instead of calling groupMetadata again
 const primaryBotInGroup = participants.some(p => p.jid === global.db.data.chats[m.chat].primaryBot)
 if (primaryBotConn && primaryBotInGroup || global.db.data.chats[m.chat].primaryBot === global.conn.user.jid) {
 throw !1
 } else {
 global.db.data.chats[m.chat].primaryBot = null
-}} else {
-}
+}}
 
 if (!isAccept) continue
 m.plugin = name
 global.db.data.users[m.sender].commands++
+// Non-blocking panel logging
+setImmediate(() => {
+try {
+const panel = global.db.data.panel
+if (panel) {
+if (!panel.logs) panel.logs = []
+if (!panel.logsCounter) panel.logsCounter = 0
+panel.logs.push({
+id: panel.logsCounter++,
+usuario: m.sender,
+comando: `${usedPrefix}${command}`,
+detalles: typeof m.text === 'string' ? m.text : '',
+grupo: m.isGroup ? m.chat : '',
+fecha: new Date().toISOString(),
+tipo: 'comando'
+})
+const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
+if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
+panel.logs.splice(0, panel.logs.length - maxLogs)
+}
+}
+} catch {}
+})
 if (chat) {
 const botId = this.user.jid
 const primaryBotId = chat.primaryBot
+const globalState = global.db?.data?.panel?.botGlobalState
+if (m.isGroup && globalState?.isOn === false && !isROwner) {
+if (!primaryBotId || primaryBotId === botId) {
+const offMsg = global.db?.data?.panel?.botGlobalOffMessage || 'El bot está desactivado globalmente por el administrador.'
+await m.reply(offMsg)
+return
+}}
 if (name !== "group-banchat.js" && chat?.isBanned && !isROwner) {
 if (!primaryBotId || primaryBotId === botId) {
 const aviso = `ꕥ El bot *${botname}* está desactivado en este grupo\n\n> ✦ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`.trim()
@@ -339,11 +387,16 @@ if (m) {
 if (m.sender && user) {
 user.exp += m.exp
 }}
+// Non-blocking print
+if (!opts["noprint"]) {
+setImmediate(async () => {
 try {
-if (!opts["noprint"]) await (await import("./lib/print.js")).default(m, this)
+const printModule = await import("./lib/print.js")
+await printModule.default(m, this)
 } catch (err) {
 console.warn(err)
-console.log(m.message)
+}
+})
 }}}
 
 global.dfail = (type, m, conn) => {
