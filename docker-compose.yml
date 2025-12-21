@@ -7,6 +7,10 @@ services:
     container_name: oguri-bot
     restart: unless-stopped
     
+    # Configuración interactiva
+    stdin_open: true
+    tty: true
+    
     # Configuración de recursos (para VPS pequeños)
     mem_limit: 512m
     memswap_limit: 1g
