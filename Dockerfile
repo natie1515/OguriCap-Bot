@@ -6,8 +6,9 @@ LABEL maintainer="melodiabl"
 LABEL description="OguriCap WhatsApp Bot with Admin Panel"
 LABEL version="1.8.2"
 
-# Instalar dependencias del sistema
+# Instalar dependencias del sistema incluyendo git
 RUN apk add --no-cache \
+    git \
     ffmpeg \
     python3 \
     make \
@@ -32,8 +33,8 @@ WORKDIR /app
 # Copiar archivos de configuración
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production && \
+# Instalar dependencias (sin --only=production para evitar conflictos)
+RUN npm install --production --force && \
     npm cache clean --force
 
 # Copiar código fuente
@@ -46,7 +47,7 @@ RUN mkdir -p logs storage/media tmp Sessions && \
 # Construir frontend si existe
 RUN if [ -d "frontend-next" ]; then \
         cd frontend-next && \
-        npm ci && \
+        npm install && \
         npm run build && \
         rm -rf node_modules && \
         cd ..; \

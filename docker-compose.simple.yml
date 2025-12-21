@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Bot principal usando Node.js directamente
+  oguri-bot:
+    image: node:20-alpine
+    container_name: oguri-bot
+    restart: unless-stopped
+    working_dir: /app
+    
+    # Configuración interactiva
+    stdin_open: true
+    tty: true
+    
+    # Comando para instalar dependencias y ejecutar
+    command: sh -c "apk add --no-cache git ffmpeg python3 make g++ && npm install --production --force && node index.js"
+    
+    # Configuración de recursos
+    mem_limit: 512m
+    cpus: '1.0'
+    
+    # Puertos
+    ports:
+      - "3001:3001"
+    
+    # Variables de entorno
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - PANEL_PORT=3001
+      - SERVER_IP=178.156.179.129
+    
+    # Volúmenes - montar código directamente
+    volumes:
+      - .:/app
+      - /app/node_modules
+    
+    # Configuración de red
+    networks:
+      - oguri-network
+
+  # Frontend Next.js
+  oguri-panel:
+    image: node:20-alpine
+    container_name: oguri-panel
+    restart: unless-stopped
+    working_dir: /app/frontend-next
+    
+    # Comando para construir y ejecutar
+    command: sh -c "npm install && npm run build && npm start"
+    
+    # Configuración de recursos
+    mem_limit: 256m
+    cpus: '0.5'
+    
+    # Puertos
+    ports:
+      - "3000:3000"
+    
+    # Variables de entorno
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://178.156.179.129:3001
+    
+    # Volúmenes
+    volumes:
+      - ./frontend-next:/app/frontend-next
+      - /app/frontend-next/node_modules
+    
+    # Dependencias
+    depends_on:
+      - oguri-bot
+    
+    # Configuración de red
+    networks:
+      - oguri-network
+
+networks:
+  oguri-network:
+    driver: bridge
