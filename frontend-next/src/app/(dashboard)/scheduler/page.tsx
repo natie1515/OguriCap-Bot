@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plus, Calendar, Clock, Send, Pause, Play, Trash2, Edit,
-  MessageSquare, Users, Repeat, AlertCircle, CheckCircle
+  MessageSquare, Repeat, AlertCircle, CheckCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -50,7 +50,8 @@ const WEEKDAYS = [
 
 export default function SchedulerPage() {
   const [messages, setMessages] = useState<ScheduledMessage[]>([]);
-  const { groups } = useGroups(); // Usar el context en lugar de cargar grupos localmente
+  const { groups: contextGroups, isLoading: groupsLoading, error: groupsError, refreshGroups } = useGroups(); // Usar el context en lugar de cargar grupos localmente
+  const [groups, setGroups] = useState<any[]>([]); // Estado local para grupos como fallback
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMessage, setEditingMessage] = useState<ScheduledMessage | null>(null);
@@ -66,11 +67,32 @@ export default function SchedulerPage() {
     enabled: true
   });
 
+  // Cargar grupos directamente como fallback (solo si es necesario)
+  const loadGroupsDirectly = async () => {
+    try {
+      const response = await api.getGroups(1, 50); // Reducir límite para evitar rate limit
+      const groupsData = response?.grupos || response?.data || [];
+      setGroups(groupsData);
+    } catch (error) {
+      // Silenciar errores de rate limit
+      if (error?.response?.status !== 429) {
+        console.error('Error loading groups:', error);
+      }
+    }
+  };
+
+  // Usar grupos del contexto si están disponibles, sino usar los cargados directamente
+  const availableGroups = contextGroups.length > 0 ? contextGroups : groups;
+
   useEffect(() => {
-    loadMessages(); // Solo cargar mensajes, los grupos vienen del context
-    const interval = setInterval(loadMessages, 60000); // Reducir frecuencia a 1 minuto
+    loadMessages();
+    // Solo cargar grupos directamente si no hay grupos del contexto
+    if (contextGroups.length === 0) {
+      loadGroupsDirectly();
+    }
+    const interval = setInterval(loadMessages, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [contextGroups.length]);
 
   const loadMessages = async () => {
     try {
@@ -472,19 +494,45 @@ export default function SchedulerPage() {
                 </div>
                 {formData.target_type === 'group' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Grupo</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
+                      Grupo {groupsLoading && <span className="text-xs">(Cargando...)</span>}
+                    </label>
                     <select
                       value={formData.target_id}
                       onChange={(e) => setFormData({ ...formData, target_id: e.target.value })}
                       className="input-glass w-full"
+                      disabled={groupsLoading}
                     >
-                      <option value="">Seleccionar grupo</option>
-                      {groups.map(group => (
+                      <option value="">
+                        {groupsLoading 
+                          ? 'Cargando grupos...' 
+                          : availableGroups.length === 0 
+                            ? 'No hay grupos disponibles' 
+                            : 'Seleccionar grupo'
+                        }
+                      </option>
+                      {availableGroups.map(group => (
                         <option key={group.wa_jid} value={group.wa_jid}>
-                          {group.nombre}
+                          {group.nombre} ({group.wa_jid})
                         </option>
                       ))}
                     </select>
+                    {groupsError && (
+                      <p className="text-xs text-red-400 mt-1">
+                        Error: {groupsError}
+                        <button 
+                          onClick={refreshGroups}
+                          className="ml-2 text-primary-400 hover:text-primary-300"
+                        >
+                          Reintentar
+                        </button>
+                      </p>
+                    )}
+                    {!groupsLoading && availableGroups.length === 0 && !groupsError && (
+                      <div className="text-xs text-amber-400 mt-1">
+                        <p>No hay grupos disponibles. Asegúrate de que el bot esté conectado a grupos de WhatsApp.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, Search, Filter, MessageSquare, Calendar, Activity,
+  Users, Search, Filter, MessageSquare, Activity,
   Crown, Shield, User, Ban, CheckCircle, Clock, TrendingUp
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
