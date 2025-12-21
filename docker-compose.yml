@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Servicio del Bot de WhatsApp (Backend)
+  whatsapp-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whatsapp-bot
+    restart: always
+    # Mapear la carpeta de sesiones a un volumen persistente en el host
+    volumes:
+      - whatsapp_sessions:/usr/src/app/Sessions
+    # Mapear el puerto interno del bot (si expone una API/Socket.io)
+    ports:
+      - "8080:8080" # Mapea el puerto 8080 del contenedor al 8080 del host
+    environment:
+      NODE_ENV: production
+    # Para la primera ejecución, se puede comentar 'restart: always' para ver el QR
+    # y luego descomentarlo para la ejecución 24/7.
+
+  # Servicio del Panel de Administración (Frontend)
+  admin-panel:
+    build:
+      context: ./frontend-next
+      dockerfile: Dockerfile
+    container_name: admin-panel
+    restart: always
+    # Mapear el puerto interno del panel (3000) al host
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      # Si el panel necesita saber dónde está el bot, configúralo aquí
+      # NEXT_PUBLIC_BOT_API_URL: http://whatsapp-bot:8080
+
+volumes:
+  whatsapp_sessions:
+    driver: local
