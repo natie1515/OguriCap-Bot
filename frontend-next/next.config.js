@@ -71,8 +71,8 @@ const nextConfig = {
     ];
   },
   
-  // Configuración de output para producción
-  output: 'standalone',
+  // Configuración de output para producción (comentado para Docker)
+  // output: 'standalone',
   
   // Configuración de compresión
   compress: true,
