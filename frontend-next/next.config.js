@@ -2,6 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Configuración de webpack para resolver paths
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    };
+    return config;
+  },
+  
   // Configuración para acceso público
   experimental: {
     serverComponentsExternalPackages: [],
