@@ -29,6 +29,9 @@ services:
       dockerfile: Dockerfile
     container_name: admin-panel
     restart: always
+    # Configuración para interactividad completa
+    stdin_open: true    # -i flag (interactive)
+    tty: true          # -t flag (TTY)
     # Mapear el puerto interno del panel (3000) al puerto 80 del host (sin puerto en URL)
     ports:
       - "80:3000"
