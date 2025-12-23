@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Search, RefreshCw, Shield, UserCheck, Mail, Phone, Calendar,
-  CheckCircle, Edit, Plus, Trash2, X, Key,
+  CheckCircle, Edit, Plus, Trash2, X, Key, Eye,
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -25,6 +25,8 @@ export default function UsuariosPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showViewPasswordModal, setShowViewPasswordModal] = useState(false);
+  const [viewPasswordData, setViewPasswordData] = useState<{username: string, password: string, isDefault: boolean} | null>(null);
   const [newRole, setNewRole] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState({ username: '', password: '', rol: 'usuario', whatsapp_number: '' });
@@ -135,7 +137,22 @@ export default function UsuariosPage() {
     setShowPasswordModal(true);
   };
 
+  const handleViewPassword = async (user: User) => {
+    try {
+      const response = await api.viewUsuarioPassword(user.id);
+      setViewPasswordData(response);
+      setShowViewPasswordModal(true);
+    } catch (err: any) {
+      if (err?.response?.status === 403) {
+        toast.error('Solo los owners pueden ver contraseñas');
+      } else {
+        toast.error('Error al obtener contraseña');
+      }
+    }
+  };
+
   const canCreateOwner = () => currentUser?.rol === 'owner';
+  const canViewPasswords = () => currentUser?.rol === 'owner';
   const canEditUser = (user: User) => {
     if (currentUser?.rol === 'owner') return true;
     if (currentUser?.rol === 'admin' && user.rol !== 'owner') return true;
@@ -321,13 +338,24 @@ export default function UsuariosPage() {
                       </td>
                       <td>
                         <div className="flex items-center gap-2">
+                          {canViewPasswords() && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleViewPassword(user)}
+                              className="p-2 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors"
+                              title="Ver contraseña"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                          )}
                           {canEditUser(user) && (
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handlePasswordUser(user)}
                               className="p-2 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors"
-                              title="Gestionar contraseña"
+                              title="Cambiar contraseña"
                             >
                               <Key className="w-4 h-4" />
                             </motion.button>
@@ -478,6 +506,45 @@ export default function UsuariosPage() {
             </Button>
             <Button variant="secondary" className="flex-1" onClick={() => setShowPasswordModal(false)}>
               Cancelar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* View Password Modal */}
+      <Modal isOpen={showViewPasswordModal} onClose={() => setShowViewPasswordModal(false)} title="Ver Contraseña">
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-white/5">
+            <p className="text-sm text-gray-400">Usuario</p>
+            <p className="text-white font-medium">{viewPasswordData?.username}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <p className="text-sm text-gray-400 mb-2">Contraseña Actual</p>
+            <div className="flex items-center justify-between">
+              <p className="text-white font-mono text-lg">{viewPasswordData?.password}</p>
+              <Button 
+                variant="secondary" 
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(viewPasswordData?.password || '');
+                  toast.success('Contraseña copiada al portapapeles');
+                }}
+              >
+                Copiar
+              </Button>
+            </div>
+            {viewPasswordData?.isDefault && (
+              <p className="text-amber-400 text-xs mt-2">⚠️ Esta es la contraseña por defecto</p>
+            )}
+          </div>
+          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <p className="text-xs text-yellow-400">
+              🔒 Solo los owners pueden ver las contraseñas de los usuarios. Esta información es sensible y debe manejarse con cuidado.
+            </p>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button variant="secondary" className="w-full" onClick={() => setShowViewPasswordModal(false)}>
+              Cerrar
             </Button>
           </div>
         </div>
