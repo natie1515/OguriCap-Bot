@@ -51,6 +51,12 @@ const nextConfig = {
   
   // Configuración de rewrites para API
   async rewrites() {
+    // En producción con Docker, las rutas API van directamente a nginx
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+    
+    // Solo en desarrollo, redirigir a localhost:8080
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     
     return [

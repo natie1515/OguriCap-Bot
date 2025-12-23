@@ -10,6 +10,7 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useSocket } from '@/contexts/SocketContext';
+import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
@@ -47,6 +48,7 @@ export default function SubbotsPage() {
   const [currentPairingSubbot, setCurrentPairingSubbot] = useState<string | null>(null);
 
   const { isConnected: isSocketConnected, socket } = useSocket();
+  const { isGloballyOn } = useBotGlobalState();
 
   // Socket events
   useEffect(() => {
@@ -279,6 +281,9 @@ export default function SubbotsPage() {
   };
 
   const getStatusColor = (status: string, isOnline: boolean) => {
+    // Si el bot está globalmente desactivado, mostrar como deshabilitado
+    if (!isGloballyOn) return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    
     if (isOnline) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
     if (status === 'activo') return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
     if (status === 'error') return 'bg-red-500/20 text-red-400 border-red-500/30';
@@ -286,6 +291,9 @@ export default function SubbotsPage() {
   };
 
   const getStatusText = (status: string, isOnline: boolean) => {
+    // Si el bot está globalmente desactivado, mostrar estado global
+    if (!isGloballyOn) return 'Bot Desactivado';
+    
     if (isOnline) return 'Conectado';
     if (status === 'activo') return 'Activo';
     if (status === 'inactivo') return 'Inactivo';
