@@ -368,8 +368,15 @@ class ApiService {
   }
 
   // AI
-  async sendAIMessage(data: { message: string; model: string; context?: string }) {
-    const response = await this.api.post('/api/ai/chat', data);
+  async sendAIMessage(data: { message: string; model?: string; sessionId?: string }) {
+    // Crear una sesión si no se proporciona
+    const sessionId = data.sessionId || `session-${Date.now()}`;
+    
+    // Usar el endpoint real de IA
+    const response = await this.api.post(`/api/chat/sessions/${sessionId}/messages`, {
+      message: data.message,
+      model: data.model || 'gpt-3.5-turbo'
+    });
     return response.data;
   }
 

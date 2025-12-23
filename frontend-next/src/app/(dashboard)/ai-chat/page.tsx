@@ -52,7 +52,7 @@ export default function AiChatPage() {
       const assistantMessage: Message = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: response.response || response.message || 'Sin respuesta',
+        content: response.response || response.content || 'Sin respuesta',
         timestamp: new Date(),
       };
 
