@@ -26,6 +26,7 @@ export default function GruposPage() {
   const [pagination, setPagination] = useState<any>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<any>(null);
+  const [globalBotState, setGlobalBotState] = useState<boolean>(true);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -42,10 +43,15 @@ export default function GruposPage() {
 
   const checkConnectionStatus = useCallback(async () => {
     try {
-      const response = await api.getMainBotStatus();
+      const [response, globalState] = await Promise.all([
+        api.getMainBotStatus(),
+        api.getBotGlobalState()
+      ]);
       setConnectionStatus(response);
+      setGlobalBotState(globalState?.isOn !== false);
     } catch (err) {
       console.error('Error checking connection status:', err);
+      setGlobalBotState(false);
     }
   }, []);
 
@@ -93,13 +99,32 @@ export default function GruposPage() {
 
   const stats = {
     total: pagination?.total || groups.length,
-    botActivo: groups.filter(g => g.bot_enabled).length,
-    botInactivo: groups.filter(g => !g.bot_enabled).length,
+    botActivo: globalBotState ? groups.filter(g => g.bot_enabled).length : 0,
+    botInactivo: globalBotState ? groups.filter(g => !g.bot_enabled).length : groups.length,
     proveedores: groups.filter(g => g.es_proveedor).length,
   };
 
   return (
     <div className="space-y-6">
+      {/* Banner de estado global */}
+      {!globalBotState && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-500/10 border border-red-500/20 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <PowerOff className="w-5 h-5 text-red-400" />
+            <div>
+              <p className="text-red-400 font-medium">Bot Apagado Globalmente</p>
+              <p className="text-red-300/70 text-sm">
+                El bot está desactivado en todos los grupos. Los toggles individuales no funcionarán hasta que se reactive globalmente.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
@@ -253,8 +278,15 @@ export default function GruposPage() {
 
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm ${group.bot_enabled ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {group.bot_enabled ? 'Bot Activo' : 'Bot Inactivo'}
+                      <span className={`text-sm ${
+                        globalBotState && group.bot_enabled 
+                          ? 'text-emerald-400' 
+                          : 'text-red-400'
+                      }`}>
+                        {globalBotState 
+                          ? (group.bot_enabled ? 'Bot Activo' : 'Bot Inactivo')
+                          : 'Bot Apagado (Global)'
+                        }
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -272,17 +304,32 @@ export default function GruposPage() {
                         <Star className="w-4 h-4" />
                       </motion.button>
                       <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => toggleBot(group)}
+                        whileHover={{ scale: globalBotState ? 1.1 : 1 }}
+                        whileTap={{ scale: globalBotState ? 0.9 : 1 }}
+                        onClick={() => globalBotState ? toggleBot(group) : toast.error('El bot está apagado globalmente')}
+                        disabled={!globalBotState}
                         className={`p-2 rounded-lg transition-colors ${
-                          group.bot_enabled
+                          !globalBotState
+                            ? 'text-gray-500 bg-gray-500/10 cursor-not-allowed opacity-50'
+                            : group.bot_enabled
                             ? 'text-emerald-400 bg-emerald-500/10'
                             : 'text-red-400 bg-red-500/10'
                         }`}
-                        title={group.bot_enabled ? 'Desactivar bot' : 'Activar bot'}
+                        title={
+                          !globalBotState 
+                            ? 'Bot apagado globalmente' 
+                            : group.bot_enabled 
+                            ? 'Desactivar bot' 
+                            : 'Activar bot'
+                        }
                       >
-                        {group.bot_enabled ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
+                        {!globalBotState ? (
+                          <PowerOff className="w-4 h-4" />
+                        ) : group.bot_enabled ? (
+                          <Power className="w-4 h-4" />
+                        ) : (
+                          <PowerOff className="w-4 h-4" />
+                        )}
                       </motion.button>
                     </div>
                   </div>

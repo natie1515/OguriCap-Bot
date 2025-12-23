@@ -48,6 +48,7 @@ export default function GruposManagementPage() {
   const [selectedNotification, setSelectedNotification] = useState<GlobalNotification | null>(null);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [globalBotState, setGlobalBotState] = useState<boolean>(true);
   const [isShutdownModalOpen, setIsShutdownModalOpen] = useState(false);
   const [togglingGroup, setTogglingGroup] = useState<string | null>(null);
   const [isShuttingDown, setIsShuttingDown] = useState(false);
@@ -58,16 +59,19 @@ export default function GruposManagementPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Solo cargar notificaciones, los grupos vienen del context
-      const [notifRes, statsRes] = await Promise.all([
+      // Solo cargar notificaciones y estado global, los grupos vienen del context
+      const [notifRes, statsRes, globalState] = await Promise.all([
         api.getNotificaciones(1, 50).catch(() => ({ data: [] })),
-        api.getNotificationStats().catch(() => ({ total: 0 }))
+        api.getNotificationStats().catch(() => ({ total: 0 })),
+        api.getBotGlobalState().catch(() => ({ isOn: true }))
       ]);
       setGroups(contextGroups); // Usar grupos del context
       setNotifications(notifRes.data || []);
       setNotificationStats(statsRes);
+      setGlobalBotState(globalState?.isOn !== false);
     } catch (error) {
       toast.error('Error al cargar datos');
+      setGlobalBotState(false);
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +84,11 @@ export default function GruposManagementPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleToggleGroup = async (group: Group) => {
+    if (!globalBotState) {
+      toast.error('El bot está apagado globalmente');
+      return;
+    }
+    
     const isActive = group.bot_enabled;
     setTogglingGroup(group.wa_jid);
     try {
@@ -108,6 +117,7 @@ export default function GruposManagementPage() {
     setIsShuttingDown(true);
     try {
       await api.setBotGlobalState(false);
+      setGlobalBotState(false); // Actualizar estado local
       
       // Crear notificación automática
       await api.createNotification({
@@ -131,6 +141,7 @@ export default function GruposManagementPage() {
     setIsStartingUp(true);
     try {
       await api.setBotGlobalState(true);
+      setGlobalBotState(true); // Actualizar estado local
       
       // Crear notificación automática
       await api.createNotification({
@@ -149,8 +160,8 @@ export default function GruposManagementPage() {
     }
   };
 
-  const activeGroups = groups.filter(g => g.bot_enabled).length;
-  const inactiveGroups = groups.length - activeGroups;
+  const activeGroups = globalBotState ? groups.filter(g => g.bot_enabled).length : 0;
+  const inactiveGroups = globalBotState ? groups.length - activeGroups : groups.length;
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleString('es-ES', { 
