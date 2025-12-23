@@ -48,7 +48,52 @@ class ApiService {
           
           // Solo redirigir a mantenimiento si no es administrador
           if (!isAdmin && window.location.pathname !== '/maintenance') {
-            window.location.href = '/maintenance'
+            // Mostrar notificación antes de redirigir
+            if (typeof window !== 'undefined' && window.location.pathname !== '/maintenance') {
+              // Crear una notificación temporal
+              const notification = document.createElement('div')
+              notification.innerHTML = `
+                <div style="
+                  position: fixed; 
+                  top: 20px; 
+                  right: 20px; 
+                  background: rgba(249, 115, 22, 0.95); 
+                  color: white; 
+                  padding: 16px 20px; 
+                  border-radius: 12px; 
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                  z-index: 10000;
+                  font-family: system-ui, -apple-system, sans-serif;
+                  font-size: 14px;
+                  max-width: 300px;
+                  backdrop-filter: blur(10px);
+                  border: 1px solid rgba(249, 115, 22, 0.3);
+                ">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C13.1 2 14 2.9 14 4V8C14 9.1 13.1 10 12 10S10 9.1 10 8V4C10 2.9 10.9 2 12 2M21 9V7L19 8L21 9M3 9L5 8L3 7V9M12 11C13.1 11 14 11.9 14 13V17C14 18.1 13.1 19 12 19S10 18.1 10 17V13C10 11.9 10.9 11 12 11Z"/>
+                    </svg>
+                    <strong>Sistema en Mantenimiento</strong>
+                  </div>
+                  <div style="font-size: 12px; opacity: 0.9;">
+                    Redirigiendo a la página de mantenimiento...
+                  </div>
+                </div>
+              `
+              document.body.appendChild(notification)
+              
+              // Remover la notificación después de 3 segundos
+              setTimeout(() => {
+                if (notification.parentNode) {
+                  notification.parentNode.removeChild(notification)
+                }
+              }, 3000)
+            }
+            
+            // Redirigir después de un breve delay
+            setTimeout(() => {
+              window.location.href = '/maintenance'
+            }, 1500)
           }
         }
         return Promise.reject(error)

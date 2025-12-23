@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wrench, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
+import { Wrench, RefreshCw, Clock, AlertTriangle, Bot, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function MaintenancePage() {
   const [isChecking, setIsChecking] = useState(false);
+  const [lastCheck, setLastCheck] = useState<Date | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
 
   const checkStatus = async () => {
     setIsChecking(true);
@@ -14,12 +16,17 @@ export default function MaintenancePage() {
       const response = await fetch('/api/health');
       const data = await response.json();
       
+      setLastCheck(new Date());
+      setIsOnline(true);
+      
       if (response.ok && !data.maintenanceMode) {
         // El mantenimiento terminó, redirigir al dashboard
         window.location.href = '/';
       }
     } catch (error) {
       console.error('Error checking maintenance status:', error);
+      setIsOnline(false);
+      setLastCheck(new Date());
     } finally {
       setIsChecking(false);
     }
@@ -31,70 +38,170 @@ export default function MaintenancePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Verificar estado de conexión
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const formatLastCheck = () => {
+    if (!lastCheck) return 'Nunca';
+    return lastCheck.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen mesh-bg flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
+          transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{ x: [0, -100, 0], y: [0, 50, 0] }}
+          transition={{ repeat: Infinity, duration: 25, ease: 'linear' }}
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl"
+        />
+      </div>
+
+      <div className="max-w-lg w-full relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 text-center"
+          className="glass-card p-8 text-center"
         >
-          {/* Icono animado */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 mx-auto mb-6 bg-orange-500/20 rounded-full flex items-center justify-center"
-          >
-            <Wrench className="w-8 h-8 text-orange-400" />
-          </motion.div>
+          {/* Logo y icono animado */}
+          <div className="flex items-center justify-center mb-6">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mr-4"
+            >
+              <Wrench className="w-8 h-8 text-orange-400" />
+            </motion.div>
+            <div className="text-left">
+              <div className="flex items-center gap-2 mb-1">
+                <Bot className="w-6 h-6 text-primary-400" />
+                <span className="text-xl font-bold gradient-text">Oguri Bot</span>
+              </div>
+              <p className="text-sm text-gray-400">Panel de Control</p>
+            </div>
+          </div>
 
           {/* Título */}
-          <h1 className="text-2xl font-bold text-white mb-4">
+          <h1 className="text-3xl font-bold text-white mb-4">
             Sistema en Mantenimiento
           </h1>
 
           {/* Descripción */}
           <p className="text-gray-300 mb-6 leading-relaxed">
-            Estamos realizando mejoras en el sistema para brindarte una mejor experiencia. 
+            Estamos realizando mejoras importantes en el sistema para brindarte una mejor experiencia. 
             El servicio estará disponible nuevamente en breve.
           </p>
 
+          {/* Estado de conexión */}
+          <div className="flex items-center justify-center mb-6">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+              isOnline 
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}>
+              {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+              {isOnline ? 'Conectado' : 'Sin conexión'}
+            </div>
+          </div>
+
           {/* Información adicional */}
-          <div className="bg-gray-700/30 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-center text-gray-400 mb-2">
+          <div className="bg-white/5 rounded-xl p-4 mb-6 space-y-3">
+            <div className="flex items-center justify-center text-gray-400">
               <Clock className="w-4 h-4 mr-2" />
               <span className="text-sm">Tiempo estimado: Unos minutos</span>
             </div>
             <div className="flex items-center justify-center text-gray-400">
               <AlertTriangle className="w-4 h-4 mr-2" />
-              <span className="text-sm">Disculpa las molestias</span>
+              <span className="text-sm">Disculpa las molestias ocasionadas</span>
             </div>
+            {lastCheck && (
+              <div className="flex items-center justify-center text-gray-500 text-xs pt-2 border-t border-white/10">
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Última verificación: {formatLastCheck()}
+              </div>
+            )}
           </div>
 
           {/* Botón de verificar */}
           <Button
             onClick={checkStatus}
             disabled={isChecking}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            variant="primary"
+            className="w-full mb-4"
           >
             {isChecking ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Verificando...
+                Verificando estado...
               </>
             ) : (
               <>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Verificar Estado
+                Verificar Estado del Sistema
               </>
             )}
           </Button>
 
+          {/* Información adicional */}
+          <div className="text-xs text-gray-500 space-y-1">
+            <p>El sistema se verifica automáticamente cada 30 segundos</p>
+            <p>Serás redirigido automáticamente cuando termine el mantenimiento</p>
+          </div>
+
           {/* Footer */}
-          <p className="text-xs text-gray-500 mt-6">
-            © 2025 Oguri Bot Panel - Sistema de Gestión
-          </p>
+          <div className="mt-8 pt-6 border-t border-white/10">
+            <p className="text-xs text-gray-500">
+              © 2025 Oguri Bot Panel - Sistema de Gestión Avanzado
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Indicador de progreso */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="mt-6 text-center"
+        >
+          <div className="flex justify-center space-x-1">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 1, 0.5]
+                }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  delay: i * 0.2 
+                }}
+                className="w-2 h-2 bg-orange-400 rounded-full"
+              />
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Trabajando en las mejoras...</p>
         </motion.div>
       </div>
     </div>
