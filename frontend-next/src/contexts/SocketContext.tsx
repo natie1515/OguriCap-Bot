@@ -79,7 +79,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // En producción, usar el dominio configurado con HTTPS
     // En desarrollo, usar localhost
     const serverUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://OguriCap.ooguy.com'
+      ? 'https://oguricap.ooguy.com'
       : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080');
     
     const newSocket = io(serverUrl, {

@@ -16,7 +16,7 @@ services:
       - ./logs:/usr/src/app/logs
 
     expose:
-      - "8080"
+      - "3001"
 
     command: node index.js
 
