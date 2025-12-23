@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Save, RefreshCw, Bot, Bell, Shield, Database, Cpu, HardDrive, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RefreshCw, Bot, Bell, Shield, Database, Cpu, HardDrive, Clock, AlertCircle, CheckCircle, Wrench } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect as Select } from '@/components/ui/Select';
@@ -28,6 +28,9 @@ export default function SettingsPage() {
     debugMode: false,
     apiRateLimit: 100,
     fileUploadLimit: 10,
+    adminIPs: [],
+    allowLocalhost: true,
+    currentIP: '',
   });
 
   const [globalOffMessage, setGlobalOffMessage] = useState('El bot está desactivado globalmente por el administrador.');
@@ -38,14 +41,20 @@ export default function SettingsPage() {
 
   const loadConfigs = async () => {
     try {
-      const [msgRes, statsRes, botConfigRes] = await Promise.all([
+      const [msgRes, statsRes, botConfigRes, systemConfigRes] = await Promise.all([
         api.getBotGlobalOffMessage().catch(() => ({ message: '' })),
         api.getSystemStats().catch(() => ({})),
-        api.getBotConfig().catch(() => ({}))
+        api.getBotConfig().catch(() => ({})),
+        api.getSystemConfig().catch(() => ({}))
       ]);
       
       if (msgRes?.message) setGlobalOffMessage(msgRes.message);
       setSystemStats(statsRes);
+      
+      // Cargar configuración del sistema
+      if (systemConfigRes) {
+        setSystemConfig(prev => ({ ...prev, ...systemConfigRes }));
+      }
       
       // Cargar configuración del bot si existe
       if (botConfigRes) {
@@ -85,8 +94,19 @@ export default function SettingsPage() {
     }
   };
 
-  const saveBotConfig = async () => {
+  const addCurrentIP = async () => {
     setSaving(true);
+    try {
+      const result = await api.addCurrentIPAsAdmin();
+      toast.success(`IP ${result.addedIP} agregada como administrador`);
+      // Recargar configuración
+      loadConfigs();
+    } catch (err) {
+      toast.error('Error al agregar IP');
+    } finally {
+      setSaving(false);
+    }
+  };
     try {
       // Guardar configuración real del bot en el backend
       await api.updateBotConfig(botConfig);
@@ -243,9 +263,15 @@ export default function SettingsPage() {
               <div>
                 <p className="font-medium text-white">Modo Mantenimiento</p>
                 <p className="text-xs text-gray-500">Desactiva el acceso al panel temporalmente</p>
+                {systemConfig.maintenanceMode && (
+                  <div className="flex items-center mt-1 text-orange-400 text-xs">
+                    <Wrench className="w-3 h-3 mr-1" />
+                    <span>Activo - Solo administradores pueden acceder</span>
+                  </div>
+                )}
               </div>
               <button onClick={() => setSystemConfig({ ...systemConfig, maintenanceMode: !systemConfig.maintenanceMode })}
-                className={`relative w-14 h-7 rounded-full transition-colors ${systemConfig.maintenanceMode ? 'bg-emerald-500' : 'bg-gray-600'}`}>
+                className={`relative w-14 h-7 rounded-full transition-colors ${systemConfig.maintenanceMode ? 'bg-orange-500' : 'bg-gray-600'}`}>
                 <motion.div animate={{ x: systemConfig.maintenanceMode ? 28 : 2 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md" />
               </button>
@@ -270,6 +296,50 @@ export default function SettingsPage() {
             <Button variant="primary" className="w-full" icon={<Save className="w-4 h-4" />} onClick={saveSystemConfig} loading={saving}>
               Guardar Configuración
             </Button>
+          </div>
+        </Card>
+
+        {/* Admin IPs Management */}
+        <Card animated delay={0.55} className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400"><Shield className="w-5 h-5" /></div>
+            <h2 className="text-lg font-semibold text-white">IPs de Administradores</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-white/5">
+              <p className="text-sm text-gray-400 mb-2">Tu IP actual:</p>
+              <p className="text-white font-mono text-lg">{systemConfig.currentIP || 'Cargando...'}</p>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="mt-2" 
+                onClick={addCurrentIP}
+                loading={saving}
+              >
+                Agregar como IP de administrador
+              </Button>
+            </div>
+            
+            {systemConfig.adminIPs && systemConfig.adminIPs.length > 0 && (
+              <div>
+                <p className="text-sm text-gray-400 mb-2">IPs permitidas durante mantenimiento:</p>
+                <div className="space-y-2">
+                  {systemConfig.adminIPs.map((ip, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                      <span className="text-white font-mono">{ip}</span>
+                      <span className="text-xs text-green-400">✓ Permitida</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <p className="text-xs text-yellow-400">
+                💡 Las IPs agregadas aquí podrán acceder al panel incluso durante el modo mantenimiento.
+                Localhost (127.0.0.1) está permitido por defecto.
+              </p>
+            </div>
           </div>
         </Card>
       </div>

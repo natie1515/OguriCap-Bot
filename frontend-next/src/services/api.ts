@@ -32,6 +32,23 @@ class ApiService {
           localStorage.removeItem('token')
           if (window.location.pathname !== '/login') window.location.href = '/login'
         }
+        if (error.response?.status === 503 && error.response?.data?.maintenanceMode && typeof window !== 'undefined') {
+          // Verificar si el usuario es administrador antes de redirigir
+          const userStr = localStorage.getItem('user')
+          let isAdmin = false
+          
+          if (userStr) {
+            try {
+              const user = JSON.parse(userStr)
+              isAdmin = ['owner', 'admin', 'administrador'].includes(user.rol)
+            } catch {}
+          }
+          
+          // Solo redirigir a mantenimiento si no es administrador
+          if (!isAdmin && window.location.pathname !== '/maintenance') {
+            window.location.href = '/maintenance'
+          }
+        }
         return Promise.reject(error)
       }
     )
@@ -394,8 +411,18 @@ class ApiService {
     return response.data;
   }
 
+  async getSystemConfig() {
+    const response = await this.api.get('/api/system/config');
+    return response.data;
+  }
+
   async updateSystemConfig(config: any) {
     const response = await this.api.patch('/api/system/config', config);
+    return response.data;
+  }
+
+  async addCurrentIPAsAdmin() {
+    const response = await this.api.post('/api/system/add-admin-ip');
     return response.data;
   }
 
