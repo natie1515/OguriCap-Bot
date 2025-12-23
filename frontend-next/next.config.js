@@ -9,14 +9,6 @@ const nextConfig = {
       '@': require('path').resolve(__dirname, 'src'),
     };
     
-    // Optimizaciones para Framer Motion en producción
-    if (!dev && !isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'framer-motion': 'framer-motion/dist/framer-motion',
-      };
-    }
-    
     return config;
   },
   

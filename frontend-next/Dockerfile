@@ -1,18 +1,27 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+# Copy package files
 COPY package.json package-lock.json ./
-RUN npm ci
 
+# Clean install dependencies
+RUN npm ci --only=production=false
+
+# Copy source code
 COPY . .
+
+# Build the application
 RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=build /app/package.json ./
-COPY --from=build /app/node_modules ./node_modules
+# Copy package.json and install production dependencies
+COPY package.json package-lock.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.* ./ 2>/dev/null || true
