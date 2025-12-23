@@ -8,9 +8,7 @@ import { BotGlobalStateProvider } from '@/contexts/BotGlobalStateContext';
 import { GlobalUpdateProvider } from '@/contexts/GlobalUpdateContext';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { MaintenanceBanner } from '@/components/ui/MaintenanceBanner';
-import { GlobalUpdateIndicator } from '@/components/ui/GlobalUpdateIndicator';
 import { motion } from 'framer-motion';
-import { Bot } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -55,7 +53,7 @@ export default function DashboardLayout({
         <GroupsProvider>
           <div className="min-h-screen">
             <MaintenanceBanner />
-            <GlobalUpdateIndicator />
+            {/* <GlobalUpdateIndicator /> */}
             <MainLayout>{children}</MainLayout>
           </div>
         </GroupsProvider>
