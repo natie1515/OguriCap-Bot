@@ -76,7 +76,11 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [lastSubbotEvent, setLastSubbotEvent] = useState<SubbotEvent | null>(null);
 
   useEffect(() => {
-    const serverUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    // En producción (Docker), usar la URL actual del navegador
+    // En desarrollo, usar localhost:8080
+    const serverUrl = process.env.NODE_ENV === 'production' 
+      ? window.location.origin 
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080');
     
     const newSocket = io(serverUrl, {
       transports: ['websocket', 'polling'],
