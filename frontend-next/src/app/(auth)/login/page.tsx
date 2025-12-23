@@ -6,38 +6,112 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
-import { Bot, Eye, EyeOff, Lock, User, Sparkles, Zap, Shield } from 'lucide-react';
+import { Bot, Eye, EyeOff, Lock, User, Sparkles, Zap, Shield, Crown, UserCheck, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
+  const roles = [
+    { 
+      value: 'owner', 
+      label: 'Owner', 
+      icon: Crown, 
+      color: 'text-violet-400',
+      bgColor: 'bg-violet-500/20',
+      borderColor: 'border-violet-500/30',
+      description: 'Acceso completo al sistema'
+    },
+    { 
+      value: 'admin', 
+      label: 'Administrador', 
+      icon: Shield, 
+      color: 'text-red-400',
+      bgColor: 'bg-red-500/20',
+      borderColor: 'border-red-500/30',
+      description: 'Gestión avanzada del bot'
+    },
+    { 
+      value: 'moderador', 
+      label: 'Moderador', 
+      icon: UserCheck, 
+      color: 'text-cyan-400',
+      bgColor: 'bg-cyan-500/20',
+      borderColor: 'border-cyan-500/30',
+      description: 'Moderación de contenido'
+    },
+    { 
+      value: 'usuario', 
+      label: 'Usuario', 
+      icon: Users, 
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/20',
+      borderColor: 'border-emerald-500/30',
+      description: 'Acceso básico al panel'
+    }
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validaciones mejoradas
     if (!username.trim()) {
-      toast.error('Ingresa tu nombre de usuario');
+      toast.error('El nombre de usuario es requerido');
+      return;
+    }
+
+    if (username.trim().length < 3) {
+      toast.error('El usuario debe tener al menos 3 caracteres');
       return;
     }
 
     if (!password.trim()) {
-      toast.error('Ingresa tu contraseña');
+      toast.error('La contraseña es requerida');
+      return;
+    }
+
+    if (password.length < 4) {
+      toast.error('La contraseña debe tener al menos 4 caracteres');
+      return;
+    }
+
+    if (!selectedRole) {
+      toast.error('Debes seleccionar un rol para continuar');
       return;
     }
 
     setIsLoading(true);
     try {
-      await login(username, password);
-      toast.success('¡Bienvenido!');
+      await login(username.trim(), password, selectedRole);
+      const selectedRoleData = roles.find(r => r.value === selectedRole);
+      toast.success(`¡Bienvenido como ${selectedRoleData?.label}!`);
       router.push('/');
     } catch (error: any) {
-      toast.error(error?.message || 'Error al iniciar sesión');
+      console.error('Login error:', error);
+      
+      // Manejo de errores mejorado
+      let errorMessage = 'Error al iniciar sesión';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.status === 401) {
+        errorMessage = 'Credenciales incorrectas';
+      } else if (error?.response?.status === 403) {
+        errorMessage = 'No tienes permisos para este rol';
+      } else if (error?.response?.status >= 500) {
+        errorMessage = 'Error del servidor. Inténtalo más tarde';
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +255,57 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-3">
+                    Rol de Acceso <span className="text-red-400">*</span>
+                  </label>
+                  {!selectedRole && (
+                    <p className="text-xs text-amber-400 mb-3 flex items-center gap-1">
+                      <span>⚠️</span> Selecciona el rol con el que deseas acceder
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    {roles.map((role) => {
+                      const IconComponent = role.icon;
+                      const isSelected = selectedRole === role.value;
+                      
+                      return (
+                        <motion.button
+                          key={role.value}
+                          type="button"
+                          onClick={() => setSelectedRole(role.value)}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 text-left ${
+                            isSelected 
+                              ? `${role.bgColor} ${role.borderColor} shadow-lg` 
+                              : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <IconComponent className={`w-4 h-4 ${isSelected ? role.color : 'text-gray-400'}`} />
+                            <span className={`font-medium text-sm ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                              {role.label}
+                            </span>
+                          </div>
+                          <p className={`text-xs ${isSelected ? 'text-gray-300' : 'text-gray-500'}`}>
+                            {role.description}
+                          </p>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                  {selectedRole && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-xs text-emerald-400 mt-2 flex items-center gap-1"
+                    >
+                      <span>✓</span> Accederás como {roles.find(r => r.value === selectedRole)?.label}
+                    </motion.p>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between text-sm">
                   <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
                     <input
@@ -198,8 +323,14 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                <Button type="submit" variant="primary" className="w-full" loading={isLoading}>
-                  Iniciar Sesión
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  className={`w-full ${!selectedRole ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  loading={isLoading}
+                  disabled={!selectedRole || isLoading}
+                >
+                  {!selectedRole ? 'Selecciona un rol para continuar' : 'Iniciar Sesión'}
                 </Button>
               </form>
             </motion.div>

@@ -29,7 +29,12 @@ export default function UsuariosPage() {
   const [viewPasswordData, setViewPasswordData] = useState<{username: string, password: string, isDefault: boolean} | null>(null);
   const [newRole, setNewRole] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
-  const [newUser, setNewUser] = useState({ username: '', password: '', rol: 'usuario', whatsapp_number: '' });
+  const [newUser, setNewUser] = useState({ 
+    username: '', 
+    password: '', 
+    rol: '', // Sin rol por defecto
+    whatsapp_number: '' 
+  });
 
   useEffect(() => {
     loadUsers();
@@ -83,18 +88,61 @@ export default function UsuariosPage() {
 
   const createUser = async () => {
     try {
-      if (!newUser.username || !newUser.password) {
-        toast.error('Usuario y contraseña son requeridos');
+      // Validaciones mejoradas
+      if (!newUser.username.trim()) {
+        toast.error('El nombre de usuario es requerido');
         return;
       }
+
+      if (newUser.username.trim().length < 3) {
+        toast.error('El usuario debe tener al menos 3 caracteres');
+        return;
+      }
+
+      if (!newUser.password.trim()) {
+        toast.error('La contraseña es requerida');
+        return;
+      }
+
+      if (newUser.password.length < 4) {
+        toast.error('La contraseña debe tener al menos 4 caracteres');
+        return;
+      }
+
+      if (!newUser.rol) {
+        toast.error('Debes seleccionar un rol para el usuario');
+        return;
+      }
+
+      // Verificar permisos para crear el rol seleccionado
+      const currentUserRole = currentUser?.rol || 'usuario';
+      const roleHierarchy = { owner: 4, admin: 3, administrador: 3, moderador: 2, usuario: 1 };
+      const currentUserLevel = roleHierarchy[currentUserRole] || 1;
+      const newUserLevel = roleHierarchy[newUser.rol] || 1;
+
+      if (newUserLevel > currentUserLevel) {
+        toast.error(`No tienes permisos para crear usuarios con rol ${newUser.rol}`);
+        return;
+      }
+
       await api.createUsuario(newUser as any);
-      toast.success('Usuario creado correctamente');
+      toast.success(`Usuario creado correctamente como ${newUser.rol}`);
       setShowCreateModal(false);
-      setNewUser({ username: '', password: '', rol: 'usuario', whatsapp_number: '' });
+      setNewUser({ username: '', password: '', rol: '', whatsapp_number: '' });
       loadUsers();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al crear usuario:', err);
-      toast.error('Error al crear usuario');
+      
+      // Manejo de errores mejorado
+      let errorMessage = 'Error al crear usuario';
+      
+      if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -135,6 +183,11 @@ export default function UsuariosPage() {
     setSelectedUser(user);
     setNewPassword('');
     setShowPasswordModal(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setNewUser({ username: '', password: '', rol: '', whatsapp_number: '' });
   };
 
   const handleViewPassword = async (user: User) => {
@@ -426,7 +479,7 @@ export default function UsuariosPage() {
       </Modal>
 
       {/* Create User Modal */}
-      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Crear Nuevo Usuario">
+      <Modal isOpen={showCreateModal} onClose={handleCloseCreateModal} title="Crear Nuevo Usuario">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">Usuario</label>
@@ -435,7 +488,7 @@ export default function UsuariosPage() {
               value={newUser.username}
               onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
               className="input-glass w-full"
-              placeholder="Nombre de usuario"
+              placeholder="Nombre de usuario (mín. 3 caracteres)"
             />
           </div>
           <div>
@@ -445,7 +498,7 @@ export default function UsuariosPage() {
               value={newUser.password}
               onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
               className="input-glass w-full"
-              placeholder="Contraseña"
+              placeholder="Contraseña (mín. 4 caracteres)"
             />
           </div>
           <div>
@@ -455,11 +508,18 @@ export default function UsuariosPage() {
               value={newUser.whatsapp_number}
               onChange={(e) => setNewUser({ ...newUser, whatsapp_number: e.target.value })}
               className="input-glass w-full"
-              placeholder="Número de WhatsApp"
+              placeholder="Número de WhatsApp (opcional)"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Rol</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              Rol <span className="text-red-400">*</span>
+            </label>
+            {!newUser.rol && (
+              <p className="text-xs text-amber-400 mb-2 flex items-center gap-1">
+                <span>⚠️</span> Selecciona el rol para el nuevo usuario
+              </p>
+            )}
             <Select value={newUser.rol} onValueChange={(value) => setNewUser({ ...newUser, rol: value })}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccionar rol" />
@@ -471,12 +531,22 @@ export default function UsuariosPage() {
                 {canCreateOwner() && <SelectItem value="owner">Owner</SelectItem>}
               </SelectContent>
             </Select>
+            {newUser.rol && (
+              <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                <span>✓</span> El usuario será creado como {newUser.rol}
+              </p>
+            )}
           </div>
           <div className="flex gap-3 pt-4">
-            <Button variant="primary" className="flex-1" onClick={createUser}>
-              Crear Usuario
+            <Button 
+              variant="primary" 
+              className={`flex-1 ${!newUser.rol ? 'opacity-75 cursor-not-allowed' : ''}`}
+              onClick={createUser}
+              disabled={!newUser.rol}
+            >
+              {!newUser.rol ? 'Selecciona un rol' : 'Crear Usuario'}
             </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => setShowCreateModal(false)}>
+            <Button variant="secondary" className="flex-1" onClick={handleCloseCreateModal}>
               Cancelar
             </Button>
           </div>

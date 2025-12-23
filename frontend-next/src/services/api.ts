@@ -102,8 +102,16 @@ class ApiService {
   }
 
   // Auth
-  async login(username: string, password: string) {
-    const response = await this.api.post('/api/auth/login', { username, password })
+  async login(username: string, password: string, role?: string) {
+    if (!role) {
+      throw new Error('Debes seleccionar un rol');
+    }
+    
+    const response = await this.api.post('/api/auth/login', { 
+      username, 
+      password,
+      role
+    })
     return response.data
   }
 

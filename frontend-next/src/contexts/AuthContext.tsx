@@ -15,7 +15,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, role?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -37,9 +37,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, role?: string) => {
     try {
-      const response = await api.login(username, password);
+      const response = await api.login(username, password, role);
       const { token: newToken, user: newUser, isTemporaryPassword, message } = response;
 
       localStorage.setItem('token', newToken);
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setTimeout(() => toast.success(message, { duration: 5000 }), 100);
       }
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error || 'Error al iniciar sesión';
+      const errorMessage = error?.response?.data?.error || error?.message || 'Error al iniciar sesión';
       throw new Error(errorMessage);
     }
   };
