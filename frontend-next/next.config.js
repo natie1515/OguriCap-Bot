@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Configuración de webpack para resolver paths y optimizar animaciones
+  // Configuración de webpack para resolver paths
   webpack: (config, { dev, isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -12,16 +12,13 @@ const nextConfig = {
     return config;
   },
   
-  // Configuración experimental para mejorar animaciones
+  // Configuración experimental básica
   experimental: {
     serverComponentsExternalPackages: [],
-    optimizeCss: true,
-    scrollRestoration: true,
   },
   
-  // Configuración del compilador para optimizar animaciones
+  // Configuración del compilador
   compiler: {
-    // Remover console.log en producción pero mantener animaciones
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn']
     } : false,
@@ -52,34 +49,6 @@ const nextConfig = {
     ],
   },
   
-  // Configuración de headers para CORS y animaciones
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-          // Headers para mejorar animaciones
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
-  },
-  
   // Configuración de rewrites para API
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -96,31 +65,13 @@ const nextConfig = {
     ];
   },
   
-  // Configuración de output para producción optimizada
+  // Configuración básica de producción
   output: 'standalone',
-  
-  // Configuración de compresión
   compress: true,
-  
-  // Configuración de trailing slash
   trailingSlash: false,
-  
-  // Configuración de poweredByHeader
   poweredByHeader: false,
-  
-  // Optimizaciones adicionales para animaciones
   swcMinify: true,
-  
-  // Configuración de páginas estáticas
   generateEtags: false,
-  
-  // Configuración de desarrollo para animaciones suaves
-  ...(process.env.NODE_ENV === 'development' && {
-    onDemandEntries: {
-      maxInactiveAge: 25 * 1000,
-      pagesBufferLength: 2,
-    },
-  }),
 };
 
 module.exports = nextConfig;
