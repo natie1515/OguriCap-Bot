@@ -27,3 +27,4 @@ logs/
 *.swp
 *.swo
 *~
+frontend-next/package-lock.json

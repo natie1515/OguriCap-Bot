@@ -11,16 +11,30 @@ import { Button } from '@/components/ui/Button';
 import { ProgressRing, BarChart, DonutChart } from '@/components/ui/Charts';
 import { RealTimeBadge } from '@/components/ui/StatusIndicator';
 import { useDashboardStats, useBotStatus, useSystemStats, useSubbotsStatus, useRecentActivity } from '@/hooks/useRealTime';
+import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
+import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useSocket, SOCKET_EVENTS } from '@/contexts/SocketContext';
 import { formatUptime } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useDashboardStats(15000);
   const { status: botStatus, isConnected, isConnecting, refetch: refetchBot } = useBotStatus(5000);
+  const { isGloballyOn } = useBotGlobalState();
+  const { dashboardStats, botStatus: globalBotStatus, refreshAll } = useGlobalUpdate();
   const { memoryUsage, cpuUsage, diskUsage, uptime, systemInfo } = useSystemStats(10000);
   const { onlineCount, totalCount } = useSubbotsStatus(10000);
   const { isConnected: isSocketConnected, socket } = useSocket();
   const { activities: recentActivity, isLoading: activitiesLoading } = useRecentActivity(60000); // Cada minuto
+
+  // Auto-refresh del dashboard
+  useAutoRefresh(async () => {
+    await Promise.all([refetchStats(), refetchBot()]);
+  }, { interval: 15000 });
+
+  // Usar datos del contexto global si están disponibles
+  const currentStats = dashboardStats || stats;
+  const currentBotStatus = globalBotStatus || botStatus;
 
   // Listen for real-time events to build activity feed (mantener para eventos en tiempo real)
   React.useEffect(() => {
@@ -40,13 +54,14 @@ export default function DashboardPage() {
   }, [socket]);
 
   const handleRefresh = () => {
+    refreshAll();
     refetchStats();
     refetchBot();
   };
 
   const getHourlyActivity = () => {
     // Datos basados en estadísticas reales del backend
-    const baseValue = stats?.mensajesHoy || 0;
+    const baseValue = currentStats?.mensajesHoy || 0;
     const hourlyAvg = Math.max(1, Math.floor(baseValue / 12));
     return Array.from({ length: 12 }, (_, i) => ({
       label: `${(i * 2).toString().padStart(2, '0')}:00`,
@@ -73,20 +88,17 @@ export default function DashboardPage() {
             <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
             {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexión'}
           </div>
-          <RealTimeBadge isActive={isConnected} />
-          <Button variant="secondary" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={handleRefresh}>
-            Actualizar
-          </Button>
+          <RealTimeBadge isActive={isConnected && isGloballyOn} />
         </motion.div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard title="Admins Panel" value={stats?.totalUsuarios || 0} subtitle={`${stats?.usuariosActivos || 0} activos`} icon={<Users className="w-6 h-6" />} color="primary" delay={0} loading={statsLoading} />
-        <StatCard title="Comunidad" value={stats?.comunidad?.usuariosWhatsApp || 0} subtitle={`${stats?.comunidad?.usuariosActivos || 0} activos`} icon={<MessageSquare className="w-6 h-6" />} color="success" delay={0.1} loading={statsLoading} />
-        <StatCard title="Grupos" value={stats?.totalGrupos || 0} subtitle={`${stats?.gruposActivos || 0} activos`} icon={<MessageSquare className="w-6 h-6" />} color="violet" delay={0.2} loading={statsLoading} />
-        <StatCard title="Aportes" value={stats?.totalAportes || 0} subtitle={`${stats?.aportesHoy || 0} hoy`} icon={<Package className="w-6 h-6" />} color="violet" delay={0.3} loading={statsLoading} />
-        <StatCard title="SubBots" value={stats?.totalSubbots || totalCount} subtitle={`${onlineCount} online`} icon={<Zap className="w-6 h-6" />} color="cyan" delay={0.4} loading={statsLoading} />
+        <StatCard title="Admins Panel" value={currentStats?.totalUsuarios || 0} subtitle={`${currentStats?.usuariosActivos || 0} activos`} icon={<Users className="w-6 h-6" />} color="primary" delay={0} loading={statsLoading} />
+        <StatCard title="Comunidad" value={currentStats?.comunidad?.usuariosWhatsApp || 0} subtitle={`${currentStats?.comunidad?.usuariosActivos || 0} activos`} icon={<MessageSquare className="w-6 h-6" />} color="success" delay={0.1} loading={statsLoading} />
+        <StatCard title="Grupos" value={currentStats?.totalGrupos || 0} subtitle={`${currentStats?.gruposActivos || 0} activos`} icon={<MessageSquare className="w-6 h-6" />} color="violet" delay={0.2} loading={statsLoading} />
+        <StatCard title="Aportes" value={currentStats?.totalAportes || 0} subtitle={`${currentStats?.aportesHoy || 0} hoy`} icon={<Package className="w-6 h-6" />} color="violet" delay={0.3} loading={statsLoading} />
+        <StatCard title="SubBots" value={currentStats?.totalSubbots || totalCount} subtitle={`${onlineCount} online`} icon={<Zap className="w-6 h-6" />} color="cyan" delay={0.4} loading={statsLoading} />
       </div>
 
       {/* Main Content Grid */}
@@ -99,8 +111,16 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center justify-center mb-6">
-            <motion.div animate={isConnected ? { scale: [1, 1.05, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
-              <ProgressRing progress={isConnected ? 100 : 0} size={140} color={isConnected ? '#10b981' : '#ef4444'} label={isConnected ? 'Conectado' : 'Desconectado'} />
+            <motion.div animate={isConnected && isGloballyOn ? { scale: [1, 1.05, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
+              <ProgressRing 
+                progress={isConnected && isGloballyOn ? 100 : 0} 
+                size={140} 
+                color={isConnected && isGloballyOn ? '#10b981' : '#ef4444'} 
+                label={
+                  !isGloballyOn ? 'Desactivado Globalmente' : 
+                  isConnected ? 'Conectado' : 'Desconectado'
+                } 
+              />
             </motion.div>
           </div>
 
@@ -114,7 +134,13 @@ export default function DashboardPage() {
               <span className="text-emerald-400 font-medium text-sm">{botStatus?.uptime || formatUptime(uptime)}</span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
-              <span className="text-gray-400 text-sm">Estado</span>
+              <span className="text-gray-400 text-sm">Estado Global</span>
+              <span className={`text-sm font-medium ${isGloballyOn ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isGloballyOn ? 'Activo' : 'Desactivado'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
+              <span className="text-gray-400 text-sm">Conexión</span>
               <span className={`text-sm font-medium ${isConnected ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isConnecting ? 'Conectando...' : isConnected ? 'Online' : 'Offline'}
               </span>
@@ -138,15 +164,15 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-3 gap-4 mt-6">
             <div className="text-center p-4 rounded-xl bg-white/5">
-              <p className="text-2xl font-bold text-white">{stats?.mensajesHoy || 0}</p>
+              <p className="text-2xl font-bold text-white">{currentStats?.mensajesHoy || 0}</p>
               <p className="text-xs text-gray-400 mt-1">Mensajes Hoy</p>
             </div>
             <div className="text-center p-4 rounded-xl bg-white/5">
-              <p className="text-2xl font-bold text-white">{stats?.comandosHoy || 0}</p>
+              <p className="text-2xl font-bold text-white">{currentStats?.comandosHoy || 0}</p>
               <p className="text-xs text-gray-400 mt-1">Comandos Hoy</p>
             </div>
             <div className="text-center p-4 rounded-xl bg-white/5">
-              <p className="text-2xl font-bold text-white">{stats?.usuariosActivos || 0}</p>
+              <p className="text-2xl font-bold text-white">{currentStats?.usuariosActivos || 0}</p>
               <p className="text-xs text-gray-400 mt-1">Usuarios Activos</p>
             </div>
           </div>
@@ -217,7 +243,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-400">Bot habilitado</p>
                 </div>
               </div>
-              <p className="text-xl font-bold text-white">{stats?.gruposActivos || 0}</p>
+              <p className="text-xl font-bold text-white">{currentStats?.gruposActivos || 0}</p>
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
@@ -230,7 +256,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-gray-400">Sin procesar</p>
                 </div>
               </div>
-              <p className="text-xl font-bold text-white">{stats?.pedidosHoy || 0}</p>
+              <p className="text-xl font-bold text-white">{currentStats?.pedidosHoy || 0}</p>
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
@@ -318,7 +344,7 @@ export default function DashboardPage() {
               <TrendingUp className="w-6 h-6 text-primary-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{stats?.totalMensajes || 0}</p>
+              <p className="text-2xl font-bold text-white">{currentStats?.totalMensajes || 0}</p>
               <p className="text-xs text-gray-400">Mensajes Totales</p>
             </div>
           </div>
@@ -330,7 +356,7 @@ export default function DashboardPage() {
               <Activity className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{stats?.totalComandos || 0}</p>
+              <p className="text-2xl font-bold text-white">{currentStats?.totalComandos || 0}</p>
               <p className="text-xs text-gray-400">Comandos Totales</p>
             </div>
           </div>

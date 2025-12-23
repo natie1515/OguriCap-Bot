@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { useGroupsSmartRefresh } from '@/hooks/useSmartRefresh';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import { Group } from '@/types';
@@ -43,6 +44,18 @@ export default function GruposPage() {
       setLoading(false);
     }
   }, [page, searchTerm, botFilter, proveedorFilter]);
+
+  // Auto-refresh cuando cambia el estado global del bot
+  useEffect(() => {
+    // Recargar grupos cuando cambie el estado global
+    loadGroups();
+  }, [globalBotState, loadGroups]);
+
+  // Auto-refresh automático
+  useAutoRefresh(loadGroups, { 
+    interval: 30000, 
+    dependencies: [searchTerm, botFilter, proveedorFilter, page] 
+  });
 
   const checkConnectionStatus = useCallback(async () => {
     try {
@@ -161,15 +174,6 @@ export default function GruposPage() {
             loading={syncing}
           >
             Sincronizar WhatsApp
-          </Button>
-          <Button 
-            variant="secondary" 
-            icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />} 
-            onClick={manualRefresh} 
-            loading={isRefreshing}
-            title={isSocketConnected ? 'Actualización manual (automática por eventos)' : 'Actualización manual'}
-          >
-            {isRefreshing ? 'Actualizando...' : 'Actualizar'}
           </Button>
         </motion.div>
       </div>

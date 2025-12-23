@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useSocket } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
@@ -49,6 +50,24 @@ export default function SubbotsPage() {
 
   const { isConnected: isSocketConnected, socket } = useSocket();
   const { isGloballyOn } = useBotGlobalState();
+
+  const loadSubbots = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.getSubbots();
+      if (response) {
+        setSubbots((Array.isArray(response) ? response : response.subbots || []).map(normalizeSubbot));
+        setError(null);
+      }
+    } catch {
+      setError('Error de conexión');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Auto-refresh de subbots
+  useAutoRefresh(loadSubbots, { interval: 15000 });
 
   // Socket events
   useEffect(() => {
@@ -132,21 +151,6 @@ export default function SubbotsPage() {
       isOnline: Boolean(raw?.isOnline || raw?.connected),
     };
   };
-
-  const loadSubbots = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await api.getSubbots();
-      if (response) {
-        setSubbots((Array.isArray(response) ? response : response.subbots || []).map(normalizeSubbot));
-        setError(null);
-      }
-    } catch {
-      setError('Error de conexión');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     loadSubbots();
@@ -323,9 +327,6 @@ export default function SubbotsPage() {
             <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
             {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
           </div>
-          <Button variant="secondary" onClick={loadSubbots} loading={loading} icon={<RefreshCw className="w-4 h-4" />}>
-            Actualizar
-          </Button>
         </div>
       </motion.div>
 

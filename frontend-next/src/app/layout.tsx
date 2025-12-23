@@ -5,6 +5,14 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'Oguri Bot Panel',
   description: 'Panel de administración para WhatsApp Bot',
+  icons: {
+    icon: [
+      { url: '/bot-icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/manifest.json',
 };
 
 export const viewport: Viewport = {
@@ -20,6 +28,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/bot-icon.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#10b981" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />

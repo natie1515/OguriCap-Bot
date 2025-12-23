@@ -7,7 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSocket } from '@/contexts/SocketContext';
+import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
+import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { StatusIndicator, RealTimeBadge } from '@/components/ui/StatusIndicator';
 import {
   Home, Bot, Users, MessageSquare, Package, ShoppingCart, Settings,
@@ -60,9 +63,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { isConnected: pollingConnected, isConnecting } = useBotStatus(5000);
   const { botStatus } = useSocket();
   const { unreadCount } = useNotifications(30000);
+  const { isGloballyOn } = useBotGlobalState();
+  const { dashboardStats, botStatus: globalBotStatus, refreshAll } = useGlobalUpdate();
+
+  // Auto-refresh del sidebar
+  useAutoRefresh(refreshAll, { interval: 30000 });
 
   const allowedMenuItems = menuItems.filter(item => hasPermission(item.page));
-  const isConnected = botStatus?.connected ?? pollingConnected;
+  const isConnected = botStatus?.connected ?? globalBotStatus?.connected ?? pollingConnected;
 
   return (
     <>
@@ -109,13 +117,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* Bot Status Mini */}
         <div className="px-4 py-3 mx-4 mt-4 rounded-xl bg-white/5 border border-white/10">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <StatusIndicator
-              status={isConnecting ? 'connecting' : isConnected ? 'online' : 'offline'}
+              status={
+                !isGloballyOn ? 'offline' :
+                isConnecting ? 'connecting' : 
+                isConnected ? 'online' : 'offline'
+              }
               size="sm"
             />
-            <RealTimeBadge isActive={isConnected} />
+            <RealTimeBadge isActive={isConnected && isGloballyOn} />
           </div>
+          <div className="text-xs text-gray-400">
+            {!isGloballyOn ? 'Bot Desactivado' : 
+             isConnected ? 'Bot Conectado' : 'Bot Desconectado'}
+          </div>
+          {dashboardStats && (
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Grupos: {dashboardStats.totalGrupos || 0}</span>
+              <span>Usuarios: {dashboardStats.comunidad?.usuariosWhatsApp || 0}</span>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}

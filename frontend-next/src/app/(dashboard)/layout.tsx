@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { GroupsProvider } from '@/contexts/GroupsContext';
 import { BotGlobalStateProvider } from '@/contexts/BotGlobalStateContext';
+import { GlobalUpdateProvider } from '@/contexts/GlobalUpdateContext';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { MaintenanceBanner } from '@/components/ui/MaintenanceBanner';
+import { GlobalUpdateIndicator } from '@/components/ui/GlobalUpdateIndicator';
 import { motion } from 'framer-motion';
 import { Bot } from 'lucide-react';
 
@@ -49,12 +51,15 @@ export default function DashboardLayout({
 
   return (
     <BotGlobalStateProvider>
-      <GroupsProvider>
-        <div className="min-h-screen">
-          <MaintenanceBanner />
-          <MainLayout>{children}</MainLayout>
-        </div>
-      </GroupsProvider>
+      <GlobalUpdateProvider>
+        <GroupsProvider>
+          <div className="min-h-screen">
+            <MaintenanceBanner />
+            <GlobalUpdateIndicator />
+            <MainLayout>{children}</MainLayout>
+          </div>
+        </GroupsProvider>
+      </GlobalUpdateProvider>
     </BotGlobalStateProvider>
   );
 }

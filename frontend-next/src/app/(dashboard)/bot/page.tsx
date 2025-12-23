@@ -136,9 +136,6 @@ export default function BotStatusPage() {
             <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
             {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
           </div>
-          <Button variant="secondary" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={() => { refetch(); refetchGlobal(); }}>
-            Actualizar
-          </Button>
         </motion.div>
       </div>
 

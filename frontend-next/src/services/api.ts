@@ -589,6 +589,74 @@ class ApiService {
     return response.data;
   }
 
+  // Bulk operations
+  async bulkUpdateGroups(updates: { jid: string; enabled: boolean }[]) {
+    const response = await this.api.post('/api/grupos/bulk-update', { updates });
+    return response.data;
+  }
+
+  async bulkDeleteNotifications(ids: number[]) {
+    const response = await this.api.post('/api/notificaciones/bulk-delete', { ids });
+    return response.data;
+  }
+
+  // Real-time stats
+  async getRealtimeStats() {
+    const response = await this.api.get('/api/stats/realtime');
+    return response.data;
+  }
+
+  async getActivityFeed(limit = 20) {
+    const response = await this.api.get(`/api/activity/feed?limit=${limit}`);
+    return response.data;
+  }
+
+  // System health
+  async getSystemHealth() {
+    const response = await this.api.get('/api/system/health');
+    return response.data;
+  }
+
+  async pingSystem() {
+    const response = await this.api.get('/api/system/ping');
+    return response.data;
+  }
+
+  // Cache management
+  async clearCache(type?: string) {
+    const params = type ? `?type=${type}` : '';
+    const response = await this.api.post(`/api/system/clear-cache${params}`);
+    return response.data;
+  }
+
+  // Backup and restore
+  async createBackup() {
+    const response = await this.api.post('/api/system/backup');
+    return response.data;
+  }
+
+  async getBackups() {
+    const response = await this.api.get('/api/system/backups');
+    return response.data;
+  }
+
+  // Advanced notifications
+  async markNotificationAsRead(id: number) {
+    const response = await this.api.patch(`/api/notificaciones/${id}/read`);
+    return response.data;
+  }
+
+  async markAllNotificationsAsRead() {
+    const response = await this.api.post('/api/notificaciones/mark-all-read');
+    return response.data;
+  }
+
+  // WebSocket connection test
+  async testWebSocketConnection() {
+    const response = await this.api.get('/api/websocket/test');
+    return response.data;
+  }
+
   // Custom Commands
   async getCustomCommands() {
     const response = await this.api.get('/api/custom-commands');

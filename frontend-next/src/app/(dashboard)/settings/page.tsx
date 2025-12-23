@@ -2,23 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Save, RefreshCw, Bot, Bell, Shield, Database, Cpu, HardDrive, Clock, AlertCircle, CheckCircle, Wrench } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Bot, Bell, Shield, Database, Cpu, HardDrive, Clock, AlertCircle, CheckCircle, Wrench } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect as Select } from '@/components/ui/Select';
 import { ProgressRing } from '@/components/ui/Charts';
-import { useSystemStats, useBotGlobalState, useBotStatus } from '@/hooks/useRealTime';
+import { useSystemStats, useBotStatus } from '@/hooks/useRealTime';
 import { useBotGlobalState as useBotGlobalStateContext } from '@/contexts/BotGlobalStateContext';
+import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
   const { memoryUsage, uptime } = useSystemStats(5000);
-  const { isOn, setGlobalState } = useBotGlobalState(5000);
   const { isConnected } = useBotStatus(5000);
   
   // También usar el contexto para sincronización automática
   const { isGloballyOn: contextGlobalState, setGlobalState: contextSetGlobalState } = useBotGlobalStateContext();
+  const { systemStats, refreshAll } = useGlobalUpdate();
+
+  // Auto-refresh de configuración
+  useAutoRefresh(refreshAll, { interval: 30000 });
 
   const [botConfig, setBotConfig] = useState({
     autoReconnect: true,
@@ -39,7 +44,6 @@ export default function SettingsPage() {
 
   const [globalOffMessage, setGlobalOffMessage] = useState('El bot está desactivado globalmente por el administrador.');
   const [saving, setSaving] = useState(false);
-  const [systemStats, setSystemStats] = useState<any>(null);
 
   useEffect(() => { loadConfigs(); }, []);
 
@@ -53,7 +57,7 @@ export default function SettingsPage() {
       ]);
       
       if (msgRes?.message) setGlobalOffMessage(msgRes.message);
-      setSystemStats(statsRes);
+      // systemStats ahora viene del contexto global
       
       // Cargar configuración del sistema
       if (systemConfigRes) {
@@ -151,7 +155,7 @@ export default function SettingsPage() {
           <p className="text-gray-400 mt-1">Administra la configuración del sistema y el bot</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <Button variant="secondary" icon={<RefreshCw className="w-4 h-4" />} onClick={loadConfigs}>Recargar</Button>
+          {/* Botón de recarga eliminado - todo se actualiza automáticamente */}
         </motion.div>
       </div>
 
