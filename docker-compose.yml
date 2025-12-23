@@ -1,43 +1,45 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # Servicio del Bot de WhatsApp (Backend)
   whatsapp-bot:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.bot
     container_name: whatsapp-bot
     restart: always
-    # Configuración para interactividad
     stdin_open: true
     tty: true
-    # Mapear la carpeta de sesiones a un volumen persistente en el host
     volumes:
       - whatsapp_sessions:/usr/src/app/Sessions
-    # Mapear el puerto interno del bot (si expone una API/Socket.io)
-    ports:
-      - "8080:8080" # Mapea el puerto 8080 del contenedor al 8080 del host
+    expose:
+      - "8080"
     environment:
       NODE_ENV: production
-    # Para la primera ejecución, se puede comentar 'restart: always' para ver el QR
-    # y luego descomentarlo para la ejecución 24/7.
 
-  # Servicio del Panel de Administración (Frontend)
   admin-panel:
     build:
       context: ./frontend-next
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.panel
     container_name: admin-panel
     restart: always
-    # Configuración para interactividad completa
-    stdin_open: true    # -i flag (interactive)
-    tty: true          # -t flag (TTY)
-    # Mapear el puerto interno del panel (3000) al puerto 80 del host (sin puerto en URL)
-    ports:
-      - "80:3000"
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      # ✅ vacío => el frontend usará same-origin (/api/...)
+      NEXT_PUBLIC_API_URL: ""
+
+  nginx:
+    image: nginx:alpine
+    container_name: konmi-nginx
+    restart: always
+    depends_on:
+      - admin-panel
+      - whatsapp-bot
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   whatsapp_sessions:

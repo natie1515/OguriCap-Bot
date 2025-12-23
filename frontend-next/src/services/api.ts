@@ -1,135 +1,138 @@
-import axios, { AxiosInstance } from 'axios';
-import { User, BotStatus, Aporte, Pedido, Proveedor, Group, DashboardStats } from '@/types';
+import axios, { AxiosInstance } from 'axios'
+import { User, BotStatus, Aporte, Pedido, Proveedor, Group, DashboardStats } from '@/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+// ✅ PRODUCCIÓN: same-origin (Nginx enruta /api -> whatsapp-bot:8080)
+// ✅ DEV: podés setear NEXT_PUBLIC_API_URL=http://localhost:8080
+const API_URL =
+  (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) || ''
 
 class ApiService {
-  private api: AxiosInstance;
+  private api: AxiosInstance
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_URL,
+      baseURL: API_URL, // '' => usa rutas relativas
       headers: { 'Content-Type': 'application/json' },
-    });
+      timeout: 15000,
+      withCredentials: true,
+    })
 
     this.api.interceptors.request.use((config) => {
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token');
-        if (token) config.headers.Authorization = `Bearer ${token}`;
+        const token = localStorage.getItem('token')
+        if (token) config.headers.Authorization = `Bearer ${token}`
       }
-      return config;
-    });
+      return config
+    })
 
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
+          localStorage.removeItem('token')
+          if (window.location.pathname !== '/login') window.location.href = '/login'
         }
-        return Promise.reject(error);
+        return Promise.reject(error)
       }
-    );
+    )
   }
 
   // Auth
   async login(username: string, password: string) {
-    const response = await this.api.post('/api/auth/login', { username, password });
-    return response.data;
+    const response = await this.api.post('/api/auth/login', { username, password })
+    return response.data
   }
 
   async getMe() {
-    const response = await this.api.get('/api/auth/me');
-    return response.data;
+    const response = await this.api.get('/api/auth/me')
+    return response.data
   }
 
   async verifyToken() {
-    const response = await this.api.get('/api/auth/verify');
-    return response.data;
+    const response = await this.api.get('/api/auth/verify')
+    return response.data
   }
 
   async resetUserPassword(username: string, whatsapp_number: string) {
-    const response = await this.api.post('/api/auth/reset-password', { username, whatsapp_number });
-    return response.data;
+    const response = await this.api.post('/api/auth/reset-password', { username, whatsapp_number })
+    return response.data
   }
 
   // Bot
   async getBotStatus(): Promise<BotStatus> {
-    const response = await this.api.get('/api/bot/status');
-    return response.data;
+    const response = await this.api.get('/api/bot/status')
+    return response.data
   }
 
   async getBotQR() {
-    const response = await this.api.get('/api/bot/qr');
-    return response.data;
+    const response = await this.api.get('/api/bot/qr')
+    return response.data
   }
 
   async restartBot() {
-    const response = await this.api.post('/api/bot/restart');
-    return response.data;
+    const response = await this.api.post('/api/bot/restart')
+    return response.data
   }
 
   async disconnectBot() {
-    const response = await this.api.post('/api/bot/disconnect');
-    return response.data;
+    const response = await this.api.post('/api/bot/disconnect')
+    return response.data
   }
 
   async getMainBotStatus(): Promise<BotStatus> {
-    const response = await this.api.get('/api/bot/main/status');
-    return response.data;
+    const response = await this.api.get('/api/bot/main/status')
+    return response.data
   }
 
   async getMainBotQR() {
-    const response = await this.api.get('/api/bot/main/qr');
-    return response.data;
+    const response = await this.api.get('/api/bot/main/qr')
+    return response.data
   }
 
   async getMainBotPairingCode() {
-    const response = await this.api.get('/api/bot/main/pairing-code');
-    return response.data;
+    const response = await this.api.get('/api/bot/main/pairing-code')
+    return response.data
   }
 
   async setMainBotMethod(method: 'qr' | 'pairing', phoneNumber?: string) {
-    const response = await this.api.post('/api/bot/main/method', { method, phoneNumber });
-    return response.data;
+    const response = await this.api.post('/api/bot/main/method', { method, phoneNumber })
+    return response.data
   }
 
   async disconnectMainBot() {
-    const response = await this.api.post('/api/bot/main/disconnect');
-    return response.data;
+    const response = await this.api.post('/api/bot/main/disconnect')
+    return response.data
   }
 
   async restartMainBot(method?: 'qr' | 'pairing', phoneNumber?: string) {
-    const response = await this.api.post('/api/bot/main/restart', { method, phoneNumber });
-    return response.data;
+    const response = await this.api.post('/api/bot/main/restart', { method, phoneNumber })
+    return response.data
   }
 
   // Subbots
   async getSubbots() {
-    const response = await this.api.get('/api/subbot/list');
-    return response.data;
+    const response = await this.api.get('/api/subbot/list')
+    return response.data
   }
 
   async getSubbotStatus() {
-    const response = await this.api.get('/api/subbot/status');
-    return response.data;
+    const response = await this.api.get('/api/subbot/status')
+    return response.data
   }
 
   async createSubbot(userId: number, type: 'qr' | 'code', phoneNumber?: string) {
-    const response = await this.api.post('/api/subbot/create', { userId, type, phoneNumber });
-    return response.data;
+    const response = await this.api.post('/api/subbot/create', { userId, type, phoneNumber })
+    return response.data
   }
 
   async deleteSubbot(subbotId: string) {
-    const response = await this.api.delete(`/api/subbot/${subbotId}`);
-    return response.data;
+    const response = await this.api.delete(`/api/subbot/${subbotId}`)
+    return response.data
   }
 
   async getSubbotQR(subbotId: string) {
-    const response = await this.api.get(`/api/subbot/qr/${encodeURIComponent(subbotId)}`);
-    return response.data;
+    const response = await this.api.get(`/api/subbot/qr/${encodeURIComponent(subbotId)}`)
+    return response.data
   }
 
   // Dashboard
@@ -137,7 +140,8 @@ class ApiService {
     const [overview, pedidos] = await Promise.all([
       this.api.get('/api/dashboard/stats').then(r => r.data).catch(() => ({})),
       this.api.get('/api/pedidos/stats').then(r => r.data).catch(() => ({}))
-    ]);
+    ])
+
     return {
       totalUsuarios: overview.usuarios || 0,
       totalGrupos: overview.grupos || 0,
@@ -152,7 +156,7 @@ class ApiService {
       comandosHoy: overview.comandosHoy || 0,
       totalMensajes: overview.totalMensajes || 0,
       totalComandos: overview.totalComandos || 0,
-    };
+    }
   }
 
   // Groups
