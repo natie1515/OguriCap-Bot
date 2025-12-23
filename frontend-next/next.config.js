@@ -72,7 +72,6 @@ const nextConfig = {
   },
   
   // Configuración básica de producción
-  output: 'standalone',
   compress: true,
   trailingSlash: false,
   poweredByHeader: false,
