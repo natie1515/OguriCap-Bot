@@ -1,7 +1,6 @@
 # Dockerfile para WhatsApp Bot
 FROM node:20-alpine
 
-# Instalar dependencias del sistema (✅ agregar git)
 RUN apk add --no-cache \
     git \
     ffmpeg \
@@ -11,27 +10,20 @@ RUN apk add --no-cache \
     wget \
     curl
 
-# Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar archivos de dependencias
 COPY package*.json ./
-
-# Instalar dependencias (✅ usar omit=dev recomendado)
 RUN npm ci --omit=dev
 
-# Copiar el código de la aplicación
 COPY . .
 
-# Crear directorios necesarios
 RUN mkdir -p Sessions storage/media logs
 
-# Exponer puerto
-EXPOSE 3001
+# ✅ Puerto real del servicio
+EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+# ✅ Healthcheck robusto (sin depender de localhost)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health | grep -qi "ok" || exit 1
 
-# Comando de inicio
 CMD ["node", "index.js"]
