@@ -1,39 +1,52 @@
 services:
   whatsapp-bot:
-    build:
-      context: .
+    build: .
     container_name: whatsapp-bot
     restart: always
-    stdin_open: true
+
+    # 🔥 INTERACTIVO ACTIVADO
     tty: true
+    stdin_open: true
+
     volumes:
-      - ./Sessions:/usr/src/app/Sessions
+      - whatsapp_sessions:/usr/src/app/Sessions
+
     expose:
-      - "3001"
-    environment:
-      NODE_ENV: production
-      PORT: 3001
+      - "8080"
+
+    env_file:
+      - .env
 
   admin-panel:
-    build:
-      context: ./frontend-next
+    build: ./frontend-next
     container_name: admin-panel
     restart: always
+
+    tty: true
+    stdin_open: true
+
     expose:
       - "3000"
-    environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ""
+
+    env_file:
+      - .env
 
   nginx:
     image: nginx:alpine
     container_name: konmi-nginx
     restart: always
-    depends_on:
-      - admin-panel
-      - whatsapp-bot
+
     ports:
       - "80:80"
       - "443:443"
+
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+    depends_on:
+      - whatsapp-bot
+      - admin-panel
+
+volumes:
+  whatsapp_sessions:
