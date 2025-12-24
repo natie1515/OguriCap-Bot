@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useSocket } from '@/hooks/useSocket';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface Task {
@@ -102,12 +103,62 @@ export default function TareasPage() {
   const loadTasks = async () => {
     try {
       setIsLoading(true);
-      // Simular carga de tareas (implementar endpoint real)
-      const response = await fetch('/api/tasks');
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data.tasks || []);
-      }
+      // Simular tareas programadas
+      const mockTasks: Task[] = [
+        {
+          id: '1',
+          name: 'Backup Diario',
+          description: 'Realizar backup automático de la base de datos',
+          type: 'backup',
+          action: 'database_backup',
+          schedule: '0 2 * * *',
+          enabled: true,
+          priority: 4,
+          status: 'completed',
+          successCount: 30,
+          errorCount: 2,
+          createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+          lastExecution: {
+            id: 'exec1',
+            taskId: '1',
+            taskName: 'Backup Diario',
+            startTime: new Date(Date.now() - 3600000).toISOString(),
+            endTime: new Date(Date.now() - 3300000).toISOString(),
+            status: 'completed',
+            duration: 300000,
+            manual: false
+          }
+        },
+        {
+          id: '2',
+          name: 'Limpieza de Logs',
+          description: 'Limpiar logs antiguos del sistema',
+          type: 'maintenance',
+          action: 'clean_logs',
+          schedule: '0 */6 * * *',
+          enabled: true,
+          priority: 2,
+          status: 'pending',
+          successCount: 120,
+          errorCount: 0,
+          createdAt: new Date(Date.now() - 86400000 * 15).toISOString()
+        },
+        {
+          id: '3',
+          name: 'Reporte de Actividad',
+          description: 'Generar reporte de actividad semanal',
+          type: 'report',
+          action: 'generate_activity_report',
+          schedule: '0 8 * * 1',
+          enabled: false,
+          priority: 1,
+          status: 'paused',
+          successCount: 4,
+          errorCount: 1,
+          createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
+        }
+      ];
+      setTasks(mockTasks);
     } catch (error) {
       console.error('Error loading tasks:', error);
       toast.error('Error cargando tareas');
@@ -118,11 +169,40 @@ export default function TareasPage() {
 
   const loadExecutions = async () => {
     try {
-      const response = await fetch('/api/tasks/executions');
-      if (response.ok) {
-        const data = await response.json();
-        setExecutions(data.executions || []);
-      }
+      // Simular historial de ejecuciones
+      const mockExecutions: TaskExecution[] = [
+        {
+          id: 'exec1',
+          taskId: '1',
+          taskName: 'Backup Diario',
+          startTime: new Date(Date.now() - 3600000).toISOString(),
+          endTime: new Date(Date.now() - 3300000).toISOString(),
+          status: 'completed',
+          duration: 300000,
+          manual: false
+        },
+        {
+          id: 'exec2',
+          taskId: '2',
+          taskName: 'Limpieza de Logs',
+          startTime: new Date(Date.now() - 7200000).toISOString(),
+          endTime: new Date(Date.now() - 7140000).toISOString(),
+          status: 'completed',
+          duration: 60000,
+          manual: false
+        },
+        {
+          id: 'exec3',
+          taskId: '3',
+          taskName: 'Reporte de Actividad',
+          startTime: new Date(Date.now() - 86400000).toISOString(),
+          status: 'failed',
+          duration: 5000,
+          manual: true,
+          error: 'No se pudo conectar a la base de datos'
+        }
+      ];
+      setExecutions(mockExecutions);
     } catch (error) {
       console.error('Error loading executions:', error);
     }
@@ -130,16 +210,48 @@ export default function TareasPage() {
 
   const executeTask = async (taskId: string) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}/execute`, {
-        method: 'POST'
-      });
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
       
-      if (response.ok) {
-        toast.success('Tarea ejecutada correctamente');
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Error ejecutando tarea');
-      }
+      // Simular ejecución
+      const execution: TaskExecution = {
+        id: `exec-${Date.now()}`,
+        taskId,
+        taskName: task.name,
+        startTime: new Date().toISOString(),
+        status: 'running',
+        duration: 0,
+        manual: true
+      };
+      
+      setExecutions(prev => [execution, ...prev]);
+      setTasks(prev => prev.map(t => 
+        t.id === taskId ? { ...t, status: 'running' } : t
+      ));
+      
+      // Simular completado después de 2 segundos
+      setTimeout(() => {
+        const completedExecution = {
+          ...execution,
+          endTime: new Date().toISOString(),
+          status: 'completed' as const,
+          duration: 2000
+        };
+        
+        setExecutions(prev => prev.map(e => 
+          e.id === execution.id ? completedExecution : e
+        ));
+        setTasks(prev => prev.map(t => 
+          t.id === taskId ? { 
+            ...t, 
+            status: 'completed', 
+            successCount: t.successCount + 1,
+            lastExecution: completedExecution
+          } : t
+        ));
+      }, 2000);
+      
+      toast.success('Tarea ejecutada correctamente');
     } catch (error) {
       toast.error('Error ejecutando tarea');
     }
@@ -147,18 +259,10 @@ export default function TareasPage() {
 
   const toggleTask = async (taskId: string, enabled: boolean) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled })
-      });
-      
-      if (response.ok) {
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? { ...task, enabled } : task
-        ));
-        toast.success(enabled ? 'Tarea habilitada' : 'Tarea pausada');
-      }
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, enabled } : task
+      ));
+      toast.success(enabled ? 'Tarea habilitada' : 'Tarea pausada');
     } catch (error) {
       toast.error('Error actualizando tarea');
     }
@@ -168,14 +272,8 @@ export default function TareasPage() {
     if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) return;
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-        toast.success('Tarea eliminada');
-      }
+      setTasks(prev => prev.filter(task => task.id !== taskId));
+      toast.success('Tarea eliminada');
     } catch (error) {
       toast.error('Error eliminando tarea');
     }
