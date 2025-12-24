@@ -441,3 +441,208 @@ for (const value of Object.values(global.ch)) {
 if (typeof value === 'string' && value.endsWith('@newsletter')) {
 await sock.newsletterFollow(value).catch(() => {})
 }}}
+
+// ==========================================
+// INICIALIZACIÓN DE SISTEMAS AVANZADOS
+// ==========================================
+
+console.log(chalk.cyan('🚀 Inicializando sistemas avanzados...'))
+
+// Inicializar sistemas de monitoreo y reportes
+try {
+  // Sistema de métricas
+  const { default: metricsSystem } = await import('./lib/metrics-system.js')
+  metricsSystem.start()
+  console.log(chalk.green('✅ Sistema de Métricas iniciado'))
+  
+  // Sistema de alertas inteligentes
+  const { default: intelligentAlerts } = await import('./lib/intelligent-alerts.js')
+  intelligentAlerts.start()
+  console.log(chalk.green('✅ Sistema de Alertas Inteligentes iniciado'))
+  
+  // Sistema de reportes
+  const { default: reportingSystem } = await import('./lib/reporting-system.js')
+  reportingSystem.start()
+  console.log(chalk.green('✅ Sistema de Reportes iniciado'))
+  
+  // Sistemas existentes (si no están ya iniciados)
+  try {
+    const { default: resourceMonitor } = await import('./lib/resource-monitor.js')
+    if (!resourceMonitor.isRunning) {
+      resourceMonitor.start()
+      console.log(chalk.green('✅ Monitor de Recursos iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Monitor de Recursos ya iniciado o no disponible'))
+  }
+  
+  try {
+    const { default: logManager } = await import('./lib/log-manager.js')
+    if (!logManager.isRunning) {
+      logManager.start()
+      console.log(chalk.green('✅ Gestor de Logs iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Gestor de Logs ya iniciado o no disponible'))
+  }
+  
+  try {
+    const { default: alertSystem } = await import('./lib/alert-system.js')
+    if (!alertSystem.isRunning) {
+      alertSystem.start()
+      console.log(chalk.green('✅ Sistema de Alertas iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Sistema de Alertas ya iniciado o no disponible'))
+  }
+  
+  try {
+    const { default: taskScheduler } = await import('./lib/task-scheduler.js')
+    if (!taskScheduler.isRunning) {
+      taskScheduler.start()
+      console.log(chalk.green('✅ Programador de Tareas iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Programador de Tareas ya iniciado o no disponible'))
+  }
+  
+  try {
+    const { default: backupSystem } = await import('./lib/backup-system.js')
+    if (!backupSystem.isRunning) {
+      backupSystem.start()
+      console.log(chalk.green('✅ Sistema de Backups iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Sistema de Backups ya iniciado o no disponible'))
+  }
+  
+  try {
+    const { default: notificationSystem } = await import('./lib/notification-system.js')
+    if (!notificationSystem.isRunning) {
+      notificationSystem.start()
+      console.log(chalk.green('✅ Sistema de Notificaciones iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Sistema de Notificaciones ya iniciado o no disponible'))
+  }
+  
+  try {
+    const { default: securityMonitor } = await import('./lib/security-monitor.js')
+    if (!securityMonitor.isRunning) {
+      securityMonitor.start()
+      console.log(chalk.green('✅ Monitor de Seguridad iniciado'))
+    }
+  } catch (e) {
+    console.log(chalk.yellow('⚠️ Monitor de Seguridad ya iniciado o no disponible'))
+  }
+  
+  // Configurar alertas inteligentes para métricas críticas
+  intelligentAlerts.addAlert('critical_cpu', 'system.cpu', 'gt', 95, async (metric, alert) => {
+    console.log(chalk.red(`🚨 ALERTA CRÍTICA: CPU al ${JSON.stringify(metric.value)}%`))
+  })
+  
+  intelligentAlerts.addAlert('critical_memory', 'system.memory', 'gt', 90, async (metric, alert) => {
+    console.log(chalk.red(`🚨 ALERTA CRÍTICA: Memoria al ${JSON.stringify(metric.value)}%`))
+  })
+  
+  intelligentAlerts.addAlert('bot_disconnected', 'bot.connections', 'custom', null, async (metric, alert) => {
+    if (metric.value.mainBot === 0) {
+      console.log(chalk.red('🚨 ALERTA CRÍTICA: Bot principal desconectado'))
+    }
+  })
+  
+  // Programar reporte diario automático
+  setTimeout(() => {
+    reportingSystem.generateDailyReport({ notify: true }).catch(console.error)
+  }, 60000) // Después de 1 minuto de iniciado
+  
+  console.log(chalk.green('🎉 Todos los sistemas avanzados iniciados correctamente'))
+  
+} catch (error) {
+  console.error(chalk.red('❌ Error inicializando sistemas avanzados:'), error)
+}
+
+// ==========================================
+// MANEJO DE SEÑALES DEL SISTEMA
+// ==========================================
+
+// Manejo graceful de cierre del proceso
+process.on('SIGINT', async () => {
+  console.log(chalk.yellow('\n🛑 Recibida señal SIGINT, cerrando sistemas...'))
+  
+  try {
+    // Detener sistemas avanzados
+    const { default: metricsSystem } = await import('./lib/metrics-system.js')
+    const { default: intelligentAlerts } = await import('./lib/intelligent-alerts.js')
+    const { default: reportingSystem } = await import('./lib/reporting-system.js')
+    
+    metricsSystem.stop()
+    intelligentAlerts.stop()
+    reportingSystem.stop()
+    
+    console.log(chalk.green('✅ Sistemas avanzados detenidos correctamente'))
+  } catch (error) {
+    console.error(chalk.red('❌ Error deteniendo sistemas:'), error)
+  }
+  
+  process.exit(0)
+})
+
+process.on('SIGTERM', async () => {
+  console.log(chalk.yellow('\n🛑 Recibida señal SIGTERM, cerrando sistemas...'))
+  
+  try {
+    // Generar reporte final antes de cerrar
+    const { default: reportingSystem } = await import('./lib/reporting-system.js')
+    await reportingSystem.generateReport('shutdown', { 
+      notify: false,
+      filename: `shutdown-report-${Date.now()}.json`
+    })
+    
+    console.log(chalk.green('✅ Reporte de cierre generado'))
+  } catch (error) {
+    console.error(chalk.red('❌ Error generando reporte de cierre:'), error)
+  }
+  
+  process.exit(0)
+})
+
+// Manejo de errores no capturados
+process.on('uncaughtException', async (error) => {
+  console.error(chalk.red('💥 Error no capturado:'), error)
+  
+  try {
+    // Log del error crítico
+    const { default: logManager } = await import('./lib/log-manager.js')
+    logManager.error('Uncaught Exception', error)
+    
+    // Notificar error crítico
+    const { default: notificationSystem } = await import('./lib/notification-system.js')
+    await notificationSystem.sendNotification({
+      type: 'critical_error',
+      title: '💥 Error Crítico del Sistema',
+      message: `Error no capturado: ${error.message}`,
+      data: { error: error.stack }
+    })
+  } catch (notifError) {
+    console.error('Error enviando notificación de error crítico:', notifError)
+  }
+  
+  // No hacer exit automático para permitir recuperación
+})
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error(chalk.red('🚫 Promise rechazada no manejada:'), reason)
+  
+  try {
+    // Log del error
+    const { default: logManager } = await import('./lib/log-manager.js')
+    logManager.error('Unhandled Promise Rejection', { reason, promise })
+  } catch (logError) {
+    console.error('Error loggeando promise rejection:', logError)
+  }
+})
+
+console.log(chalk.magenta('🤖 OguriCap Bot completamente iniciado y listo para usar'))
+console.log(chalk.cyan(`📊 Panel disponible en: ${process.env.PANEL_URL || 'https://oguricap.ooguy.com'}`))
+console.log(chalk.gray('💡 Usa Ctrl+C para detener el bot de forma segura'))

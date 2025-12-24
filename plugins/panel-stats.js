@@ -75,7 +75,10 @@ let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
         ``,
         `💾 *Sistema*`,
         `├ RAM: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`,
-        `└ Node: ${process.version}`
+        `└ Node: ${process.version}`,
+        ``,
+        `🌐 *Panel Web*`,
+        `${process.env.PANEL_URL || 'https://oguricap.ooguy.com'}`
       ].join('\n')
 
       return m.reply(msg)

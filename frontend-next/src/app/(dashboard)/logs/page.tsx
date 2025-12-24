@@ -2,423 +2,657 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Search, RefreshCw, Trash2, Download, Info, AlertTriangle, XCircle, Radio, Eye, Plus } from 'lucide-react';
-import { Card, StatCard } from '@/components/ui/Card';
+import { 
+  FileText, 
+  Search, 
+  Filter, 
+  Download, 
+  Trash2, 
+  RefreshCw,
+  Calendar,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  XCircle,
+  Bug,
+  Eye,
+  Settings,
+  Archive,
+  HardDrive,
+  Clock,
+  Database,
+  ChevronDown,
+  ChevronRight,
+  Copy
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { SimpleSelect as Select } from '@/components/ui/Select';
-import { Modal } from '@/components/ui/Modal';
-import { useSocket } from '@/contexts/SocketContext';
-import api from '@/services/api';
+import { useSocket } from '@/hooks/useSocket';
 import toast from 'react-hot-toast';
 
 interface LogEntry {
-  id: number;
-  tipo: string;
-  mensaje: string;
-  usuario?: string;
-  fecha: string;
-  nivel?: 'info' | 'warning' | 'error' | 'debug' | string;
-  metadata?: any;
+  timestamp: string;
+  level: string;
+  category: string;
+  message: string;
+  data: any;
+  pid?: number;
+  hostname?: string;
+  stack?: string[];
 }
+
+interface LogStats {
+  totalLogs: number;
+  errorCount: number;
+  warnCount: number;
+  infoCount: number;
+  debugCount: number;
+  traceCount: number;
+  filesCreated: number;
+  filesRotated: number;
+  filesCompressed: number;
+  lastLogTime: string;
+  uptime: number;
+  bufferSize: number;
+  activeStreams: number;
+  diskUsage: {
+    totalSize: number;
+    fileCount: number;
+    formattedSize: string;
+  };
+}
+
+const LOG_LEVELS = {
+  error: { color: 'text-red-400 bg-red-500/20', icon: XCircle },
+  warn: { color: 'text-yellow-400 bg-yellow-500/20', icon: AlertTriangle },
+  info: { color: 'text-blue-400 bg-blue-500/20', icon: Info },
+  debug: { color: 'text-purple-400 bg-purple-500/20', icon: Bug },
+  trace: { color: 'text-gray-400 bg-gray-500/20', icon: Eye }
+};
+
+const LOG_CATEGORIES = [
+  'system', 'bot', 'api', 'database', 'security', 
+  'performance', 'user', 'plugin', 'network', 'error'
+];
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [levelFilter, setLevelFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<any>(null);
-  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [showCreateLogModal, setShowCreateLogModal] = useState(false);
-  const [newLog, setNewLog] = useState({
-    tipo: 'manual',
-    mensaje: '',
-    nivel: 'info' as 'info' | 'warning' | 'error' | 'debug'
-  });
+  const [stats, setStats] = useState<LogStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [pageSize, setPageSize] = useState(50);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { isConnected: isSocketConnected } = useSocket();
+  const socket = useSocket();
 
-  const loadLogs = async () => {
-    // Evitar múltiples llamadas simultáneas
-    if (loading) return;
-    
-    try {
-      setLoading(true);
-      const data = await api.getLogs(page, 50, levelFilter !== 'all' ? levelFilter : undefined);
-      setLogs(data?.logs || []);
-      setPagination(data?.pagination);
-    } catch (err) {
-      console.error('Error loading logs:', err);
-      toast.error('Error al cargar logs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Carga inicial única
   useEffect(() => {
     loadLogs();
-  }, [page, levelFilter]); // Recargar cuando cambie página o filtro
+    loadStats();
+  }, [searchQuery, selectedLevel, selectedCategory, startDate, endDate, currentPage]);
 
-  // Escuchar nuevos logs via eventos personalizados (no auto-refresh constante)
   useEffect(() => {
-    const handleNewLogEntry = (event: CustomEvent) => {
-      const { log } = event.detail;
-      if (log && log.id) {
-        // Agregar el nuevo log al inicio de la lista si no existe
-        setLogs(prevLogs => {
-          const exists = prevLogs.some(existingLog => existingLog.id === log.id);
-          if (!exists) {
-            return [log, ...prevLogs.slice(0, 49)]; // Mantener solo 50 logs
-          }
-          return prevLogs;
-        });
+    if (!socket) return;
+
+    const handleNewLog = (logEntry: LogEntry) => {
+      if (autoRefresh) {
+        setLogs(prev => [logEntry, ...prev.slice(0, pageSize - 1)]);
+        loadStats(); // Actualizar estadísticas
       }
     };
 
-    window.addEventListener('newLogEntry', handleNewLogEntry as EventListener);
-    
+    socket.on('log:new', handleNewLog);
+
     return () => {
-      window.removeEventListener('newLogEntry', handleNewLogEntry as EventListener);
+      socket.off('log:new', handleNewLog);
     };
-  }, []);
+  }, [socket, autoRefresh, pageSize]);
+
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        loadLogs();
+        loadStats();
+      }, 10000); // Cada 10 segundos
+
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh, searchQuery, selectedLevel, selectedCategory, startDate, endDate]);
+
+  const loadLogs = async () => {
+    try {
+      setIsLoading(true);
+      
+      const params = new URLSearchParams({
+        limit: pageSize.toString(),
+        page: currentPage.toString()
+      });
+      
+      if (searchQuery) params.append('query', searchQuery);
+      if (selectedLevel) params.append('level', selectedLevel);
+      if (selectedCategory) params.append('category', selectedCategory);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+
+      const response = await fetch(`/api/logs/search?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs || []);
+      }
+    } catch (error) {
+      console.error('Error loading logs:', error);
+      toast.error('Error cargando logs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch('/api/logs/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const exportLogs = async (format: string) => {
+    try {
+      const params = new URLSearchParams({ format });
+      
+      if (selectedCategory) params.append('category', selectedCategory);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+
+      const response = await fetch(`/api/logs/export?${params}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `logs-${new Date().toISOString().split('T')[0]}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Logs exportados');
+      }
+    } catch (error) {
+      toast.error('Error exportando logs');
+    }
+  };
 
   const clearLogs = async () => {
-    if (!confirm('¿Eliminar todos los logs? Esta acción no se puede deshacer.')) return;
-    try {
-      await api.clearLogs();
-      
-      // Crear notificación automática
-      await api.createNotification({
-        title: 'Logs Eliminados',
-        message: 'Todos los logs del sistema han sido eliminados por el administrador',
-        type: 'warning',
-        category: 'sistema'
-      });
-      
-      toast.success('Logs eliminados');
-      loadLogs();
-    } catch (err) {
-      toast.error('Error al eliminar logs');
-    }
-  };
-
-  const exportLogs = async () => {
-    try {
-      const data = await api.exportLogs();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `logs-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      // Crear notificación automática
-      await api.createNotification({
-        title: 'Logs Exportados',
-        message: `Los logs del sistema han sido exportados correctamente (${data?.length || 0} registros)`,
-        type: 'success',
-        category: 'sistema'
-      });
-      
-      toast.success('Logs exportados');
-    } catch (err) {
-      toast.error('Error al exportar logs');
-    }
-  };
-
-  const createLog = async () => {
-    if (!newLog.mensaje.trim()) {
-      toast.error('El mensaje es requerido');
+    if (!confirm('¿Estás seguro de que quieres limpiar todos los logs? Esta acción no se puede deshacer.')) {
       return;
     }
-    
+
     try {
-      // Crear log manual (esto sería útil para testing y debugging)
-      const logData = {
-        ...newLog,
-        usuario: 'admin', // Usuario actual
-        fecha: new Date().toISOString(),
-        metadata: { source: 'panel', manual: true }
-      };
-      
-      // Simular creación de log (en un sistema real esto iría al backend)
-      setLogs(prev => [logData as any, ...prev]);
-      
-      toast.success('Log creado');
-      setShowCreateLogModal(false);
-      setNewLog({ tipo: 'manual', mensaje: '', nivel: 'info' });
-    } catch (err) {
-      toast.error('Error al crear log');
+      const response = await fetch('/api/logs/clear', { method: 'POST' });
+      if (response.ok) {
+        setLogs([]);
+        loadStats();
+        toast.success('Logs limpiados');
+      } else {
+        toast.error('Error limpiando logs');
+      }
+    } catch (error) {
+      toast.error('Error limpiando logs');
     }
   };
 
-  const getLevelIcon = (nivel?: string) => {
-    if (!nivel || typeof nivel !== 'string') nivel = 'info';
-    const icons: Record<string, { icon: React.ReactNode; color: string }> = {
-      info: { icon: <Info className="w-4 h-4" />, color: 'text-cyan-400' },
-      warning: { icon: <AlertTriangle className="w-4 h-4" />, color: 'text-amber-400' },
-      error: { icon: <XCircle className="w-4 h-4" />, color: 'text-red-400' },
-      debug: { icon: <FileText className="w-4 h-4" />, color: 'text-gray-400' },
-    };
-    return icons[nivel] || icons.info;
+  const toggleLogExpansion = (index: number) => {
+    const newExpanded = new Set(expandedLogs);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedLogs(newExpanded);
   };
 
-  const getLevelBadge = (nivel?: string) => {
-    if (!nivel || typeof nivel !== 'string') nivel = 'info';
-    const config: Record<string, string> = {
-      info: 'badge-info',
-      warning: 'badge-warning',
-      error: 'badge-danger',
-      debug: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-    };
-    return <span className={`badge ${config[nivel] || config.info}`}>{nivel.toUpperCase()}</span>;
+  const copyLogToClipboard = (log: LogEntry) => {
+    const logText = JSON.stringify(log, null, 2);
+    navigator.clipboard.writeText(logText);
+    toast.success('Log copiado al portapapeles');
   };
 
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleString('es-ES', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
-  });
-
-  const filteredLogs = logs.filter(log =>
-    log.mensaje?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.tipo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.usuario?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const stats = {
-    total: logs.length,
-    info: logs.filter(l => l.nivel === 'info').length,
-    warning: logs.filter(l => l.nivel === 'warning').length,
-    error: logs.filter(l => l.nivel === 'error').length,
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString();
   };
+
+  const formatUptime = (ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    return `${minutes}m ${seconds % 60}s`;
+  };
+
+  const getLevelConfig = (level: string) => {
+    return LOG_LEVELS[level as keyof typeof LOG_LEVELS] || LOG_LEVELS.info;
+  };
+
+  if (isLoading && logs.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Logs del Sistema</h1>
-          <p className="text-gray-400 mt-1">Monitorea la actividad y errores del sistema</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3 items-center">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            isSocketConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
-            <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
-            {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
-          </div>
-          <Button variant="success" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateLogModal(true)}>Crear Log</Button>
-          <Button variant="secondary" size="sm" icon={<Download className="w-4 h-4" />} onClick={exportLogs}>Exportar</Button>
-          <Button variant="danger" size="sm" icon={<Trash2 className="w-4 h-4" />} onClick={clearLogs}>Limpiar</Button>
-        </motion.div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Gestión de Logs</h1>
+          <p className="text-gray-400">Visualización y análisis de logs del sistema</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            variant={autoRefresh ? "primary" : "secondary"}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+            Auto-refresh
+          </Button>
+          
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            Filtros
+          </Button>
+          
+          <Button
+            onClick={() => exportLogs('json')}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Exportar
+          </Button>
+          
+          <Button
+            onClick={clearLogs}
+            variant="danger"
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Limpiar
+          </Button>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Logs" value={stats.total} icon={<FileText className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Info" value={stats.info} icon={<Info className="w-6 h-6" />} color="info" delay={0.1} />
-        <StatCard title="Warnings" value={stats.warning} icon={<AlertTriangle className="w-6 h-6" />} color="warning" delay={0.2} />
-        <StatCard title="Errors" value={stats.error} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0.3} />
-      </div>
-
-      {/* Filters */}
-      <Card animated delay={0.2} className="p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder="Buscar en logs..." value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} className="input-glass w-full pl-12" />
-          </div>
-          <Select value={levelFilter} onChange={setLevelFilter} options={[
-            { value: 'all', label: 'Todos' },
-            { value: 'info', label: 'Info' },
-            { value: 'warning', label: 'Warning' },
-            { value: 'error', label: 'Error' },
-            { value: 'debug', label: 'Debug' }
-          ]} className="md:w-40" />
-        </div>
-      </Card>
-
-      {/* Logs List */}
-      <Card animated delay={0.3} className="overflow-hidden">
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Registros</h2>
-            <p className="text-gray-400 text-sm mt-1">{filteredLogs.length} logs mostrados</p>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="p-12 text-center">
-            <RefreshCw className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Cargando logs...</p>
-          </div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="p-12 text-center">
-            <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No hay logs</h3>
-            <p className="text-gray-400">No se encontraron registros con los filtros aplicados</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto">
-            <AnimatePresence>
-              {filteredLogs.map((log, index) => {
-                const levelConfig = getLevelIcon(log.nivel);
-                return (
-                  <motion.div key={`log-${log.id}-${index}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }} transition={{ delay: index * 0.02 }} className="p-4 hover:bg-white/5 transition-colors">
-                    <div className="flex items-start gap-4">
-                      <div className={`p-2 rounded-lg bg-white/5 ${levelConfig.color}`}>{levelConfig.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          {getLevelBadge(log.nivel)}
-                          <span className="text-xs text-gray-500">{log.tipo}</span>
-                          {log.usuario && <span className="text-xs text-gray-500">• {log.usuario}</span>}
-                        </div>
-                        <p className="text-white text-sm">{log.mensaje}</p>
-                        <p className="text-xs text-gray-500 mt-1">{formatDate(log.fecha)}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => { setSelectedLog(log); setShowLogModal(true); }}
-                          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                          title="Ver detalles"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="p-6 border-t border-white/10 flex items-center justify-between">
-            <p className="text-sm text-gray-400">Página {pagination.page} de {pagination.totalPages}</p>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-              <Button variant="secondary" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Log Detail Modal */}
-      <Modal isOpen={showLogModal && !!selectedLog} onClose={() => setShowLogModal(false)} title="Detalles del Log">
-        {selectedLog && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-xl bg-white/5 ${getLevelIcon(selectedLog.nivel).color}`}>
-                {getLevelIcon(selectedLog.nivel).icon}
+      {/* Estadísticas */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-blue-500/20">
+                <FileText className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h4 className="text-lg font-semibold text-white">{selectedLog.tipo}</h4>
-                {getLevelBadge(selectedLog.nivel)}
+                <p className="text-sm text-gray-400">Total Logs</p>
+                <p className="text-xl font-bold text-white">{stats.totalLogs.toLocaleString()}</p>
               </div>
             </div>
             
-            <div className="p-4 rounded-xl bg-white/5">
-              <p className="text-sm text-gray-400 mb-2">Mensaje</p>
-              <p className="text-white whitespace-pre-wrap">{selectedLog.mensaje}</p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 rounded-xl bg-white/5">
-                <p className="text-sm text-gray-400">Fecha y Hora</p>
-                <p className="text-white mt-1">{formatDate(selectedLog.fecha)}</p>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-red-400">Errores</span>
+                <span className="text-white">{stats.errorCount}</span>
               </div>
-              <div className="p-3 rounded-xl bg-white/5">
-                <p className="text-sm text-gray-400">Usuario</p>
-                <p className="text-white mt-1">{selectedLog.usuario || 'Sistema'}</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-yellow-400">Warnings</span>
+                <span className="text-white">{stats.warnCount}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-blue-400">Info</span>
+                <span className="text-white">{stats.infoCount}</span>
               </div>
             </div>
-            
-            {selectedLog.metadata && (
-              <div className="p-4 rounded-xl bg-white/5">
-                <p className="text-sm text-gray-400 mb-2">Metadata</p>
-                <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto">
-                  {JSON.stringify(selectedLog.metadata, null, 2)}
-                </pre>
-              </div>
-            )}
-            
-            <div className="flex justify-end gap-3 pt-4">
-              <Button onClick={() => setShowLogModal(false)} variant="secondary">
-                Cerrar
-              </Button>
-              <Button 
-                onClick={() => {
-                  navigator.clipboard.writeText(JSON.stringify(selectedLog, null, 2));
-                  toast.success('Log copiado al portapapeles');
-                }}
-                variant="primary"
-              >
-                Copiar Log
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          </motion.div>
 
-      {/* Create Log Modal */}
-      <Modal isOpen={showCreateLogModal} onClose={() => setShowCreateLogModal(false)} title="Crear Log Manual">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Tipo</label>
-            <input
-              type="text"
-              value={newLog.tipo}
-              onChange={(e) => setNewLog(prev => ({ ...prev, tipo: e.target.value }))}
-              className="input-glass w-full"
-              placeholder="Ej: test, debug, manual"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Nivel</label>
-            <Select
-              value={newLog.nivel}
-              onChange={(value) => setNewLog(prev => ({ ...prev, nivel: value as any }))}
-              options={[
-                { value: 'info', label: 'Info' },
-                { value: 'warning', label: 'Warning' },
-                { value: 'error', label: 'Error' },
-                { value: 'debug', label: 'Debug' }
-              ]}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Mensaje</label>
-            <textarea
-              value={newLog.mensaje}
-              onChange={(e) => setNewLog(prev => ({ ...prev, mensaje: e.target.value }))}
-              className="input-glass w-full h-24 resize-none"
-              placeholder="Mensaje del log..."
-            />
-          </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() => setShowCreateLogModal(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={createLog}
-            >
-              Crear Log
-            </Button>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="glass-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-green-500/20">
+                <HardDrive className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Almacenamiento</p>
+                <p className="text-xl font-bold text-white">{stats.diskUsage.formattedSize}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Archivos</span>
+                <span className="text-white">{stats.diskUsage.fileCount}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Rotados</span>
+                <span className="text-white">{stats.filesRotated}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Comprimidos</span>
+                <span className="text-white">{stats.filesCompressed}</span>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-purple-500/20">
+                <Clock className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Tiempo Activo</p>
+                <p className="text-xl font-bold text-white">{formatUptime(stats.uptime)}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Buffer</span>
+                <span className="text-white">{stats.bufferSize}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Streams</span>
+                <span className="text-white">{stats.activeStreams}</span>
+              </div>
+              {stats.lastLogTime && (
+                <div className="text-xs text-gray-500">
+                  Último: {formatTimestamp(stats.lastLogTime)}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="glass-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-yellow-500/20">
+                <Database className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Estado</p>
+                <p className="text-xl font-bold text-white">Activo</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <span className="text-sm text-gray-400">Logging habilitado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-400" />
+                <span className="text-sm text-gray-400">Rotación automática</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-400" />
+                <span className="text-sm text-gray-400">Compresión activa</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Filtros */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="glass-card p-6"
+          >
+            <h3 className="text-lg font-semibold text-white mb-4">Filtros de Búsqueda</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Búsqueda
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input-glass pl-10"
+                    placeholder="Buscar en logs..."
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Nivel
+                </label>
+                <select
+                  value={selectedLevel}
+                  onChange={(e) => setSelectedLevel(e.target.value)}
+                  className="input-glass"
+                >
+                  <option value="">Todos los niveles</option>
+                  <option value="error">Error</option>
+                  <option value="warn">Warning</option>
+                  <option value="info">Info</option>
+                  <option value="debug">Debug</option>
+                  <option value="trace">Trace</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Categoría
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="input-glass"
+                >
+                  <option value="">Todas las categorías</option>
+                  {LOG_CATEGORIES.map(category => (
+                    <option key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Rango de Fechas
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="input-glass text-sm"
+                  />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="input-glass text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lista de logs */}
+      <div className="glass-card">
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">
+              Logs del Sistema ({logs.length})
+            </h2>
+            
+            <div className="flex items-center gap-3">
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(parseInt(e.target.value))}
+                className="input-glass text-sm"
+              >
+                <option value={25}>25 por página</option>
+                <option value={50}>50 por página</option>
+                <option value={100}>100 por página</option>
+              </select>
+            </div>
           </div>
         </div>
-      </Modal>
+        
+        <div className="divide-y divide-white/5">
+          {logs.length === 0 ? (
+            <div className="p-8 text-center">
+              <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">No se encontraron logs</p>
+            </div>
+          ) : (
+            logs.map((log, index) => {
+              const levelConfig = getLevelConfig(log.level);
+              const Icon = levelConfig.icon;
+              const isExpanded = expandedLogs.has(index);
+              
+              return (
+                <motion.div
+                  key={`${log.timestamp}-${index}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-4 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${levelConfig.color} flex-shrink-0`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-gray-400">
+                            {formatTimestamp(log.timestamp)}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${levelConfig.color}`}>
+                            {log.level.toUpperCase()}
+                          </span>
+                          <span className="px-2 py-1 rounded-full text-xs bg-gray-500/20 text-gray-300">
+                            {log.category}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => copyLogToClipboard(log)}
+                            variant="ghost"
+                            size="sm"
+                            className="p-1"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          
+                          {(log.data && Object.keys(log.data).length > 0) || log.stack ? (
+                            <Button
+                              onClick={() => toggleLogExpansion(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="p-1"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronRight className="w-3 h-3" />
+                              )}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                      
+                      <p className="text-white text-sm mb-2">{log.message}</p>
+                      
+                      {log.hostname && (
+                        <p className="text-xs text-gray-500">
+                          Host: {log.hostname} | PID: {log.pid}
+                        </p>
+                      )}
+                      
+                      {/* Detalles expandidos */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-3 space-y-3"
+                          >
+                            {log.data && Object.keys(log.data).length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-300 mb-2">Datos:</h4>
+                                <pre className="text-xs bg-gray-900 p-3 rounded-lg overflow-x-auto text-gray-300">
+                                  {JSON.stringify(log.data, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                            
+                            {log.stack && (
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-300 mb-2">Stack Trace:</h4>
+                                <pre className="text-xs bg-gray-900 p-3 rounded-lg overflow-x-auto text-red-300">
+                                  {log.stack.join('\n')}
+                                </pre>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }

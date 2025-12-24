@@ -18,7 +18,7 @@ let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
   ensureStore()
   const panel = global.db.data.panel
   const user = global.db.data.users[m.sender]
-  const panelUrl = process.env.PANEL_URL || `http://localhost:${process.env.PANEL_PORT || 3001}`
+  const panelUrl = process.env.PANEL_URL || 'https://oguricap.ooguy.com'
 
   switch (command) {
     case 'reg':

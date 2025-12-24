@@ -500,6 +500,9 @@ export default function UsuariosPage() {
               className="input-glass w-full"
               placeholder="Contraseña (mín. 4 caracteres)"
             />
+            <p className="text-xs text-blue-400 mt-1">
+              💡 El usuario usará esta contraseña para hacer login
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">WhatsApp</label>
