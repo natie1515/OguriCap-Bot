@@ -41,7 +41,94 @@ const formatPedido = (pedido, index) => {
     `   📅 Fecha: ${formatDate(pedido.fecha_creacion)}`,
     `   🗳️ Votos: ${pedido.votos || 0}`
   ]
+  if (pedido.archivo) lines.push(`   📎 Adjunto: ${pedido.archivoNombre || 'archivo'}`)
   return lines.join('\n')
+}
+
+const saveMedia = async (m, conn) => {
+  // Intentar obtener el mensaje con multimedia
+  const q = m.quoted ? m.quoted : m
+  const msg = q.msg || q
+  
+  // Verificar si hay multimedia en el mensaje (cualquier tipo)
+  const hasMedia = msg.imageMessage || msg.videoMessage || msg.audioMessage || msg.documentMessage || msg.stickerMessage
+  if (!hasMedia) return null
+  
+  // Obtener el mimetype de cualquier tipo de mensaje multimedia
+  const mime = msg.imageMessage?.mimetype || 
+               msg.videoMessage?.mimetype || 
+               msg.audioMessage?.mimetype || 
+               msg.documentMessage?.mimetype ||
+               msg.stickerMessage?.mimetype || ''
+  
+  // Para stickers, convertir a imagen
+  if (msg.stickerMessage) {
+    try {
+      const mediaBuffer = await conn.downloadMediaMessage(q)
+      if (!mediaBuffer) return null
+      
+      // Convertir sticker a imagen
+      const { toImage } = await import('../lib/sticker.js')
+      const imageBuffer = await toImage(mediaBuffer)
+      
+      const targetDir = path.join(process.cwd(), 'tmp', 'pedidos')
+      fs.mkdirSync(targetDir, { recursive: true })
+      
+      const filename = `pedido_${Date.now()}.png`
+      const dest = path.join(targetDir, filename)
+      
+      fs.writeFileSync(dest, imageBuffer)
+      
+      return { 
+        path: dest, 
+        mimetype: 'image/png',
+        filename,
+        size: imageBuffer.length
+      }
+    } catch (error) {
+      console.error('Error convirtiendo sticker:', error)
+      return null
+    }
+  }
+  
+  if (!mime) return null
+  
+  try {
+    // Descargar el archivo
+    const buffer = await conn.downloadMediaMessage(q)
+    if (!buffer) return null
+    
+    const targetDir = path.join(process.cwd(), 'tmp', 'pedidos')
+    fs.mkdirSync(targetDir, { recursive: true })
+    
+    // Determinar extensión a partir del mimetype o usar extension original
+    const ext = mime.split('/')[1]?.split(';')[0] || 
+               q.message?.documentMessage?.fileName?.split('.').pop() || 'bin'
+    const originalFilename = q.message?.documentMessage?.fileName
+    
+    let filename
+    if (originalFilename) {
+      // Usar nombre original si es seguro
+      filename = originalFilename.replace(/[^a-zA-Z0-9.-]/g, '_')
+    } else {
+      filename = `pedido_${Date.now()}.${ext}`
+    }
+    
+    const dest = path.join(targetDir, filename)
+    
+    // Guardar archivo
+    fs.writeFileSync(dest, buffer)
+    
+    return { 
+      path: dest, 
+      mimetype: mime,
+      filename,
+      size: buffer.length
+    }
+  } catch (error) {
+    console.error('Error guardando multimedia:', error)
+    return null
+  }
 }
 
 let handler = async (m, { args, usedPrefix, command, conn }) => {
@@ -52,12 +139,23 @@ let handler = async (m, { args, usedPrefix, command, conn }) => {
     case 'pedido':
     case 'pedir': {
       const raw = (args || []).join(' ').trim()
-      if (!raw) {
-        return m.reply(`📦 *Crear un pedido*\n\nUso: ${usedPrefix}${command} <título> | <descripción> | <prioridad>\n\nEjemplo:\n${usedPrefix}${command} Manhwa Solo Leveling | Capítulos 1-50 | alta\n\nPrioridades: alta, media, baja`)
+      const media = await saveMedia(m, conn)
+      
+      if (!raw && !media) {
+        return m.reply(`📦 *Crear un pedido*
+
+Uso: ${usedPrefix}${command} <título> | <descripción> | <prioridad>
+
+Ejemplo:
+${usedPrefix}${command} Manhwa Solo Leveling | Capítulos 1-50 | alta
+
+También puedes adjuntar una imagen/video/documento
+
+Prioridades: alta, media, baja`)
       }
 
       const parts = raw.split('|').map(s => s.trim())
-      const titulo = parts[0] || ''
+      const titulo = parts[0] || (media ? 'Pedido con archivo adjunto' : '')
       const descripcion = parts[1] || ''
       const prioridad = ['alta', 'media', 'baja'].includes(parts[2]?.toLowerCase()) ? parts[2].toLowerCase() : 'media'
 
@@ -80,7 +178,10 @@ let handler = async (m, { args, usedPrefix, command, conn }) => {
         votos: 0,
         votantes: [],
         fecha_creacion: now,
-        fecha_actualizacion: now
+        fecha_actualizacion: now,
+        archivo: media?.path || null,
+        archivoMime: media?.mimetype || null,
+        archivoNombre: media?.filename || null
       }
 
       panel.pedidos[id] = pedido
@@ -91,7 +192,16 @@ let handler = async (m, { args, usedPrefix, command, conn }) => {
         emitPedidoCreated(pedido)
       } catch {}
 
-      return m.reply(`✅ *Pedido creado exitosamente*\n\n📦 ID: #${id}\n📝 Título: ${titulo}\n📋 Descripción: ${descripcion || 'Sin descripción'}\n${prioridadEmoji[prioridad]} Prioridad: ${prioridad}\n\nUsa ${usedPrefix}verpedido ${id} para ver detalles`)
+      let msg = `✅ *Pedido creado exitosamente*
+
+📦 ID: #${id}
+📝 Título: ${titulo}
+📋 Descripción: ${descripcion || 'Sin descripción'}
+${prioridadEmoji[prioridad]} Prioridad: ${prioridad}`
+      if (media) msg += `\n📎 Archivo: ${media.filename}`
+      msg += `\n\nUsa ${usedPrefix}verpedido ${id} para ver detalles`
+      
+      return m.reply(msg)
     }
 
     case 'pedidos':
@@ -109,7 +219,11 @@ let handler = async (m, { args, usedPrefix, command, conn }) => {
       }
 
       const msg = pedidos.map((p, i) => formatPedido(p, i + 1)).join('\n\n')
-      return m.reply(`📦 *Lista de Pedidos*\n\n${msg}\n\n💡 Usa ${usedPrefix}votarpedido <id> para votar`)
+      return m.reply(`📦 *Lista de Pedidos*
+
+${msg}
+
+💡 Usa ${usedPrefix}votarpedido <id> para votar`)
     }
 
     case 'mispedidos': {
@@ -147,7 +261,8 @@ let handler = async (m, { args, usedPrefix, command, conn }) => {
         `👤 *Solicitante:* @${pedido.usuario?.split('@')[0] || 'desconocido'}`,
         `📅 *Fecha:* ${formatDate(pedido.fecha_creacion)}`,
         `🗳️ *Votos:* ${pedido.votos || 0}`,
-        pedido.grupo_nombre ? `👥 *Grupo:* ${pedido.grupo_nombre}` : ''
+        pedido.grupo_nombre ? `👥 *Grupo:* ${pedido.grupo_nombre}` : '',
+        pedido.archivo ? `📎 *Adjunto:* ${pedido.archivoNombre || 'archivo guardado'}` : ''
       ].filter(Boolean).join('\n')
 
       return conn.reply(m.chat, msg, m, { mentions: [pedido.usuario] })

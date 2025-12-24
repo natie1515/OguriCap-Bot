@@ -27,41 +27,93 @@ const formatEntry = (entry, index, showUser) => {
   return lines.join('\n')
 }
 
-const saveMedia = async (m) => {
+const saveMedia = async (m, conn) => {
+  // Intentar obtener el mensaje con multimedia
   const q = m.quoted ? m.quoted : m
   const msg = q.msg || q
-  const mime = msg.mimetype || q.mediaType || ''
-  if (!mime || !/image|video|audio|document/.test(mime)) return null
-  if (typeof q.download !== 'function') return null
-
-  const downloaded = await q.download(true)
-  const targetDir = path.join(process.cwd(), 'tmp', 'aportes')
-  fs.mkdirSync(targetDir, { recursive: true })
-
-  if (typeof downloaded === 'string' && fs.existsSync(downloaded)) {
-    const base = path.basename(downloaded)
-    const dest = path.join(targetDir, base)
-    if (dest !== downloaded) {
-      try {
-        fs.renameSync(downloaded, dest)
-      } catch {
-        fs.copyFileSync(downloaded, dest)
+  
+  // Verificar si hay multimedia en el mensaje (cualquier tipo)
+  const hasMedia = msg.imageMessage || msg.videoMessage || msg.audioMessage || msg.documentMessage || msg.stickerMessage
+  if (!hasMedia) return null
+  
+  // Obtener el mimetype de cualquier tipo de mensaje multimedia
+  const mime = msg.imageMessage?.mimetype || 
+               msg.videoMessage?.mimetype || 
+               msg.audioMessage?.mimetype || 
+               msg.documentMessage?.mimetype ||
+               msg.stickerMessage?.mimetype || ''
+  
+  // Para stickers, convertir a imagen
+  if (msg.stickerMessage) {
+    try {
+      const mediaBuffer = await conn.downloadMediaMessage(q)
+      if (!mediaBuffer) return null
+      
+      // Convertir sticker a imagen
+      const { toImage } = await import('../lib/sticker.js')
+      const imageBuffer = await toImage(mediaBuffer)
+      
+      const targetDir = path.join(process.cwd(), 'tmp', 'aportes')
+      fs.mkdirSync(targetDir, { recursive: true })
+      
+      const filename = `aporte_${Date.now()}.png`
+      const dest = path.join(targetDir, filename)
+      
+      fs.writeFileSync(dest, imageBuffer)
+      
+      return { 
+        path: dest, 
+        mimetype: 'image/png',
+        filename,
+        size: imageBuffer.length
       }
+    } catch (error) {
+      console.error('Error convirtiendo sticker:', error)
+      return null
     }
-    return { path: dest, mimetype: mime }
   }
-
-  if (Buffer.isBuffer(downloaded)) {
-    const ext = mime.split('/')[1] || 'bin'
-    const dest = path.join(targetDir, `aporte_${Date.now()}.${ext}`)
-    fs.writeFileSync(dest, downloaded)
-    return { path: dest, mimetype: mime }
+  
+  if (!mime) return null
+  
+  try {
+    // Descargar el archivo
+    const buffer = await conn.downloadMediaMessage(q)
+    if (!buffer) return null
+    
+    const targetDir = path.join(process.cwd(), 'tmp', 'aportes')
+    fs.mkdirSync(targetDir, { recursive: true })
+    
+    // Determinar extensión a partir del mimetype o usar extension original
+    const ext = mime.split('/')[1]?.split(';')[0] || 
+               q.message?.documentMessage?.fileName?.split('.').pop() || 'bin'
+    const originalFilename = q.message?.documentMessage?.fileName
+    
+    let filename
+    if (originalFilename) {
+      // Usar nombre original si es seguro
+      filename = originalFilename.replace(/[^a-zA-Z0-9.-]/g, '_')
+    } else {
+      filename = `aporte_${Date.now()}.${ext}`
+    }
+    
+    const dest = path.join(targetDir, filename)
+    
+    // Guardar archivo
+    fs.writeFileSync(dest, buffer)
+    
+    return { 
+      path: dest, 
+      mimetype: mime,
+      filename,
+      size: buffer.length
+    }
+  } catch (error) {
+    console.error('Error guardando multimedia:', error)
+    return null
   }
-
-  return null
 }
 
-let handler = async (m, { args, usedPrefix, command }) => {
+let handler = async (m, { args, usedPrefix, command, conn }) => {
   ensureStore()
   const data = global.db.data
 
@@ -71,10 +123,10 @@ let handler = async (m, { args, usedPrefix, command }) => {
       const parts = raw.includes('|') ? raw.split('|').map(s => s.trim()) : [raw, 'extra']
       const contenido = parts[0] || ''
       const tipo = parts[1] || 'extra'
-      const media = await saveMedia(m)
+      const media = await saveMedia(m, conn)
 
       if (!contenido && !media) {
-        return m.reply(`Uso: ${usedPrefix}addaporte texto | tipo\nTambien puedes responder a un archivo con /addaporte texto | tipo`)
+        return m.reply(`Uso: ${usedPrefix}addaporte texto | tipo\nTambien puedes enviar una imagen/video/documento con el comando\nO responder a un archivo con /addaporte texto | tipo`)
       }
 
       const entry = {
@@ -85,14 +137,23 @@ let handler = async (m, { args, usedPrefix, command }) => {
         tipo,
         fecha: new Date().toISOString(),
         estado: 'pendiente',
-        archivo: media?.path || null
+        archivo: media?.path || null,
+        archivoMime: media?.mimetype || null,
+        archivoNombre: media?.filename || null
       }
       data.aportes.push(entry)
 
-      let msg = 'Aporte registrado'
-      msg += `\ncontenido: ${entry.contenido}`
-      msg += `\ntipo: ${entry.tipo}`
-      if (entry.archivo) msg += '\narchivo: adjunto guardado'
+      // Emitir evento Socket.IO
+      try {
+        const { emitAporteCreated } = await import('../lib/socket-io.js')
+        emitAporteCreated(entry)
+      } catch {}
+
+      let msg = '✅ Aporte registrado exitosamente'
+      msg += `\n\n🆔 ID: #${entry.id}`
+      msg += `\n📝 Contenido: ${entry.contenido}`
+      msg += `\n📂 Tipo: ${entry.tipo}`
+      if (entry.archivo) msg += `\n📎 Archivo: ${entry.archivoNombre || 'adjunto guardado'}`
       return m.reply(msg)
     }
     case 'aportes': {

@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
-import { Bot, Eye, EyeOff, Lock, User, Sparkles, Zap, Shield, Crown, UserCheck, Users } from 'lucide-react';
+import { Bot, Eye, EyeOff, Lock, User, Sparkles, Zap, Shield, Crown, UserCheck, Users, Wrench, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '@/services/api';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -16,6 +17,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+  const [isCheckingMaintenance, setIsCheckingMaintenance] = useState(true);
   const { login } = useAuth();
   const router = useRouter();
 
@@ -58,8 +61,40 @@ export default function LoginPage() {
     }
   ];
 
+  // Verificar modo de mantenimiento al cargar la página
+  useEffect(() => {
+    checkMaintenanceStatus();
+  }, []);
+
+  const checkMaintenanceStatus = async () => {
+    try {
+      setIsCheckingMaintenance(true);
+      const response = await fetch('/api/health');
+      const data = await response.json();
+      
+      if (data.maintenanceMode) {
+        setIsMaintenanceMode(true);
+        toast.error('El sistema está en modo de mantenimiento');
+      } else {
+        setIsMaintenanceMode(false);
+      }
+    } catch (error) {
+      console.error('Error checking maintenance status:', error);
+      // Si hay error al verificar, asumir que no está en mantenimiento
+      setIsMaintenanceMode(false);
+    } finally {
+      setIsCheckingMaintenance(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar modo de mantenimiento antes de proceder
+    if (isMaintenanceMode) {
+      toast.error('El sistema está en modo de mantenimiento. Solo los administradores pueden acceder.');
+      return;
+    }
     
     // Validaciones mejoradas
     if (!username.trim()) {
@@ -107,6 +142,14 @@ export default function LoginPage() {
         errorMessage = 'Credenciales incorrectas';
       } else if (error?.response?.status === 403) {
         errorMessage = 'No tienes permisos para este rol';
+      } else if (error?.response?.status === 503) {
+        // Modo de mantenimiento activado durante el login
+        if (error?.response?.data?.maintenanceMode) {
+          setIsMaintenanceMode(true);
+          errorMessage = 'El sistema está en modo de mantenimiento';
+        } else {
+          errorMessage = 'Servicio temporalmente no disponible';
+        }
       } else if (error?.response?.status >= 500) {
         errorMessage = 'Error del servidor. Inténtalo más tarde';
       }
@@ -122,6 +165,77 @@ export default function LoginPage() {
     { icon: Shield, text: 'Control Total', color: 'text-emerald-400' },
     { icon: Sparkles, text: 'Tiempo Real', color: 'text-cyan-400' },
   ];
+
+  // Mostrar pantalla de carga mientras se verifica el mantenimiento
+  if (isCheckingMaintenance) {
+    return (
+      <div className="min-h-screen mesh-bg flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-glow mb-4">
+            <Bot className="w-8 h-8 text-white animate-pulse" />
+          </div>
+          <p className="text-gray-400">Verificando estado del sistema...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar pantalla de mantenimiento si está activo
+  if (isMaintenanceMode) {
+    return (
+      <div className="min-h-screen mesh-bg flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full text-center"
+        >
+          <div className="glass-card p-8">
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-glow mb-6">
+              <Wrench className="w-10 h-10 text-white" />
+            </div>
+            
+            <h1 className="text-2xl font-bold text-white mb-4">
+              Sistema en Mantenimiento
+            </h1>
+            
+            <div className="flex items-center justify-center gap-2 mb-4 text-orange-400">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="text-sm font-medium">Acceso Temporalmente Restringido</span>
+            </div>
+            
+            <p className="text-gray-400 mb-6 leading-relaxed">
+              El sistema está temporalmente fuera de servicio por mantenimiento programado. 
+              Solo los administradores pueden acceder durante este período.
+            </p>
+            
+            <div className="space-y-3">
+              <Button 
+                onClick={checkMaintenanceStatus}
+                variant="primary" 
+                className="w-full"
+                loading={isCheckingMaintenance}
+              >
+                Verificar Estado
+              </Button>
+              
+              <p className="text-xs text-gray-500">
+                Si eres administrador y necesitas acceso urgente, contacta al equipo técnico.
+              </p>
+            </div>
+          </div>
+          
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center text-sm text-gray-500 mt-6"
+          >
+            © 2025 Oguri Bot. Todos los derechos reservados.
+          </motion.p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen mesh-bg flex items-center justify-center p-4 relative overflow-hidden">

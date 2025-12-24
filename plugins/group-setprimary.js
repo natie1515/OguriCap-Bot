@@ -15,6 +15,13 @@ return conn.reply(m.chat, `ꕥ @${who.split`@`[0]} ya esta como Bot primario en 
 }
 try {
 chat.primaryBot = who
+
+// Emitir evento Socket.IO
+try {
+const { emitGrupoUpdated } = await import('../lib/socket-io.js')
+emitGrupoUpdated({ jid: m.chat, primaryBot: who })
+} catch {}
+
 conn.reply(m.chat, `❀ Se ha establecido a @${who.split`@`[0]} como Bot primario de este grupo.\n> Ahora todos los comandos de este grupo serán ejecutados por @${who.split`@`[0]}.`, m, { mentions: [who] })
 } catch (e) {
 conn.reply(m.chat, `⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${e.message}`, m)
