@@ -159,32 +159,22 @@ conn.ev.on("creds.update", saveCreds)
 // Iniciar Panel API
 if (process.env.PANEL_API !== '0') {
 try {
-console.log(chalk.cyan(`🌐 Iniciando Panel API...`))
 const { startPanelApi } = await import('./lib/panel-api.js')
 const apiPort = PORT // Usar el mismo puerto que el bot
-console.log(chalk.cyan(`🌐 Puerto configurado: ${apiPort}`))
-
 await startPanelApi({ port: apiPort })
-console.log(chalk.green(`✅ Panel API iniciado exitosamente en puerto ${apiPort}`))
-
-// Verificar que el servidor esté respondiendo
 setTimeout(async () => {
   try {
     const response = await fetch(`http://localhost:${apiPort}/api/health`)
-    if (response.ok) {
-      console.log(chalk.green('✅ Servidor API respondiendo correctamente'))
+    if (response.ok) {  
     } else {
-      console.log(chalk.yellow(`⚠️ Servidor API responde con status: ${response.status}`))
     }
   } catch (error) {
-    console.log(chalk.red(`❌ Error verificando servidor API: ${error.message}`))
   }
 }, 2000)
 
 } catch (e) {
 console.error(chalk.red('❌ Error iniciando Panel API:'), e)
 }}
-
 if (!fs.existsSync(`./${global.sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
