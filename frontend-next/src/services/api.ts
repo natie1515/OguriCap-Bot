@@ -115,6 +115,32 @@ class ApiService {
     return response.data
   }
 
+  async register(userData: { username: string; password: string; rol: string; whatsapp_number?: string }) {
+    const response = await this.api.post('/api/auth/register', userData);
+    return response.data;
+  }
+
+  async autoRegister(userData: { whatsapp_number: string; username: string; grupo_jid: string }) {
+    const response = await this.api.post('/api/auth/auto-register', userData);
+    return response.data;
+  }
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    const response = await this.api.post('/api/auth/change-password', {
+      currentPassword,
+      newPassword
+    });
+    return response.data;
+  }
+
+  async resetPassword(username: string, whatsapp_number: string) {
+    const response = await this.api.post('/api/auth/reset-password', {
+      username,
+      whatsapp_number
+    });
+    return response.data;
+  }
+
   async getMe() {
     const response = await this.api.get('/api/auth/me')
     return response.data

@@ -49,6 +49,10 @@ let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
 
       const id = nextId()
       const now = new Date().toISOString()
+      
+      // Generar contraseña temporal simple
+      let tempPassword = 'temp' + Math.random().toString(36).substring(2, 8);
+
       const registro = {
         id,
         wa_jid: m.sender,
@@ -58,7 +62,9 @@ let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
         rol: 'usuario',
         fecha_registro: now,
         activo: true,
-        verificado: false
+        verificado: false,
+        temp_password: tempPassword,
+        require_password_change: true
       }
 
       panel.registros[id] = registro
@@ -73,7 +79,36 @@ let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
         whatsapp_number: m.sender.split('@')[0],
         rol: 'usuario',
         fecha_registro: now,
-        activo: true
+        activo: true,
+        temp_password: tempPassword,
+        require_password_change: true
+      }
+
+      // Registrar también en el sistema JWT usando auto-register
+      try {
+        const response = await fetch(`http://localhost:${process.env.PORT || 8080}/api/auth/auto-register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            whatsapp_number: m.sender,
+            username: username,
+            grupo_jid: m.chat
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.tempPassword) {
+            tempPassword = data.tempPassword; // Usar la contraseña del sistema JWT
+            // Actualizar también en los registros locales
+            registro.temp_password = tempPassword;
+            panel.users[userId].temp_password = tempPassword;
+          }
+        }
+      } catch (error) {
+        console.warn('Error registering in JWT system:', error.message);
       }
 
       // Marcar usuario como registrado en la DB principal
@@ -91,20 +126,31 @@ let handler = async (m, { args, usedPrefix, command, conn, isOwner }) => {
         `• WhatsApp: ${m.sender.split('@')[0]}`,
         `• ID: #${id}`,
         ``,
+        `🔑 *Credenciales de Acceso:*`,
+        `• Usuario: ${username}`,
+        `• Contraseña temporal: ${tempPassword}`,
+        `• Válida por: 24 horas`,
+        ``,
         `🌐 *Acceso al Panel:*`,
         `${panelUrl}`,
         ``,
         `📋 *Instrucciones:*`,
         `1. Abre el enlace del panel en tu navegador`,
         `2. Ingresa con tu usuario: ${username}`,
-        `3. La contraseña por defecto es vacía (solo presiona Enter)`,
-        `4. Una vez dentro, puedes cambiar tu contraseña`,
+        `3. Usa la contraseña temporal: ${tempPassword}`,
+        `4. Selecciona el rol "usuario"`,
+        `5. ⚠️ IMPORTANTE: Cambia tu contraseña después del primer login`,
         ``,
         `💡 *Funciones del Panel:*`,
         `• Ver estadísticas del bot`,
         `• Gestionar grupos`,
         `• Ver aportes y pedidos`,
         `• Configurar el bot`,
+        ``,
+        `🔒 *Seguridad:*`,
+        `• La contraseña temporal expira en 24 horas`,
+        `• Debes cambiarla en tu primer login`,
+        `• Guarda bien tus credenciales`,
         ``,
         `¡Gracias por registrarte! 🎉`
       ].join('\n')
