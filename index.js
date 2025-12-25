@@ -67,8 +67,8 @@ global.prefix = new RegExp('^[#!./-]')
 // ============================================
 console.log(chalk.cyan('🚀 Initializing PostgreSQL Database System...'))
 
-// Import the PostgreSQL-only database controller
-import DatabaseController from './lib/database-controller-new.js'
+// Import the simple PostgreSQL-only database controller
+import DatabaseController from './lib/database-controller-simple.js'
 
 // Initialize database controller (PostgreSQL only)
 global.databaseController = new DatabaseController({
