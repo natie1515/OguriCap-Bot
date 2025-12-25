@@ -454,13 +454,16 @@ const parsedNumber = phoneUtil.parseAndKeepRawInput(number)
 return phoneUtil.isValidNumber(parsedNumber)
 } catch (error) {
 return false
-}}
+}
+}
 
 async function joinChannels(sock) {
 for (const value of Object.values(global.ch)) {
 if (typeof value === 'string' && value.endsWith('@newsletter')) {
 await sock.newsletterFollow(value).catch(() => {})
-}}}
+}
+}
+}
 
 // ==========================================
 // INICIALIZACIÓN DE SISTEMAS AVANZADOS
