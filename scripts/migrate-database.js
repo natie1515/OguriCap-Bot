@@ -6,9 +6,9 @@
  * Handles database migrations using the custom migration system
  */
 
-import { DataMigrationSystem } from '../lib/data-migration-system.js';
-import { DatabaseAdapter } from '../lib/database-adapter.js';
-import { PostgresDriver } from '../lib/postgres-driver.js';
+import DataMigrationSystem from '../lib/data-migration-system.js';
+import DatabaseAdapter from '../lib/database-adapter.js';
+import { PostgreSQLDriver } from '../lib/postgres-driver.js';
 
 const command = process.argv[2];
 const flags = process.argv.slice(3);
@@ -16,7 +16,7 @@ const flags = process.argv.slice(3);
 async function main() {
   try {
     const dbAdapter = new DatabaseAdapter();
-    const postgresDriver = new PostgresDriver();
+    const postgresDriver = new PostgreSQLDriver();
     
     switch (command) {
       case 'migrate':
