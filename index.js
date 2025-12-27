@@ -161,11 +161,16 @@ console.info = () => {}
 	try {
 	  const dbPath = path.join(__dirname, 'database.json')
 	  if (fs.existsSync(dbPath)) {
-	    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-	    panelAuthMethod = dbData?.whatsapp?.authMethod || 'qr'
-	    panelPairingPhone = dbData?.whatsapp?.pairingPhone || null
-	  }
-	} catch (e) {}
+		    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
+		    const whatsappConfig = dbData?.panel?.whatsapp || dbData?.whatsapp || {}
+		    panelAuthMethod = whatsappConfig?.authMethod || 'qr'
+		    panelPairingPhone = whatsappConfig?.pairingPhone || null
+		  }
+		} catch (e) {}
+
+		// Exponer para el panel y reconexiones
+		global.panelAuthMethod = panelAuthMethod
+		global.panelPairingPhone = panelPairingPhone
 
 	const connectionOptions = {
 	logger: pino({ level: 'silent' }),
@@ -276,7 +281,7 @@ const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?
 // Actualizar QR para el panel
 	if (qr) {
 	// Si el método es pairing, no guardar ni emitir QR para evitar bucles
-	if (panelAuthMethod === 'pairing') return
+		if ((global.panelAuthMethod || panelAuthMethod) === 'pairing') return
 	
 	global.panelApiMainQr = qr
 	// Emitir QR via Socket.IO
@@ -363,13 +368,20 @@ let handler = await import('./handler.js')
 	let currentOptions = { ...connectionOptions }
 	try {
 	  const dbPath = path.join(__dirname, 'database.json')
-	  if (fs.existsSync(dbPath)) {
-	    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-	    if (dbData?.whatsapp?.authMethod === 'pairing') {
-	      currentOptions.browser = ["Ubuntu", "Chrome", "20.0.04"]
-	      currentOptions.printQRInTerminal = false
-	    }
-	  }
+		  if (fs.existsSync(dbPath)) {
+		    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
+			    const whatsappConfig = dbData?.panel?.whatsapp || dbData?.whatsapp || {}
+			    const inMemoryWhatsapp = global.db?.data?.panel?.whatsapp || null
+			    global.panelAuthMethod = inMemoryWhatsapp?.authMethod || whatsappConfig?.authMethod || 'qr'
+			    global.panelPairingPhone = inMemoryWhatsapp?.pairingPhone || whatsappConfig?.pairingPhone || null
+			    if (global.panelAuthMethod === 'pairing') {
+			      currentOptions.browser = ["Ubuntu", "Chrome", "20.0.04"]
+			      currentOptions.printQRInTerminal = false
+			    } else {
+			      currentOptions.browser = ["MacOs", "Safari"]
+			      currentOptions.printQRInTerminal = (opcion == '1' || methodCodeQR)
+			    }
+			  }
 	} catch (e) {}
 
 	global.conn = makeWASocket(currentOptions, { chats: oldChats })

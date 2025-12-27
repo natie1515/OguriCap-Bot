@@ -197,6 +197,11 @@ class ApiService {
     return response.data
   }
 
+  async connectMainBot(method: 'qr' | 'pairing', phoneNumber?: string) {
+    const response = await this.api.post('/api/bot/main/connect', { method, phoneNumber })
+    return response.data
+  }
+
   async disconnectMainBot() {
     const response = await this.api.post('/api/bot/main/disconnect')
     return response.data

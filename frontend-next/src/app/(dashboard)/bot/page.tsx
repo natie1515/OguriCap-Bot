@@ -62,7 +62,7 @@ export default function BotStatusPage() {
           setIsConnecting(false);
           return;
         }
-        const response = await api.setMainBotMethod('pairing', phoneNumber.replace(/\D/g, ''));
+        const response = await api.connectMainBot('pairing', phoneNumber.replace(/\D/g, ''));
         if (response?.pairingCode) {
           setPairingCode(response.pairingCode);
           toast.success('Código de emparejamiento generado');
@@ -80,7 +80,7 @@ export default function BotStatusPage() {
           }, 3000);
         }
       } else {
-        await api.setMainBotMethod('qr');
+        await api.connectMainBot('qr');
         toast.success('Generando código QR...');
         setTimeout(() => refetch(), 2000);
       }
