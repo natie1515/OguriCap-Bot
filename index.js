@@ -75,15 +75,16 @@ global.loadDatabase = async function loadDatabase() {
     const db = new Database();
     await db.init();
     
-    // Make it compatible with existing code
-    global.db = {
-      data: db.data,
-      read: () => db.read(),
-      write: () => db.write(),
-      chain: (data) => ({
-        get: (path) => {
-          const keys = path.split('.');
-          let result = data;
+	    // Make it compatible with existing code
+	    global.db = {
+	      data: db.data,
+	      read: () => db.read(),
+	      write: () => db.write(),
+	      pool: db.pool,
+	      chain: (data) => ({
+	        get: (path) => {
+	          const keys = path.split('.');
+	          let result = data;
           for (const key of keys) {
             result = result?.[key];
           }
