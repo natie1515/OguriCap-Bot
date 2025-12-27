@@ -26,7 +26,7 @@ export default function UsuariosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showViewPasswordModal, setShowViewPasswordModal] = useState(false);
-  const [viewPasswordData, setViewPasswordData] = useState<{username: string, password: string, isDefault: boolean} | null>(null);
+  const [viewPasswordData, setViewPasswordData] = useState<{ username: string; password: string | null; reset?: boolean } | null>(null);
   const [newRole, setNewRole] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState({ 
@@ -192,7 +192,9 @@ export default function UsuariosPage() {
 
   const handleViewPassword = async (user: User) => {
     try {
-      const response = await api.viewUsuarioPassword(user.id);
+      const ok = confirm('Esto restablecerá la contraseña del usuario y generará una contraseña temporal. ¿Continuar?');
+      if (!ok) return;
+      const response = await api.viewUsuarioPassword(user.id, { reset: true });
       setViewPasswordData(response);
       setShowViewPasswordModal(true);
     } catch (err: any) {
@@ -397,7 +399,7 @@ export default function UsuariosPage() {
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleViewPassword(user)}
                               className="p-2 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors"
-                              title="Ver contraseña"
+                              title="Generar contraseña temporal"
                             >
                               <Eye className="w-4 h-4" />
                             </motion.button>
@@ -585,14 +587,14 @@ export default function UsuariosPage() {
       </Modal>
 
       {/* View Password Modal */}
-      <Modal isOpen={showViewPasswordModal} onClose={() => setShowViewPasswordModal(false)} title="Ver Contraseña">
+      <Modal isOpen={showViewPasswordModal} onClose={() => setShowViewPasswordModal(false)} title="Contraseña Temporal">
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-white/5">
             <p className="text-sm text-gray-400">Usuario</p>
             <p className="text-white font-medium">{viewPasswordData?.username}</p>
           </div>
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-sm text-gray-400 mb-2">Contraseña Actual</p>
+            <p className="text-sm text-gray-400 mb-2">Contraseña Temporal (se acaba de generar)</p>
             <div className="flex items-center justify-between">
               <p className="text-white font-mono text-lg">{viewPasswordData?.password}</p>
               <Button 
@@ -606,13 +608,10 @@ export default function UsuariosPage() {
                 Copiar
               </Button>
             </div>
-            {viewPasswordData?.isDefault && (
-              <p className="text-amber-400 text-xs mt-2">⚠️ Esta es la contraseña por defecto</p>
-            )}
           </div>
           <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <p className="text-xs text-yellow-400">
-              🔒 Solo los owners pueden ver las contraseñas de los usuarios. Esta información es sensible y debe manejarse con cuidado.
+              Esta acción invalida la contraseña anterior. El usuario deberá iniciar sesión con esta contraseña temporal y cambiarla.
             </p>
           </div>
           <div className="flex gap-3 pt-4">

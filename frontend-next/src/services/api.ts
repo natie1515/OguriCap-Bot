@@ -600,8 +600,11 @@ class ApiService {
     return response.data;
   }
 
-  async viewUsuarioPassword(id: number) {
-    const response = await this.api.get(`/api/usuarios/${id}/view-password`);
+  async viewUsuarioPassword(id: number, opts?: { reset?: boolean }) {
+    const params = new URLSearchParams();
+    if (opts?.reset) params.set('reset', '1');
+    const qs = params.toString();
+    const response = await this.api.get(`/api/usuarios/${id}/view-password${qs ? `?${qs}` : ''}`);
     return response.data;
   }
 
