@@ -392,17 +392,26 @@ export default function LogsPage() {
     return isRunning ? 'text-green-500' : 'text-red-500';
   };
 
+  const getAuthHeaders = () => {
+    if (typeof window === 'undefined') return {};
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   const generateReport = async (type: string) => {
     try {
       const response = await fetch('/api/system/reports/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ type })
       });
       
       if (response.ok) {
         await loadSystemData(); // Recargar datos
         toast.success('Reporte generado');
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data?.error || 'Error generando reporte');
       }
     } catch (error) {
       console.error('Error generando reporte:', error);
@@ -413,12 +422,17 @@ export default function LogsPage() {
   const restartSystem = async (systemName: string) => {
     try {
       const response = await fetch(`/api/system/${systemName}/restart`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { ...getAuthHeaders() },
       });
       
       if (response.ok) {
         await loadSystemData(); // Recargar datos
-        toast.success(`Sistema ${systemName} reiniciado`);
+        const data = await response.json().catch(() => ({}));
+        toast.success(data?.message || `Sistema ${systemName} reiniciado`);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data?.error || `No se pudo reiniciar ${systemName}`);
       }
     } catch (error) {
       console.error('Error reiniciando sistema:', error);

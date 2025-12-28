@@ -32,6 +32,7 @@ class ApiService {
       (error) => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           localStorage.removeItem('token')
+          localStorage.removeItem('user')
           if (window.location.pathname !== '/login') window.location.href = '/login'
         }
         if (error.response?.status === 503 && error.response?.data?.maintenanceMode && typeof window !== 'undefined') {
