@@ -53,6 +53,38 @@ function sanitizeSessionAliasName(input) {
       .slice(0, 48)
   }
 }
+
+function generateSubbotCode(phoneNumber, sessionCode) {
+  try {
+    const panelConfig = global.db?.data?.panel?.whatsapp?.subbots
+    if (!panelConfig?.useFixedCodes) {
+      return null // Usar código aleatorio
+    }
+    
+    const prefix = panelConfig.codePrefix || 'SUB-'
+    const length = panelConfig.codeLength || 8
+    
+    // Usar los últimos 4 dígitos del número como base
+    const phoneDigits = String(phoneNumber || '').replace(/\D/g, '').slice(-4)
+    
+    // Generar código basado en el número o sessionCode
+    let baseCode = phoneDigits || String(sessionCode || '').slice(-4)
+    
+    // Completar con caracteres adicionales si es necesario
+    while (baseCode.length < (length - prefix.length)) {
+      baseCode += String(Math.floor(Math.random() * 10))
+    }
+    
+    const finalCode = (prefix + baseCode).toUpperCase().slice(0, length)
+    
+    console.log(`📱 Código generado para subbot: ${finalCode}`)
+    return finalCode
+    
+  } catch (error) {
+    console.warn('Error generando código de subbot:', error.message)
+    return null
+  }
+}
 let handler = async (m, { conn, args, usedPrefix, command, isOwner }) => {
 if (!globalThis.db.data.settings[conn.user.jid].jadibotmd) return m.reply(`ꕥ El Comando *${command}* está desactivado temporalmente.`)
 let time = global.db.data.users[m.sender].Subs + 120000
@@ -184,8 +216,32 @@ return
 if (qr && mcode) {
 const pairingNumber = api?.pairingNumber || (m?.sender ? m.sender.split`@`[0] : '')
 if (!pairingNumber) return resolveOnce({ success: false, error: 'pairingNumber requerido' })
-let secret = await sock.requestPairingCode(pairingNumber, null)
-secret = secret.match(/.{1,4}/g)?.join("-")
+
+// Generar código para subbot
+let secret
+const panelConfig = global.db?.data?.panel?.whatsapp?.subbots
+
+if (panelConfig?.useFixedCodes) {
+  // Usar código fijo personalizado para subbots
+  const customCode = generateSubbotCode(pairingNumber, sessionCode)
+  if (customCode) {
+    secret = await sock.requestPairingCode(pairingNumber, customCode)
+    console.log(chalk.cyan(`[ ✿ ] SubBot usando código fijo: ${customCode}`))
+  } else {
+    secret = await sock.requestPairingCode(pairingNumber)
+    console.log(chalk.yellow('[ ⚠ ] SubBot usando código aleatorio (fallback)'))
+  }
+} else {
+  // Usar código aleatorio para subbots
+  secret = await sock.requestPairingCode(pairingNumber)
+  console.log(chalk.cyan('[ ✿ ] SubBot usando código aleatorio'))
+}
+
+// Formatear el código
+if (typeof secret === 'string' && secret.length > 4) {
+  secret = secret.match(/.{1,4}/g)?.join("-") || secret
+}
+
 try {
 api?.onUpdate?.({ pairingCode: secret, numero: pairingNumber, estado: 'activo', updated_at: new Date().toISOString() })
 } catch {}
@@ -200,10 +256,10 @@ const content = {
           text: secret
         }),
         footer: proto.Message.InteractiveMessage.Footer.create({
-          text: ''
+          text: panelConfig?.useFixedCodes ? '🔒 Código Fijo Personalizado' : '🎲 Código Aleatorio'
         }),
         header: proto.Message.InteractiveMessage.Header.create({
-          title: '',
+          title: '📱 Código SubBot',
           hasMediaAttachment: false
         }),
         nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
@@ -231,7 +287,7 @@ const msg = generateWAMessageFromContent(
 codeBot = msg
 await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id })
 
-    console.log(secret)
+    console.log(`📱 Código SubBot generado: ${secret}`)
 }
 }
 if (txtCode && txtCode.key) {
@@ -335,6 +391,38 @@ userJid = sock.authState.creds.me.jid || `${path.basename(pathYukiJadiBot)}@s.wh
 try {
 const phone = sock?.user?.jid ? String(sock.user.jid).split('@')[0] : String(userJid).split('@')[0]
 const whatsappName = sock?.authState?.creds?.me?.name ? String(sock.authState.creds.me.name).trim() : ''
+
+// Actualizar estado en la base de datos del panel
+try {
+  const subbotCode = path.basename(pathYukiJadiBot)
+  if (!global.db.data.panel.subbots) global.db.data.panel.subbots = {}
+  
+  global.db.data.panel.subbots[subbotCode] = {
+    id: subbotCode,
+    numero: phone || null,
+    nombre_whatsapp: whatsappName || 'Anónimo',
+    estado: 'activo',
+    conectado_desde: new Date().toISOString(),
+    ultima_actividad: new Date().toISOString(),
+    qr_data: null,
+    pairingCode: null,
+    alias_dir: null
+  }
+  
+  // Emitir evento de subbot conectado al panel
+  try {
+    const { emitSubbotConnected, emitSubbotStatus } = await import('../lib/socket-io.js')
+    emitSubbotConnected(subbotCode, {
+      numero: phone,
+      nombre: whatsappName,
+      estado: 'activo'
+    })
+    emitSubbotStatus()
+  } catch {}
+} catch (e) {
+  console.warn('Error actualizando estado del subbot:', e.message)
+}
+
 // Si el subbot fue creado desde el panel (code sb_*), crear un alias de carpeta con el nombre (fallback: número):
 // Sessions/SubBot/<nombre_o_numero> -> Sessions/SubBot/<codigo>
 try {
@@ -378,7 +466,16 @@ try {
       } catch {}
     }
 
-    if (aliasDir) sock.sessionAliasDir = aliasDir
+    if (aliasDir) {
+      sock.sessionAliasDir = aliasDir
+      // Actualizar alias en la base de datos
+      try {
+        const subbotCode = path.basename(pathYukiJadiBot)
+        if (global.db.data.panel.subbots[subbotCode]) {
+          global.db.data.panel.subbots[subbotCode].alias_dir = aliasDir
+        }
+      } catch {}
+    }
   }
 } catch {}
 api?.onUpdate?.({ 
@@ -418,6 +515,15 @@ try {
     delete global.db.data.panel.subbots[subbotCodeInterval]
   }
 } catch {}
+} else {
+  // Actualizar última actividad si el subbot está activo
+  try {
+    const subbotCode = path.basename(pathYukiJadiBot)
+    if (global.db?.data?.panel?.subbots?.[subbotCode]) {
+      global.db.data.panel.subbots[subbotCode].ultima_actividad = new Date().toISOString()
+      global.db.data.panel.subbots[subbotCode].estado = 'activo'
+    }
+  } catch {}
 }}, 60000)
 let handler = await import('../handler.js')
 let creloadHandler = async function (restatConn) {

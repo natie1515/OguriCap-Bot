@@ -104,12 +104,19 @@ export default function DashboardPage() {
 
   const getHourlyActivity = () => {
     // Datos basados en estadísticas reales del backend
-    const baseValue = currentStats?.mensajesHoy || 0;
-    const hourlyAvg = Math.max(1, Math.floor(baseValue / 12));
+    const activity = (currentStats as any)?.actividadPorHora;
+    if (Array.isArray(activity) && activity.length > 0) {
+      return activity.map((item: any, i: number) => ({
+        label: String(item?.label ?? `${(i * 2).toString().padStart(2, '0')}:00`),
+        value: Number(item?.value) || 0,
+        color: String(item?.color || '#6366f1'),
+      }));
+    }
+
     return Array.from({ length: 12 }, (_, i) => ({
       label: `${(i * 2).toString().padStart(2, '0')}:00`,
-      value: Math.floor(hourlyAvg * (0.5 + Math.random())),
-      color: '#6366f1'
+      value: 0,
+      color: '#6366f1',
     }));
   };
 

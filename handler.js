@@ -15,6 +15,7 @@ resolve()
 }, ms))
 // Moved outside handler for better performance
 const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
+const getDayKey = (d = new Date()) => new Date(d).toISOString().slice(0, 10)
 
 export async function handler(chatUpdate) {
 this.msgqueque = this.msgqueque || []
@@ -113,6 +114,22 @@ jadibotmd: true
 console.error(e)
 }
 if (typeof m.text !== "string") m.text = ""
+// Métricas reales por día (mensajes/comandos) para el panel
+setImmediate(() => {
+try {
+if (!m?.sender || !global.db?.data?.panel) return
+if (m.fromMe) return
+const panel = global.db.data.panel
+panel.dailyMetrics ||= {}
+const dayKey = getDayKey()
+panel.dailyMetrics[dayKey] ||= { mensajes: 0, comandos: 0, mensajesPorHora: {}, comandosPorHora: {}, erroresComandos: 0 }
+const dm = panel.dailyMetrics[dayKey]
+const hour = String(new Date().getHours()).padStart(2, '0')
+dm.mensajes = (dm.mensajes || 0) + 1
+dm.mensajesPorHora ||= {}
+dm.mensajesPorHora[hour] = (dm.mensajesPorHora[hour] || 0) + 1
+} catch {}
+})
 const user = global.db.data.users[m.sender]
 try {
 const actual = user.name || ""
@@ -258,30 +275,6 @@ global.db.data.chats[m.chat].primaryBot = null
 if (!isAccept) continue
 m.plugin = name
 global.db.data.users[m.sender].commands++
-// Non-blocking panel logging
-setImmediate(() => {
-try {
-const panel = global.db.data.panel
-if (panel) {
-if (!panel.logs) panel.logs = []
-if (!panel.logsCounter) panel.logsCounter = 0
-panel.logs.push({
-id: panel.logsCounter++,
-usuario: m.sender,
-comando: `${usedPrefix}${command}`,
-detalles: typeof m.text === 'string' ? m.text : '',
-grupo: m.isGroup ? m.chat : '',
-fecha: new Date().toISOString(),
-tipo: 'comando',
-nivel: 'info'
-})
-const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
-if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
-panel.logs.splice(0, panel.logs.length - maxLogs)
-}
-}
-} catch {}
-})
 if (chat) {
 const botId = this.user.jid
 const primaryBotId = chat.primaryBot
@@ -364,12 +357,57 @@ user,
 chat,
 settings
 }
+const commandStart = Date.now()
+let commandSuccess = true
+let commandErrorMsg = null
 try {
 await plugin.call(this, m, extra)
 } catch (err) {
 m.error = err
 console.error(err)
+commandSuccess = false
+commandErrorMsg = err?.message || String(err)
 } finally {
+const responseTime = Date.now() - commandStart
+// Logging y métricas reales para el panel (comandos)
+setImmediate(() => {
+try {
+const panel = global.db?.data?.panel
+if (!panel) return
+panel.logs ||= []
+panel.logsCounter ||= 0
+panel.dailyMetrics ||= {}
+const dayKey = getDayKey()
+panel.dailyMetrics[dayKey] ||= { mensajes: 0, comandos: 0, mensajesPorHora: {}, comandosPorHora: {}, erroresComandos: 0 }
+const dm = panel.dailyMetrics[dayKey]
+const hour = String(new Date().getHours()).padStart(2, '0')
+dm.comandos = (dm.comandos || 0) + 1
+dm.comandosPorHora ||= {}
+dm.comandosPorHora[hour] = (dm.comandosPorHora[hour] || 0) + 1
+if (!commandSuccess) dm.erroresComandos = (dm.erroresComandos || 0) + 1
+panel.logs.push({
+id: panel.logsCounter++,
+usuario: m.sender,
+comando: `${usedPrefix}${command}`,
+detalles: typeof m.text === 'string' ? m.text : '',
+grupo: m.isGroup ? m.chat : '',
+fecha: new Date().toISOString(),
+tipo: 'comando',
+nivel: commandSuccess ? 'info' : 'error',
+metadata: {
+command,
+plugin: name,
+success: commandSuccess,
+responseTime,
+error: commandSuccess ? null : commandErrorMsg,
+}
+})
+const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
+if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
+panel.logs.splice(0, panel.logs.length - maxLogs)
+}
+} catch {}
+})
 if (typeof plugin.after === "function") {
 try {
 await plugin.after.call(this, m, extra)

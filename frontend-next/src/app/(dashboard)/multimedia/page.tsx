@@ -79,7 +79,7 @@ export default function MultimediaPage() {
           }
           
           return {
-            id: item.id || Math.random(),
+            id: Number(item.id) || ((currentPage - 1) * 12 + index + 1),
             name: item.name || item.filename || item.originalName || `Archivo ${index + 1}`,
             description: item.description || item.desc || '',
             type: item.type || getTypeFromMime(item.mimetype) || 'document',

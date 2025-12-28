@@ -170,103 +170,22 @@ export default function RecursosPage() {
   const loadResourceStats = async () => {
     try {
       setIsLoading(true);
-      const data = await api.getSystemStats();
-      
-      // Simular métricas de recursos usando datos del sistema
-      const mockMetrics: ResourceMetrics = {
-        timestamp: Date.now(),
-        cpu: {
-          usage: Math.random() * 100,
-          cores: 4,
-          model: 'Intel Core i7',
-          speed: 2.4,
-          loadAverage: [0.5, 0.7, 0.8]
-        },
-        memory: {
-          total: data?.memory?.total || 8589934592,
-          free: data?.memory?.free || 4294967296,
-          used: data?.memory?.used || 4294967296,
-          usage: ((data?.memory?.used || 4294967296) / (data?.memory?.total || 8589934592)) * 100,
-          process: {
-            rss: data?.memory?.heapUsed || 134217728,
-            heapTotal: data?.memory?.heapTotal || 67108864,
-            heapUsed: data?.memory?.heapUsed || 33554432,
-            external: 16777216,
-            arrayBuffers: 8388608
-          }
-        },
-        disk: {
-          usage: Math.random() * 100,
-          total: '100GB',
-          used: '45GB',
-          available: '55GB',
-          filesystem: '/dev/sda1'
-        },
-        network: {
-          interfaces: [
-            { name: 'eth0', address: '192.168.1.100', family: 'IPv4', mac: '00:11:22:33:44:55' }
-          ],
-          hostname: data?.hostname || 'localhost'
-        },
-        process: {
-          uptime: data?.uptime || 0,
-          pid: process.pid || 1234,
-          version: data?.node || 'v18.0.0',
-          platform: data?.platform || 'linux',
-          arch: data?.arch || 'x64',
-          cwd: '/app',
-          startTime: Date.now() - (data?.uptime || 0) * 1000,
-          restarts: 0,
-          errors: 0,
-          connections: 5
-        },
-        bot: {
-          connection: {
-            status: 'connected',
-            phoneNumber: null,
-            qrStatus: null
-          },
-          database: {
-            users: Math.floor(Math.random() * 1000) + 100,
-            groups: Math.floor(Math.random() * 50) + 10,
-            chats: Math.floor(Math.random() * 1050) + 110
-          },
-          subbots: {
-            total: 3,
-            connected: 2
-          }
-        },
-        system: {
-          uptime: data?.uptime || 0,
-          loadavg: [0.5, 0.7, 0.8],
-          platform: data?.platform || 'linux',
-          arch: data?.arch || 'x64',
-          hostname: data?.hostname || 'localhost'
-        }
-      };
-      
-      setMetrics(mockMetrics);
-      
-      // Simular estados de alerta
-      const mockAlerts = {
-        cpu: mockMetrics.cpu.usage > 80 ? 'critical' : mockMetrics.cpu.usage > 60 ? 'warning' : 'normal',
-        memory: mockMetrics.memory.usage > 85 ? 'critical' : mockMetrics.memory.usage > 70 ? 'warning' : 'normal',
-        disk: mockMetrics.disk.usage > 90 ? 'critical' : mockMetrics.disk.usage > 75 ? 'warning' : 'normal',
-        temperature: 'normal'
-      };
-      setAlertStates(mockAlerts);
-      
-      // Simular umbrales
-      const mockThresholds = {
-        cpu: { warning: 60, critical: 80 },
-        memory: { warning: 70, critical: 85 },
-        disk: { warning: 75, critical: 90 },
-        temperature: { warning: 70, critical: 85 }
-      };
-      setThresholds(mockThresholds);
-      
-      setIsMonitoring(true);
-      setUpdateInterval(5000);
+      const stats = await api.getResourcesStats();
+      const current = (stats as any)?.current || null;
+
+      if (current) {
+        setMetrics(current);
+        setAlertStates((stats as any)?.alerts || null);
+        setThresholds((stats as any)?.thresholds || null);
+        setIsMonitoring(Boolean((stats as any)?.isMonitoring));
+        setUpdateInterval(Number((stats as any)?.updateInterval) || 5000);
+        return;
+      }
+
+      setMetrics(null);
+      setAlertStates(null);
+      setThresholds(null);
+      setIsMonitoring(false);
     } catch (error) {
       console.error('Error loading resource stats:', error);
       toast.error('Error cargando estadísticas de recursos');
@@ -277,13 +196,9 @@ export default function RecursosPage() {
 
   const loadHistoricalData = async () => {
     try {
-      // Simular datos históricos
-      const history = Array.from({ length: 60 }, (_, i) => ({
-        timestamp: Date.now() - (59 - i) * 60000,
-        cpu: Math.random() * 100,
-        memory: Math.random() * 100,
-        disk: Math.random() * 100
-      }));
+      const historyRes = await api.getResourcesHistory(60).catch(() => ({ history: [] }));
+      const historyRaw = (historyRes as any)?.history;
+      const history = Array.isArray(historyRaw) ? historyRaw : [];
       setHistoricalData(history);
     } catch (error) {
       console.error('Error loading historical data:', error);
@@ -292,8 +207,14 @@ export default function RecursosPage() {
 
   const toggleMonitoring = async () => {
     try {
-      setIsMonitoring(!isMonitoring);
-      toast.success(`Monitoreo ${isMonitoring ? 'detenido' : 'iniciado'}`);
+      if (isMonitoring) {
+        await api.stopResourcesMonitoring();
+        toast.success('Monitoreo detenido');
+      } else {
+        await api.startResourcesMonitoring(updateInterval);
+        toast.success('Monitoreo iniciado');
+      }
+      await loadResourceStats();
     } catch (error) {
       toast.error('Error al cambiar estado del monitoreo');
     }
@@ -301,8 +222,9 @@ export default function RecursosPage() {
 
   const updateThresholds = async (newThresholds: Partial<Thresholds>) => {
     try {
-      setThresholds(prev => ({ ...prev, ...newThresholds }));
+      await api.updateResourcesThresholds(newThresholds);
       toast.success('Umbrales actualizados');
+      await loadResourceStats();
     } catch (error) {
       toast.error('Error actualizando umbrales');
     }

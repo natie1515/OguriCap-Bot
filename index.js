@@ -36,26 +36,26 @@ const PORT = process.env.PORT || process.env.SERVER_PORT || 3001
 let { say } = cfonts
 console.log(chalk.magentaBright('\n❀ Iniciando...'))
 say('Oguri-Bot', {
-font: 'simple',
-align: 'left',
-gradient: ['green', 'white']
+  font: 'simple',
+  align: 'left',
+  gradient: ['green', 'white']
 })
 say('Made with love from Melodia', {
-font: 'console',
-align: 'center',
-colors: ['cyan', 'magenta', 'yellow']
+  font: 'console',
+  align: 'center',
+  colors: ['cyan', 'magenta', 'yellow']
 })
 protoType()
 serialize()
 
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
-return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString()
+  return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString()
 }
 global.__dirname = function dirname(pathURL) {
-return path.dirname(global.__filename(pathURL, true))
+  return path.dirname(global.__filename(pathURL, true))
 }
 global.__require = function require(dir = import.meta.url) {
-return createRequire(dir)
+  return createRequire(dir)
 }
 global.timestamp = { start: new Date() }
 const __dirname = global.__dirname(import.meta.url)
@@ -75,16 +75,16 @@ global.loadDatabase = async function loadDatabase() {
     const db = new Database();
     await db.init();
     
-	    // Make it compatible with existing code
-	    global.db = {
-	      data: db.data,
-	      read: () => db.read(),
-	      write: () => db.write(),
-	      pool: db.pool,
-	      chain: (data) => ({
-	        get: (path) => {
-	          const keys = path.split('.');
-	          let result = data;
+    // Make it compatible with existing code
+    global.db = {
+      data: db.data,
+      read: () => db.read(),
+      write: () => db.write(),
+      pool: db.pool,
+      chain: (data) => ({
+        get: (path) => {
+          const keys = path.split('.');
+          let result = data;
           for (const key of keys) {
             result = result?.[key];
           }
@@ -137,412 +137,555 @@ let opcion
 // Verificar si hay argumento --no-prompt para modo panel (sin preguntas interactivas)
 const noPrompt = process.argv.includes("--no-prompt") || process.env.NO_PROMPT === '1'
 
-if (methodCodeQR) {
-opcion = '1'
-}
-if (!methodCodeQR && !methodCode && !fs.existsSync(`./${global.sessions}/creds.json`)) {
-if (noPrompt) {
-  // Modo panel: usar QR por defecto sin preguntar
-  opcion = '1'
-  console.log(chalk.cyan('[ ✿ ] Modo panel activo - Usando QR por defecto'))
-  console.log(chalk.cyan('[ ✿ ] Puedes conectar desde el panel web o escanear el QR en la terminal'))
-} else {
-  // Modo terminal: preguntar al usuario
-  do {
-  opcion = await question(colors("Seleccione una opción:\n") + qrOption("1. Con código QR\n") + textOption("2. Con código de texto de 8 dígitos\n--> "))
-  if (!/^[1-2]$/.test(opcion)) {
-  console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`))
-  }} while (opcion !== '1' && opcion !== '2' || fs.existsSync(`./${global.sessions}/creds.json`))
-}
-}
-console.info = () => {}
-	// Obtener configuración del panel si existe
-	let panelAuthMethod = 'qr'
-	let panelPairingPhone = null
-	try {
-	  const dbPath = path.join(__dirname, 'database.json')
-	  if (fs.existsSync(dbPath)) {
-		    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-		    const whatsappConfig = dbData?.panel?.whatsapp || dbData?.whatsapp || {}
-		    panelAuthMethod = whatsappConfig?.authMethod || 'qr'
-		    panelPairingPhone = whatsappConfig?.pairingPhone || null
-		  }
-		} catch (e) {}
+// ============================================
+// CONFIGURACIÓN DEL PANEL - MEJORADA
+// ============================================
+let panelAuthMethod = 'qr'
+let panelPairingPhone = null
 
-		// Exponer para el panel y reconexiones
-		global.panelAuthMethod = panelAuthMethod
-		global.panelPairingPhone = panelPairingPhone
-
-	const connectionOptions = {
-	logger: pino({ level: 'silent' }),
-	printQRInTerminal: (opcion == '1' || methodCodeQR) && panelAuthMethod !== 'pairing',
-	mobile: MethodMobile,
-	browser: panelAuthMethod === 'pairing' ? ["Ubuntu", "Chrome", "20.0.04"] : ["MacOs", "Safari"],
-	auth: {
-	creds: state.creds,
-	keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
-	},
-	markOnlineOnConnect: false,
-	generateHighQualityLinkPreview: true,
-	syncFullHistory: false,
-	// Reducir reintentos y timeouts para evitar bucles infinitos de QR
-	connectTimeoutMs: 60000,
-	defaultQueryTimeoutMs: 0,
-	keepAliveIntervalMs: 10000,
-	getMessage: async (key) => {
 try {
-let jid = jidNormalizedUser(key.remoteJid)
-let msg = await store.loadMessage(jid, key.id)
-return msg?.message || ""
-} catch (error) {
-return ""
-}},
-msgRetryCounterCache: msgRetryCounterCache || new Map(),
-userDevicesCache: userDevicesCache || new Map(),
-defaultQueryTimeoutMs: undefined,
-cachedGroupMetadata: (jid) => global.conn.chats[jid] ?? {},
-version: version,
-keepAliveIntervalMs: 55000,
-maxIdleTimeMs: 60000,
+  const dbPath = path.join(__dirname, 'database.json')
+  if (fs.existsSync(dbPath)) {
+    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
+    const whatsappConfig = dbData?.panel?.whatsapp || dbData?.whatsapp || {}
+    panelAuthMethod = whatsappConfig?.authMethod || 'qr'
+    panelPairingPhone = whatsappConfig?.pairingPhone || null
+    
+    console.log(chalk.cyan(`[ ✿ ] Método de auth del panel: ${panelAuthMethod}`))
+    if (panelAuthMethod === 'pairing' && panelPairingPhone) {
+      console.log(chalk.cyan(`[ ✿ ] Número de pairing: ${panelPairingPhone}`))
+    }
+  }
+} catch (e) {
+  console.warn(chalk.yellow('⚠️  No se pudo leer configuración del panel, usando valores por defecto'))
 }
+
+// Exponer para el panel y reconexiones
+global.panelAuthMethod = panelAuthMethod
+global.panelPairingPhone = panelPairingPhone
+
+// ============================================
+// SELECCIÓN DE MÉTODO DE AUTENTICACIÓN
+// ============================================
+if (methodCodeQR) {
+  opcion = '1'
+}
+
+if (!methodCodeQR && !methodCode && !fs.existsSync(`./${global.sessions}/creds.json`)) {
+  if (noPrompt) {
+    // Modo panel: usar configuración del panel
+    if (panelAuthMethod === 'pairing' && panelPairingPhone) {
+      opcion = '2'
+      phoneNumber = panelPairingPhone
+      console.log(chalk.cyan('[ ✿ ] Modo panel activo - Usando código de emparejamiento'))
+    } else {
+      opcion = '1'
+      console.log(chalk.cyan('[ ✿ ] Modo panel activo - Usando QR por defecto'))
+    }
+    console.log(chalk.cyan('[ ✿ ] Puedes conectar desde el panel web o escanear el QR en la terminal'))
+  } else {
+    // Modo terminal: preguntar al usuario
+    do {
+      opcion = await question(colors("Seleccione una opción:\n") + qrOption("1. Con código QR\n") + textOption("2. Con código de texto de 8 dígitos\n--> "))
+      if (!/^[1-2]$/.test(opcion)) {
+        console.log(chalk.bold.redBright(`No se permiten numeros que no sean 1 o 2, tampoco letras o símbolos especiales.`))
+      }
+    } while (opcion !== '1' && opcion !== '2' || fs.existsSync(`./${global.sessions}/creds.json`))
+  }
+}
+
+console.info = () => {}
+
+// ============================================
+// OPCIONES DE CONEXIÓN - OPTIMIZADAS
+// ============================================
+const connectionOptions = {
+  logger: pino({ level: 'silent' }),
+  printQRInTerminal: (opcion == '1' || methodCodeQR) && panelAuthMethod !== 'pairing',
+  mobile: MethodMobile,
+  browser: panelAuthMethod === 'pairing' ? ["Ubuntu", "Chrome", "20.0.04"] : ["MacOs", "Safari", "10.0"],
+  auth: {
+    creds: state.creds,
+    keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: "fatal" }).child({ level: "fatal" })),
+  },
+  markOnlineOnConnect: false,
+  generateHighQualityLinkPreview: true,
+  syncFullHistory: false,
+  connectTimeoutMs: 60000,
+  defaultQueryTimeoutMs: 0,
+  keepAliveIntervalMs: 10000,
+  getMessage: async (key) => {
+    try {
+      let jid = jidNormalizedUser(key.remoteJid)
+      let msg = await store.loadMessage(jid, key.id)
+      return msg?.message || ""
+    } catch (error) {
+      return ""
+    }
+  },
+  msgRetryCounterCache: msgRetryCounterCache || new Map(),
+  userDevicesCache: userDevicesCache || new Map(),
+  cachedGroupMetadata: (jid) => global.conn.chats[jid] ?? {},
+  version: version,
+  keepAliveIntervalMs: 55000,
+  maxIdleTimeMs: 60000,
+}
+
 global.conn = makeWASocket(connectionOptions)
 conn.ev.on("creds.update", saveCreds)
 
-// Iniciar Panel API
+// ============================================
+// INICIAR PANEL API
+// ============================================
 if (process.env.PANEL_API !== '0') {
-try {
-const { startPanelApi } = await import('./lib/panel-api.js')
-const apiPort = PORT // Usar el mismo puerto que el bot
-await startPanelApi({ port: apiPort })
-setTimeout(async () => {
   try {
-    const response = await fetch(`http://localhost:${apiPort}/api/health`)
-    if (response.ok) {  
-    } else {
-    }
-  } catch (error) {
+    const { startPanelApi } = await import('./lib/panel-api.js')
+    const apiPort = PORT
+    await startPanelApi({ port: apiPort })
+    
+    setTimeout(async () => {
+      try {
+        const response = await fetch(`http://localhost:${apiPort}/api/health`)
+        if (response.ok) {
+          console.log(chalk.green('✅ Panel API respondiendo correctamente'))
+        }
+      } catch (error) {
+        console.warn(chalk.yellow('⚠️  Panel API no responde (puede estar iniciando)'))
+      }
+    }, 2000)
+  } catch (e) {
+    console.error(chalk.red('❌ Error iniciando Panel API:'), e)
   }
-}, 2000)
-
-} catch (e) {
-console.error(chalk.red('❌ Error iniciando Panel API:'), e)
-}}
-if (!fs.existsSync(`./${global.sessions}/creds.json`)) {
-if (opcion === '2' || methodCode) {
-opcion = '2'
-if (!conn.authState.creds.registered) {
-let addNumber
-if (!!phoneNumber) {
-addNumber = phoneNumber.replace(/[^0-9]/g, '')
-} else {
-do {
-phoneNumber = await question(chalk.bgBlack(chalk.bold.greenBright(`[ ✿ ]  Por favor, Ingrese el número de WhatsApp.\n${chalk.bold.magentaBright('---> ')}`)))
-phoneNumber = phoneNumber.replace(/\D/g, '')
-if (!phoneNumber.startsWith('+')) {
-phoneNumber = `+${phoneNumber}`
-}} while (!await isValidPhoneNumber(phoneNumber))
-rl.close()
-addNumber = phoneNumber.replace(/\D/g, '')
-setTimeout(async () => {
-  // ✅ Generar código aleatorio (no hardcodeado)
-  let codeBot = await conn.requestPairingCode(addNumber, null)
-  codeBot = codeBot.match(/.{1,4}/g)?.join("-") || codeBot
-  console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ]  Código:`)), chalk.bold.white(chalk.white(codeBot)))
-}, 3000)
-}}}}
-conn.isInit = false
-conn.well = false
-conn.logger.info(`[ ✿ ]  H E C H O\n`)
-if (!opts['test']) {
-if (global.db) setInterval(async () => {
-if (global.db.data) await global.db.write()
-if (opts['autocleartmp'] && (global.support || {}).find) {
-const tmp = [os.tmpdir(), 'tmp', `${global.jadi}`]
-tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
-}}, 30 * 1000)
 }
 
-// Variables globales para el panel
+// ============================================
+// MANEJO DE AUTENTICACIÓN
+// ============================================
+if (!fs.existsSync(`./${global.sessions}/creds.json`)) {
+  if (opcion === '2' || methodCode || panelAuthMethod === 'pairing') {
+    opcion = '2'
+    if (!conn.authState.creds.registered) {
+      let addNumber
+      
+      if (!!phoneNumber) {
+        // Ya tenemos el número del panel o argumentos
+        addNumber = phoneNumber.replace(/[^0-9]/g, '')
+        console.log(chalk.cyan(`[ ✿ ] Usando número: +${addNumber}`))
+      } else {
+        // Preguntar por el número
+        do {
+          phoneNumber = await question(chalk.bgBlack(chalk.bold.greenBright(`[ ✿ ] Por favor, Ingrese el número de WhatsApp.\n${chalk.bold.magentaBright('---> ')}`)))
+          phoneNumber = phoneNumber.replace(/\D/g, '')
+          if (!phoneNumber.startsWith('+')) {
+            phoneNumber = `+${phoneNumber}`
+          }
+        } while (!await isValidPhoneNumber(phoneNumber))
+        
+        rl.close()
+        addNumber = phoneNumber.replace(/\D/g, '')
+      }
+      
+      // Generar código de emparejamiento con código fijo del panel
+      setTimeout(async () => {
+        try {
+          console.log(chalk.cyan('[ ✿ ] Solicitando código de emparejamiento...'))
+          
+          // Usar código fijo del panel si está configurado
+          let codeBot
+          const panelConfig = global.db?.data?.panel?.whatsapp
+          if (panelConfig?.pairingCode && panelConfig.pairingCode !== 'null') {
+            // Usar código fijo del panel - pasar como segundo parámetro
+            codeBot = await conn.requestPairingCode(addNumber, panelConfig.pairingCode)
+            console.log(chalk.cyan('[ ✿ ] Usando código fijo del panel'))
+          } else {
+            // Generar código aleatorio como fallback
+            codeBot = await conn.requestPairingCode(addNumber)
+          }
+          
+          // Formatear el código si es necesario
+          if (typeof codeBot === 'string' && codeBot.length > 4) {
+            codeBot = codeBot.match(/.{1,4}/g)?.join("-") || codeBot
+          }
+          
+          console.log(chalk.bold.white(chalk.bgMagenta(`[ ✿ ] Código de Emparejamiento:`)), chalk.bold.white(chalk.white(codeBot)))
+          console.log(chalk.cyan('[ ✿ ] Ingresa este código en WhatsApp: Dispositivos Vinculados > Vincular Dispositivo > Vincular con número de teléfono'))
+          
+          // Guardar código para el panel
+          global.panelPairingCode = codeBot
+        } catch (error) {
+          console.error(chalk.red('❌ Error generando código:'), error.message)
+        }
+      }, 3000)
+    }
+  }
+}
+
+conn.isInit = false
+conn.well = false
+conn.logger.info(`[ ✿ ] H E C H O\n`)
+
+if (!opts['test']) {
+  if (global.db) setInterval(async () => {
+    if (global.db.data) await global.db.write()
+    if (opts['autocleartmp'] && (global.support || {}).find) {
+      const tmp = [os.tmpdir(), 'tmp', `${global.jadi}`]
+      tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
+    }
+  }, 30 * 1000)
+}
+
+// ============================================
+// VARIABLES GLOBALES PARA EL PANEL
+// ============================================
 global.panelApiMainQr = null
 global.panelApiMainDisconnect = false
 global.reauthInProgress = false
 global.panelApiLastSeen = null
-global.stopped = 'connecting' // Estado inicial de conexión
-
-async function connectionUpdate(update) {
-const { connection, lastDisconnect, isNewLogin, qr } = update
-
-// Actualizar estado global para el panel
-if (connection) {
-  global.stopped = connection
-}
-
-if (isNewLogin) conn.isInit = true
-const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
-
-// Actualizar QR para el panel
-	if (qr) {
-	// Si el método es pairing, no guardar ni emitir QR para evitar bucles
-		if ((global.panelAuthMethod || panelAuthMethod) === 'pairing') return
-	
-	global.panelApiMainQr = qr
-	// Emitir QR via Socket.IO
-	try {
-	  const { emitBotQR } = await import('./lib/socket-io.js')
-	  emitBotQR(qr)
-	} catch {}
-	}
-
-// Actualizar último seen
-if (connection === 'open') {
-global.panelApiLastSeen = new Date().toISOString()
-global.stopped = 'open'
-// Emitir conexión via Socket.IO
-try {
-  const { emitBotConnected, emitBotStatus } = await import('./lib/socket-io.js')
-  emitBotConnected(conn.user?.id)
-  emitBotStatus()
-} catch {}
-}
-
-if (connection === 'connecting') {
 global.stopped = 'connecting'
+
+// ============================================
+// MANEJADOR DE ACTUALIZACIONES DE CONEXIÓN
+// ============================================
+async function connectionUpdate(update) {
+  const { connection, lastDisconnect, isNewLogin, qr } = update
+
+  // Actualizar estado global para el panel
+  if (connection) {
+    global.stopped = connection
+  }
+
+  if (isNewLogin) conn.isInit = true
+  const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
+
+  // Actualizar QR para el panel
+  if (qr) {
+    // Si el método es pairing, no guardar ni emitir QR para evitar bucles
+    if ((global.panelAuthMethod || panelAuthMethod) === 'pairing') {
+      console.log(chalk.yellow('⚠️  QR recibido pero método es pairing, ignorando...'))
+      return
+    }
+    
+    global.panelApiMainQr = qr
+    // Emitir QR via Socket.IO
+    try {
+      const { emitBotQR } = await import('./lib/socket-io.js')
+      emitBotQR(qr)
+    } catch {}
+  }
+
+  // Actualizar último seen
+  if (connection === 'open') {
+    global.panelApiLastSeen = new Date().toISOString()
+    global.stopped = 'open'
+    // Limpiar código de pairing
+    global.panelPairingCode = null
+    // Emitir conexión via Socket.IO
+    try {
+      const { emitBotConnected, emitBotStatus } = await import('./lib/socket-io.js')
+      emitBotConnected(conn.user?.id)
+      emitBotStatus()
+    } catch {}
+  }
+
+  if (connection === 'connecting') {
+    global.stopped = 'connecting'
+  }
+
+  if (code && code !== DisconnectReason.loggedOut && conn?.ws.socket == null) {
+    await global.reloadHandler(true).catch(console.error)
+    global.timestamp.connect = new Date()
+  }
+  
+  if (global.db.data == null) loadDatabase()
+  
+  if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
+    if (opcion == '1' || methodCodeQR) {
+      console.log(chalk.green.bold(`[ ✿ ] Escanea este código QR`))
+    }
+  }
+  
+  if (connection === "open") {
+    const userJid = jidNormalizedUser(conn.user.id)
+    const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
+    await joinChannels(conn)
+    console.log(chalk.green.bold(`[ ✿ ] Conectado a: ${userName}`))
+    // Limpiar QR del panel
+    global.panelApiMainQr = null
+    global.panelApiMainDisconnect = false
+    global.reauthInProgress = false
+  }
+  
+  let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+  
+  if (connection === "close") {
+    global.stopped = 'close'
+    // Emitir desconexión via Socket.IO
+    try {
+      const { emitBotDisconnected, emitBotStatus } = await import('./lib/socket-io.js')
+      emitBotDisconnected(reason)
+      emitBotStatus()
+    } catch {}
+
+    // Si el panel solicitó desconexión, no reconectar
+    if (global.panelApiMainDisconnect) {
+      console.log(chalk.yellow("→ Bot desconectado desde el panel"))
+      return
+    }
+    
+    if ([401, 440, 428, 405].includes(reason)) {
+      console.log(chalk.red(`→ (${code}) › Cierra la session Principal.`))
+    }
+    
+    console.log(chalk.yellow("→ Reconectando el Bot Principal..."))
+    await global.reloadHandler(true).catch(console.error)
+  }
 }
 
-if (code && code !== DisconnectReason.loggedOut && conn?.ws.socket == null) {
-await global.reloadHandler(true).catch(console.error)
-global.timestamp.connect = new Date()
-}
-if (global.db.data == null) loadDatabase()
-if (update.qr != 0 && update.qr != undefined || methodCodeQR) {
-if (opcion == '1' || methodCodeQR) {
-console.log(chalk.green.bold(`[ ✿ ]  Escanea este código QR`))
-}}
-if (connection === "open") {
-const userJid = jidNormalizedUser(conn.user.id)
-const userName = conn.user.name || conn.user.verifiedName || "Desconocido"
-await joinChannels(conn)
-console.log(chalk.green.bold(`[ ✿ ]  Conectado a: ${userName}`))
-// Limpiar QR del panel
-global.panelApiMainQr = null
-global.panelApiMainDisconnect = false
-global.reauthInProgress = false
-}
-let reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-if (connection === "close") {
-global.stopped = 'close'
-// Emitir desconexión via Socket.IO
-try {
-  const { emitBotDisconnected, emitBotStatus } = await import('./lib/socket-io.js')
-  emitBotDisconnected(reason)
-  emitBotStatus()
-} catch {}
-
-// Si el panel solicitó desconexión, no reconectar
-if (global.panelApiMainDisconnect) {
-console.log(chalk.yellow("→ Bot desconectado desde el panel"))
-return
-}
-if ([401, 440, 428, 405].includes(reason)) {
-console.log(chalk.red(`→ (${code}) › Cierra la session Principal.`))
-}
-console.log(chalk.yellow("→ Reconectando el Bot Principal..."))
-await global.reloadHandler(true).catch(console.error)
-}}
 process.on('uncaughtException', console.error)
+
 let isInit = true
 let handler = await import('./handler.js')
-	global.reloadHandler = async function (restatConn) {
-	try {
-	const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
-	if (Object.keys(Handler || {}).length) handler = Handler
-	} catch (e) {
-	console.error(e)
-	}
-	if (restatConn) {
-	const oldChats = global.conn.chats
-	try {
-	global.conn.ws.close()
-	} catch { }
-	conn.ev.removeAllListeners()
-	
-	// Recargar configuración del panel antes de reconectar
-	let currentOptions = { ...connectionOptions }
-	try {
-	  const dbPath = path.join(__dirname, 'database.json')
-		  if (fs.existsSync(dbPath)) {
-		    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-			    const whatsappConfig = dbData?.panel?.whatsapp || dbData?.whatsapp || {}
-			    const inMemoryWhatsapp = global.db?.data?.panel?.whatsapp || null
-			    global.panelAuthMethod = inMemoryWhatsapp?.authMethod || whatsappConfig?.authMethod || 'qr'
-			    global.panelPairingPhone = inMemoryWhatsapp?.pairingPhone || whatsappConfig?.pairingPhone || null
-			    if (global.panelAuthMethod === 'pairing') {
-			      currentOptions.browser = ["Ubuntu", "Chrome", "20.0.04"]
-			      currentOptions.printQRInTerminal = false
-			    } else {
-			      currentOptions.browser = ["MacOs", "Safari"]
-			      currentOptions.printQRInTerminal = (opcion == '1' || methodCodeQR)
-			    }
-			  }
-	} catch (e) {}
 
-	global.conn = makeWASocket(currentOptions, { chats: oldChats })
-	isInit = true
-	}
-if (!isInit) {
-conn.ev.off('messages.upsert', conn.handler)
-conn.ev.off('connection.update', conn.connectionUpdate)
-conn.ev.off('creds.update', conn.credsUpdate)
+// ============================================
+// RELOAD HANDLER - MEJORADO
+// ============================================
+global.reloadHandler = async function (restatConn) {
+  try {
+    const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
+    if (Object.keys(Handler || {}).length) handler = Handler
+  } catch (e) {
+    console.error(e)
+  }
+  
+  if (restatConn) {
+    const oldChats = global.conn.chats
+    try {
+      global.conn.ws.close()
+    } catch { }
+    conn.ev.removeAllListeners()
+    
+    // Recargar configuración del panel antes de reconectar
+    let currentOptions = { ...connectionOptions }
+    try {
+      const dbPath = path.join(__dirname, 'database.json')
+      if (fs.existsSync(dbPath)) {
+        const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
+        const whatsappConfig = dbData?.panel?.whatsapp || dbData?.whatsapp || {}
+        const inMemoryWhatsapp = global.db?.data?.panel?.whatsapp || null
+        
+        global.panelAuthMethod = inMemoryWhatsapp?.authMethod || whatsappConfig?.authMethod || 'qr'
+        global.panelPairingPhone = inMemoryWhatsapp?.pairingPhone || whatsappConfig?.pairingPhone || null
+        
+        if (global.panelAuthMethod === 'pairing') {
+          currentOptions.browser = ["Ubuntu", "Chrome", "20.0.04"]
+          currentOptions.printQRInTerminal = false
+          console.log(chalk.cyan('[ ✿ ] Reconectando con método pairing'))
+        } else {
+          currentOptions.browser = ["MacOs", "Safari", "10.0"]
+          currentOptions.printQRInTerminal = (opcion == '1' || methodCodeQR)
+          console.log(chalk.cyan('[ ✿ ] Reconectando con método QR'))
+        }
+      }
+    } catch (e) {
+      console.warn(chalk.yellow('⚠️  Error leyendo config del panel en reload'))
+    }
+
+    global.conn = makeWASocket(currentOptions, { chats: oldChats })
+    isInit = true
+  }
+  
+  if (!isInit) {
+    conn.ev.off('messages.upsert', conn.handler)
+    conn.ev.off('connection.update', conn.connectionUpdate)
+    conn.ev.off('creds.update', conn.credsUpdate)
+  }
+  
+  conn.handler = handler.handler.bind(global.conn)
+  conn.connectionUpdate = connectionUpdate.bind(global.conn)
+  conn.credsUpdate = saveCreds.bind(global.conn, true)
+  
+  const currentDateTime = new Date()
+  const messageDateTime = new Date(conn.ev)
+  
+  if (currentDateTime >= messageDateTime) {
+    const chats = Object.entries(conn.chats).filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats).map((v) => v[0])
+  } else {
+    const chats = Object.entries(conn.chats).filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats).map((v) => v[0])
+  }
+  
+  conn.ev.on('messages.upsert', conn.handler)
+  conn.ev.on('connection.update', conn.connectionUpdate)
+  conn.ev.on('creds.update', conn.credsUpdate)
+  isInit = false
+  return true
 }
-conn.handler = handler.handler.bind(global.conn)
-conn.connectionUpdate = connectionUpdate.bind(global.conn)
-conn.credsUpdate = saveCreds.bind(global.conn, true)
-const currentDateTime = new Date()
-const messageDateTime = new Date(conn.ev)
-if (currentDateTime >= messageDateTime) {
-const chats = Object.entries(conn.chats).filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats).map((v) => v[0])
-} else {
-const chats = Object.entries(conn.chats).filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats).map((v) => v[0])
-}
-conn.ev.on('messages.upsert', conn.handler)
-conn.ev.on('connection.update', conn.connectionUpdate)
-conn.ev.on('creds.update', conn.credsUpdate)
-isInit = false
-return true
-}
+
 process.on('unhandledRejection', (reason, promise) => {
-console.error("Rechazo no manejado detectado:", reason)
+  console.error("Rechazo no manejado detectado:", reason)
 })
 
+// ============================================
+// JADIBOT - SUB BOTS
+// ============================================
 global.rutaJadiBot = join(__dirname, `./${global.jadi}`)
-if (global.yukiJadibts) {
-if (!existsSync(global.rutaJadiBot)) {
-mkdirSync(global.rutaJadiBot, { recursive: true })
-console.log(chalk.bold.cyan(`ꕥ La carpeta: ${global.jadi} se creó correctamente.`))
-} else {
-console.log(chalk.bold.cyan(`ꕥ La carpeta: ${global.jadi} ya está creada.`))
-}
-const readRutaJadiBot = readdirSync(global.rutaJadiBot)
-if (readRutaJadiBot.length > 0) {
-const creds = 'creds.json'
-for (const gjbts of readRutaJadiBot) {
-const botPath = join(global.rutaJadiBot, gjbts)
-if (existsSync(botPath) && statSync(botPath).isDirectory()) {
-const readBotPath = readdirSync(botPath)
-if (readBotPath.includes(creds)) {
-yukiJadiBot({ pathYukiJadiBot: botPath, m: null, conn, args: '', usedPrefix: '/', command: 'serbot' })
-}}}}}
 
+if (global.yukiJadibts) {
+  if (!existsSync(global.rutaJadiBot)) {
+    mkdirSync(global.rutaJadiBot, { recursive: true })
+    console.log(chalk.bold.cyan(`ꕥ La carpeta: ${global.jadi} se creó correctamente.`))
+  } else {
+    console.log(chalk.bold.cyan(`ꕥ La carpeta: ${global.jadi} ya está creada.`))
+  }
+  
+  const readRutaJadiBot = readdirSync(global.rutaJadiBot)
+  if (readRutaJadiBot.length > 0) {
+    const creds = 'creds.json'
+    for (const gjbts of readRutaJadiBot) {
+      const botPath = join(global.rutaJadiBot, gjbts)
+      if (existsSync(botPath) && statSync(botPath).isDirectory()) {
+        const readBotPath = readdirSync(botPath)
+        if (readBotPath.includes(creds)) {
+          yukiJadiBot({ pathYukiJadiBot: botPath, m: null, conn, args: '', usedPrefix: '/', command: 'serbot' })
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// SISTEMA DE PLUGINS
+// ============================================
 const pluginFolder = global.__dirname(join(__dirname, './plugins/index'))
 const pluginFilter = (filename) => /\.js$/.test(filename)
 global.plugins = {}
+
 async function filesInit() {
-for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
-try {
-const file = global.__filename(join(pluginFolder, filename))
-const module = await import(file)
-global.plugins[filename] = module.default || module
-} catch (e) {
-conn.logger.error(e)
-delete global.plugins[filename]
-}}}
+  for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
+    try {
+      const file = global.__filename(join(pluginFolder, filename))
+      const module = await import(file)
+      global.plugins[filename] = module.default || module
+    } catch (e) {
+      conn.logger.error(e)
+      delete global.plugins[filename]
+    }
+  }
+}
+
 filesInit().then((_) => Object.keys(global.plugins)).catch(console.error)
+
 global.reload = async (_ev, filename) => {
-if (pluginFilter(filename)) {
-const dir = global.__filename(join(pluginFolder, filename), true)
-if (filename in global.plugins) {
-if (existsSync(dir)) conn.logger.info(` updated plugin - '${filename}'`)
-else {
-conn.logger.warn(`deleted plugin - '${filename}'`)
-return delete global.plugins[filename]
-}} else conn.logger.info(`new plugin - '${filename}'`)
-const err = syntaxerror(readFileSync(dir), filename, {
-sourceType: 'module',
-allowAwaitOutsideFunction: true,
-})
-if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
-else {
-try {
-const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`))
-global.plugins[filename] = module.default || module
-} catch (e) {
-conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
-} finally {
-global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
-}}}}
+  if (pluginFilter(filename)) {
+    const dir = global.__filename(join(pluginFolder, filename), true)
+    if (filename in global.plugins) {
+      if (existsSync(dir)) conn.logger.info(` updated plugin - '${filename}'`)
+      else {
+        conn.logger.warn(`deleted plugin - '${filename}'`)
+        return delete global.plugins[filename]
+      }
+    } else conn.logger.info(`new plugin - '${filename}'`)
+    
+    const err = syntaxerror(readFileSync(dir), filename, {
+      sourceType: 'module',
+      allowAwaitOutsideFunction: true,
+    })
+    
+    if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
+    else {
+      try {
+        const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`))
+        global.plugins[filename] = module.default || module
+      } catch (e) {
+        conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
+      } finally {
+        global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
+      }
+    }
+  }
+}
+
 Object.freeze(global.reload)
 watch(pluginFolder, global.reload)
 await global.reloadHandler()
+
+// ============================================
+// UTILIDADES
+// ============================================
 async function _quickTest() {
-const test = await Promise.all([
-spawn('ffmpeg'),
-spawn('ffprobe'),
-spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
-spawn('convert'),
-spawn('magick'),
-spawn('gm'),
-spawn('find', ['--version']),
-].map((p) => {
-return Promise.race([
-new Promise((resolve) => {
-p.on('close', (code) => {
-resolve(code !== 127)
-})}),
-new Promise((resolve) => {
-p.on('error', (_) => resolve(false))
-})])
-}))
-const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
-const s = global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find }
-Object.freeze(global.support)
+  const test = await Promise.all([
+    spawn('ffmpeg'),
+    spawn('ffprobe'),
+    spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
+    spawn('convert'),
+    spawn('magick'),
+    spawn('gm'),
+    spawn('find', ['--version']),
+  ].map((p) => {
+    return Promise.race([
+      new Promise((resolve) => {
+        p.on('close', (code) => {
+          resolve(code !== 127)
+        })
+      }),
+      new Promise((resolve) => {
+        p.on('error', (_) => resolve(false))
+      })
+    ])
+  }))
+  
+  const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
+  const s = global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find }
+  Object.freeze(global.support)
 }
-// Tmp
+
+// Limpieza de archivos temporales
 setInterval(async () => {
-const tmpDir = join(__dirname, 'tmp')
-try {
-const filenames = readdirSync(tmpDir)
-filenames.forEach(file => {
-const filePath = join(tmpDir, file)
-unlinkSync(filePath)})
-console.log(chalk.gray(`→ Archivos de la carpeta TMP eliminados`))
-} catch {
-console.log(chalk.gray(`→ Los archivos de la carpeta TMP no se pudieron eliminar`))
-}}, 30 * 1000) 
+  const tmpDir = join(__dirname, 'tmp')
+  try {
+    const filenames = readdirSync(tmpDir)
+    filenames.forEach(file => {
+      const filePath = join(tmpDir, file)
+      unlinkSync(filePath)
+    })
+    console.log(chalk.gray(`→ Archivos de la carpeta TMP eliminados`))
+  } catch {
+    console.log(chalk.gray(`→ Los archivos de la carpeta TMP no se pudieron eliminar`))
+  }
+}, 30 * 1000)
+
 _quickTest().catch(console.error)
+
 async function isValidPhoneNumber(number) {
-try {
-number = number.replace(/\s+/g, '')
-if (number.startsWith('+521')) {
-number = number.replace('+521', '+52')
-} else if (number.startsWith('+52') && number[4] === '1') {
-number = number.replace('+52 1', '+52')
-}
-const parsedNumber = phoneUtil.parseAndKeepRawInput(number)
-return phoneUtil.isValidNumber(parsedNumber)
-} catch (error) {
-return false
-}
+  try {
+    number = number.replace(/\s+/g, '')
+    if (number.startsWith('+521')) {
+      number = number.replace('+521', '+52')
+    } else if (number.startsWith('+52') && number[4] === '1') {
+      number = number.replace('+52 1', '+52')
+    }
+    const parsedNumber = phoneUtil.parseAndKeepRawInput(number)
+    return phoneUtil.isValidNumber(parsedNumber)
+  } catch (error) {
+    return false
+  }
 }
 
 async function joinChannels(sock) {
-for (const value of Object.values(global.ch)) {
-if (typeof value === 'string' && value.endsWith('@newsletter')) {
-await sock.newsletterFollow(value).catch(() => {})
-}
-}
+  for (const value of Object.values(global.ch)) {
+    if (typeof value === 'string' && value.endsWith('@newsletter')) {
+      await sock.newsletterFollow(value).catch(() => {})
+    }
+  }
 }
 
-// ==========================================
+// ============================================
 // INICIALIZACIÓN DE SISTEMAS AVANZADOS
-// ==========================================
-
+// ============================================
 console.log(chalk.cyan('🚀 Inicializando sistemas avanzados...'))
 
-// Inicializar sistema completo usando el inicializador
 try {
   console.log(chalk.cyan('🔧 Iniciando sistemas básicos...'))
   
-  // Solo inicializar sistemas críticos para evitar errores
   const { default: realTimeData } = await import('./lib/real-time-data.js')
   if (!realTimeData.isRunning) {
     realTimeData.start()
@@ -553,14 +696,11 @@ try {
   
 } catch (error) {
   console.error(chalk.red('❌ Error iniciando sistemas básicos:'), error)
-  // No hacer exit para permitir que el bot funcione básicamente
 }
 
-// ==========================================
+// ============================================
 // MANEJO DE SEÑALES DEL SISTEMA
-// ==========================================
-
-// Manejo graceful de cierre del proceso
+// ============================================
 process.on('SIGINT', async () => {
   console.log(chalk.yellow('\n🛑 Recibida señal SIGINT, cerrando sistemas...'))
   process.exit(0)
@@ -571,15 +711,12 @@ process.on('SIGTERM', async () => {
   process.exit(0)
 })
 
-// Manejo de errores no capturados (simplificado)
 process.on('uncaughtException', (error) => {
   console.error(chalk.red('💥 Error no capturado:'), error)
-  // No hacer exit automático para permitir recuperación
 })
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error(chalk.red('🚫 Promise rechazada no manejada:'), reason)
-  // No hacer exit automático
 })
 
 console.log(chalk.magenta('🤖 OguriCap Bot completamente iniciado y listo para usar'))

@@ -411,12 +411,29 @@ class ApiService {
   }
 
   // Logs
-  async getLogs(page = 1, limit = 50, level?: string) {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('limit', limit.toString());
-    if (level) params.append('level', level);
-    const response = await this.api.get(`/api/logs?${params}`);
+  async getLogs(params: {
+    page?: number;
+    limit?: number;
+    level?: string;
+    category?: string;
+    query?: string;
+    startDate?: string;
+    endDate?: string;
+  } = {}) {
+    const qp = new URLSearchParams();
+    qp.append('page', String(params.page || 1));
+    qp.append('limit', String(params.limit || 50));
+    if (params.level) qp.append('level', params.level);
+    if (params.category) qp.append('category', params.category);
+    if (params.query) qp.append('query', params.query);
+    if (params.startDate) qp.append('startDate', params.startDate);
+    if (params.endDate) qp.append('endDate', params.endDate);
+    const response = await this.api.get(`/api/logs?${qp}`);
+    return response.data;
+  }
+
+  async getLogsStats() {
+    const response = await this.api.get('/api/logs/stats');
     return response.data;
   }
 
@@ -685,6 +702,92 @@ class ApiService {
     return response.data;
   }
 
+  // Resources (Resource Monitor)
+  async getResourcesStats() {
+    const response = await this.api.get('/api/resources/stats');
+    return response.data;
+  }
+
+  async getResourcesHistory(limit?: number) {
+    const qp = new URLSearchParams();
+    if (limit) qp.append('limit', String(limit));
+    const suffix = qp.toString() ? `?${qp}` : '';
+    const response = await this.api.get(`/api/resources/history${suffix}`);
+    return response.data;
+  }
+
+  async startResourcesMonitoring(interval = 5000) {
+    const response = await this.api.post('/api/resources/start', { interval });
+    return response.data;
+  }
+
+  async stopResourcesMonitoring() {
+    const response = await this.api.post('/api/resources/stop');
+    return response.data;
+  }
+
+  async updateResourcesThresholds(thresholds: any) {
+    const response = await this.api.put('/api/resources/thresholds', thresholds);
+    return response.data;
+  }
+
+  // Tasks
+  async getTasks() {
+    const response = await this.api.get('/api/tasks');
+    return response.data;
+  }
+
+  async getTaskExecutions(limit = 100) {
+    const response = await this.api.get(`/api/tasks/executions?limit=${limit}`);
+    return response.data;
+  }
+
+  async executeTask(taskId: string) {
+    const response = await this.api.post(`/api/tasks/${encodeURIComponent(taskId)}/execute`);
+    return response.data;
+  }
+
+  async updateTask(taskId: string, updates: any) {
+    const response = await this.api.patch(`/api/tasks/${encodeURIComponent(taskId)}`, updates);
+    return response.data;
+  }
+
+  async deleteTask(taskId: string) {
+    const response = await this.api.delete(`/api/tasks/${encodeURIComponent(taskId)}`);
+    return response.data;
+  }
+
+  // Alerts
+  async getAlerts() {
+    const response = await this.api.get('/api/alerts');
+    return response.data;
+  }
+
+  async getAlertRules() {
+    const response = await this.api.get('/api/alerts/rules');
+    return response.data;
+  }
+
+  async acknowledgeAlert(alertId: string) {
+    const response = await this.api.post(`/api/alerts/${encodeURIComponent(alertId)}/acknowledge`);
+    return response.data;
+  }
+
+  async resolveAlert(alertId: string) {
+    const response = await this.api.post(`/api/alerts/${encodeURIComponent(alertId)}/resolve`);
+    return response.data;
+  }
+
+  async updateAlertRule(ruleId: string, updates: any) {
+    const response = await this.api.patch(`/api/alerts/rules/${encodeURIComponent(ruleId)}`, updates);
+    return response.data;
+  }
+
+  async suppressAlertRule(ruleId: string, duration: number) {
+    const response = await this.api.post(`/api/alerts/rules/${encodeURIComponent(ruleId)}/suppress`, { duration });
+    return response.data;
+  }
+
   // Bulk operations
   async bulkUpdateGroups(updates: { jid: string; enabled: boolean }[]) {
     const response = await this.api.post('/api/grupos/bulk-update', { updates });
@@ -846,6 +949,12 @@ class ApiService {
   // Recent Activity
   async getRecentActivity(limit = 10) {
     const response = await this.api.get(`/api/dashboard/recent-activity?limit=${limit}`);
+    return response.data;
+  }
+
+  // Dependencies
+  async getDependencies() {
+    const response = await this.api.get('/api/dependencies');
     return response.data;
   }
 }

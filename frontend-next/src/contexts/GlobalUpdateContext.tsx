@@ -230,6 +230,7 @@ export const GlobalUpdateProvider: React.FC<{ children: ReactNode }> = ({ childr
     socket.on('bot:disconnected', handleBotStatusChange);
     socket.on('bot:globalStateChanged', handleGlobalStateChange);
     socket.on('stats:updated', handleStatsUpdate);
+    socket.on('stats:update', handleStatsUpdate);
     socket.on('notification:created', handleNotificationUpdate);
     socket.on('group:updated', handleGroupUpdate);
     socket.on('subbot:created', handleSubbotUpdate);
@@ -244,6 +245,7 @@ export const GlobalUpdateProvider: React.FC<{ children: ReactNode }> = ({ childr
       socket.off('bot:disconnected', handleBotStatusChange);
       socket.off('bot:globalStateChanged', handleGlobalStateChange);
       socket.off('stats:updated', handleStatsUpdate);
+      socket.off('stats:update', handleStatsUpdate);
       socket.off('notification:created', handleNotificationUpdate);
       socket.off('group:updated', handleGroupUpdate);
       socket.off('subbot:created', handleSubbotUpdate);

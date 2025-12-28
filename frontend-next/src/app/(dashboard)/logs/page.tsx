@@ -198,8 +198,6 @@ export default function LogsPage() {
   // }, { interval: 30000 });
 
   const loadSystemData = async () => {
-    if (isLoading) return; // Prevent multiple simultaneous calls
-    
     try {
       setError(null);
       
@@ -237,13 +235,15 @@ export default function LogsPage() {
       
       // Cargar historial de métricas (simular con datos actuales)
       try {
-        const history = Array.from({ length: 60 }, (_, i) => ({
-          timestamp: Date.now() - (59 - i) * 60000,
-          cpu: Math.random() * 100,
-          memory: Math.random() * 100,
-          disk: Math.random() * 100
-        }));
-        setMetricsHistory(history);
+        const historyRes = await api.getResourcesHistory(60).catch(() => ({ history: [] }));
+        const historyRaw = (historyRes as any)?.history;
+        const history = Array.isArray(historyRaw) ? historyRaw : [];
+        setMetricsHistory(history.map((h: any) => ({
+          timestamp: Number(h?.timestamp) || Date.now(),
+          cpu: Number(h?.cpu) || 0,
+          memory: Number(h?.memory) || 0,
+          disk: Number(h?.disk) || 0
+        })));
       } catch (err) {
         console.error('Error loading metrics history:', err);
       }
@@ -286,22 +286,18 @@ export default function LogsPage() {
   // }, [autoRefresh, activeTab]); // Removed filter dependencies to prevent excessive calls
 
   const loadLogs = async () => {
-    if (isLoading) return; // Prevent multiple simultaneous calls
-    
     try {
       setIsLoading(true);
       
-      const filters = {
+      const data = await api.getLogs({
         limit: pageSize,
         page: currentPage,
-        ...(searchQuery && { query: searchQuery }),
-        ...(selectedLevel && { level: selectedLevel }),
-        ...(selectedCategory && { category: selectedCategory }),
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate })
-      };
-
-      const data = await api.getLogs(filters.page, filters.limit, filters.level);
+        query: searchQuery || undefined,
+        level: selectedLevel || undefined,
+        category: selectedCategory || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined
+      });
       setLogs(data.logs || []);
     } catch (error) {
       console.error('Error loading logs:', error);
@@ -313,29 +309,8 @@ export default function LogsPage() {
 
   const loadStats = async () => {
     try {
-      // Simular estadísticas de logs usando datos del sistema
-      const systemStats = await api.getSystemStats();
-      const mockStats = {
-        totalLogs: Math.floor(Math.random() * 10000) + 5000,
-        errorCount: Math.floor(Math.random() * 100) + 10,
-        warnCount: Math.floor(Math.random() * 200) + 50,
-        infoCount: Math.floor(Math.random() * 1000) + 500,
-        debugCount: Math.floor(Math.random() * 500) + 100,
-        traceCount: Math.floor(Math.random() * 50) + 5,
-        filesCreated: Math.floor(Math.random() * 10) + 1,
-        filesRotated: Math.floor(Math.random() * 5),
-        filesCompressed: Math.floor(Math.random() * 3),
-        lastLogTime: new Date().toISOString(),
-        uptime: systemStats?.uptime || 0,
-        bufferSize: Math.floor(Math.random() * 1000) + 100,
-        activeStreams: Math.floor(Math.random() * 5) + 1,
-        diskUsage: {
-          totalSize: Math.floor(Math.random() * 1000000000) + 100000000,
-          fileCount: Math.floor(Math.random() * 100) + 10,
-          formattedSize: `${(Math.random() * 100 + 10).toFixed(1)} MB`
-        }
-      };
-      setStats(mockStats);
+      const statsData = await api.getLogsStats();
+      setStats(statsData);
     } catch (error) {
       console.error('Error loading stats:', error);
     }

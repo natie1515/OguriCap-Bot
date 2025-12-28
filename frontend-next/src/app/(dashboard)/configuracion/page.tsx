@@ -229,24 +229,7 @@ export default function ConfiguracionPage() {
 
   const loadVersionHistory = async (key: string) => {
     try {
-      // Simular historial de versiones
-      const mockVersions = [
-        {
-          id: 'v1.0.0',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          userId: 'admin',
-          state: 'active',
-          checksum: 'abc123'
-        },
-        {
-          id: 'v0.9.0',
-          timestamp: new Date(Date.now() - 172800000).toISOString(),
-          userId: 'admin',
-          state: 'rollback',
-          checksum: 'def456'
-        }
-      ];
-      setVersions(mockVersions);
+      setVersions([]);
     } catch (error) {
       console.error('Error loading version history:', error);
     }
@@ -254,15 +237,34 @@ export default function ConfiguracionPage() {
 
   const loadStats = async () => {
     try {
-      // Simular estadísticas de configuración
-      const mockStats = {
-        totalConfigurations: configurations.length,
-        currentEnvironment: 'production',
-        totalVersions: 5,
-        totalBackups: 3,
-        lastUpdate: new Date().toISOString()
-      };
-      setStats(mockStats);
+      const [config, backupsRes] = await Promise.all([
+        api.getSystemConfig().catch(() => ({})),
+        api.getBackups().catch(() => ({} as any))
+      ]);
+
+      const backupsList =
+        (backupsRes as any)?.backups ||
+        (backupsRes as any)?.data?.backups ||
+        (backupsRes as any)?.reports ||
+        (backupsRes as any)?.items ||
+        [];
+
+      const totalBackups = Array.isArray(backupsList) ? backupsList.length : (Number((backupsRes as any)?.count) || 0);
+      const lastUpdate = (config as any)?.updated_at || (config as any)?.updatedAt || '';
+      const environment =
+        (config as any)?.environment ||
+        (config as any)?.env ||
+        (config as any)?.nodeEnv ||
+        (config as any)?.main?.environment ||
+        '';
+
+      setStats({
+        totalConfigurations: config && typeof config === 'object' ? Object.keys(config as any).length : configurations.length,
+        currentEnvironment: environment || 'unknown',
+        totalVersions: 0,
+        totalBackups,
+        lastUpdate: lastUpdate || ''
+      });
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -497,7 +499,6 @@ export default function ConfiguracionPage() {
         {selectedConfig === 'bot' && renderBotConfigEditor()}
         {selectedConfig === 'security' && renderSecurityConfigEditor()}
         {selectedConfig === 'notifications' && renderNotificationsConfigEditor()}
-        {/* Plugins removidos - funcionalidad simulada */}
       </div>
     );
   };
@@ -860,8 +861,6 @@ export default function ConfiguracionPage() {
       </div>
     </div>
   );
-
-  // Función renderPluginsConfigEditor removida - funcionalidad simulada
 
   return (
     <div className="space-y-6">
