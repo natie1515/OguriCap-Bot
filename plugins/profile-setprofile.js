@@ -41,7 +41,7 @@ if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Tu fecha de nacimiento ha sido eliminada.`, m)
 break
 }
-case 'setgenre': {
+case 'setgenre': case 'setgenero': {
 if (!text) return conn.reply(m.chat, `❀ Debes ingresar un género válido.\n> Ejemplo » *${usedPrefix + command} hombre*`, m)
 function asignarGenre(text) {
 let genre
@@ -69,7 +69,7 @@ if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Se ha establecido tu género como: *${user.genre}*!`, m)
 break
 }
-case 'delgenre': {
+case 'delgenre': case 'delgenero': {
 if (!user.genre) {
 return conn.reply(m.chat, `ꕥ No tienes un género asignado.`, m)
 }
@@ -97,9 +97,9 @@ break
 m.reply(`⚠︎ Se ha producido un problema.\n> Usa *${usedPrefix}report* para informarlo.\n\n${error.message}`)
 }}
 
-handler.help = ['setprofile', 'setbirth', 'delbirth', 'setgenre', 'setgenero', 'delgenre', 'setdescription', 'setdesc', 'deldescription', 'deldesc']
+handler.help = ['setprofile', 'setbirth', 'delbirth', 'setgenre', 'setgenero', 'delgenre', 'delgenero', 'setdescription', 'setdesc', 'deldescription', 'deldesc']
 handler.tags = ['rg']
-handler.command = ['setprofile', 'setbirth', 'delbirth', 'setgenre', 'setgenero', 'delgenre', 'setdescription', 'setdesc', 'deldescription', 'deldesc']
+handler.command = ['setprofile', 'setbirth', 'delbirth', 'setgenre', 'setgenero', 'delgenre', 'delgenero', 'setdescription', 'setdesc', 'deldescription', 'deldesc']
 handler.group = true
 
 export default handler
