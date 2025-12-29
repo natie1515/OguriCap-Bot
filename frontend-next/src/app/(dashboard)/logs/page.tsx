@@ -864,7 +864,7 @@ export default function LogsPage() {
                                 {formatTimestamp(log.timestamp)}
                               </span>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${levelConfig.color}`}>
-                                {log.level.toUpperCase()}
+                                {(String(log.level || '')).toUpperCase() || 'INFO'}
                               </span>
                               <span className="px-2 py-1 rounded-full text-xs bg-gray-500/20 text-gray-300">
                                 {log.category}
@@ -1119,7 +1119,7 @@ export default function LogsPage() {
                           </div>
                         </div>
                         <Badge variant={alert.resolved ? 'secondary' : 'destructive'}>
-                          {alert.resolved ? 'Resuelta' : alert.severity.toUpperCase()}
+                          {alert.resolved ? 'Resuelta' : (String(alert.severity || 'info')).toUpperCase()}
                         </Badge>
                       </div>
                     </div>
