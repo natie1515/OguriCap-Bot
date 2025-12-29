@@ -119,6 +119,17 @@ setImmediate(() => {
 try {
 if (!m?.sender || !global.db?.data) return
 if (m.fromMe || m.isBaileys) return
+// Mantener actividad real por usuario (para Usuarios de Comunidad)
+try {
+  global.db.data.users ||= {}
+  global.db.data.users[m.sender] ||= {}
+  const u = global.db.data.users[m.sender]
+  const nowIso = new Date().toISOString()
+  u.lastSeen = nowIso
+  u.messageCount = (Number(u.messageCount) || 0) + 1
+  // Compat: si existía el contador viejo "commands", reflejarlo en commandCount
+  if (u.commandCount == null && u.commands != null) u.commandCount = Number(u.commands) || 0
+} catch {}
 const panel = global.db.data.panel ||= {}
 panel.dailyMetrics ||= {}
 const dayKey = getDayKey()
@@ -308,6 +319,14 @@ global.db.data.chats[m.chat].primaryBot = null
 if (!isAccept) continue
 m.plugin = name
 global.db.data.users[m.sender].commands++
+// Compat UI: exponer conteo de comandos por usuario
+try {
+  const u = global.db.data.users[m.sender]
+  if (u) {
+    u.commandCount = Number(u.commands) || 0
+    u.lastSeen = new Date().toISOString()
+  }
+} catch {}
 if (chat) {
 const botId = this.user.jid
 const primaryBotId = chat.primaryBot

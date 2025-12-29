@@ -75,8 +75,33 @@ export default function DashboardPage() {
   //   await Promise.all([refetchStats(), refetchBot()]);
   // }, { interval: 15000 });
 
-  // Usar datos del contexto global si están disponibles
-  const currentStats = dashboardStats || stats;
+  // Usar datos del contexto global si están disponibles, pero sin perder campos que el socket no trae (p.ej. actividadPorHora/rendimiento)
+  const currentStats = React.useMemo(() => {
+    if (!dashboardStats) return stats;
+    if (!stats) return dashboardStats;
+
+    const activityFromSocket = (dashboardStats as any)?.actividadPorHora;
+    const activityFromApi = (stats as any)?.actividadPorHora;
+    const actividadPorHora =
+      Array.isArray(activityFromSocket) && activityFromSocket.length > 0
+        ? activityFromSocket
+        : Array.isArray(activityFromApi)
+          ? activityFromApi
+          : [];
+
+    return {
+      ...stats,
+      ...dashboardStats,
+      actividadPorHora,
+      rendimiento: (dashboardStats as any)?.rendimiento ?? (stats as any)?.rendimiento,
+      tendencias: (dashboardStats as any)?.tendencias ?? (stats as any)?.tendencias,
+      comunidad: {
+        ...(stats as any)?.comunidad,
+        ...(dashboardStats as any)?.comunidad,
+      },
+    };
+  }, [dashboardStats, stats]);
+
   const currentBotStatus = globalBotStatus || botStatus;
 
   // Listen for real-time events to build activity feed (mantener para eventos en tiempo real)
@@ -456,7 +481,7 @@ export default function DashboardPage() {
                 { label: 'Libre', value: Math.max(0, 100 - (memoryUsage?.systemPercentage || 0)), color: 'rgba(255,255,255,0.1)' },
               ]}
               size={140}
-              centerValue={`${memoryUsage?.systemPercentage || 0}%`}
+              centerValue={`${(memoryUsage?.systemPercentage ?? 0).toFixed(2)}%`}
               centerLabel="Memoria"
             />
           </div>
@@ -465,7 +490,7 @@ export default function DashboardPage() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-400">CPU</span>
-                <span className="text-white">{cpuUsage}%</span>
+                <span className="text-white">{cpuUsage.toFixed(2)}%</span>
               </div>
               <div className="progress-bar">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${cpuUsage}%` }} transition={{ duration: 1 }} className="progress-bar-fill" />
@@ -474,7 +499,7 @@ export default function DashboardPage() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-400">Memoria</span>
-                <span className="text-white">{memoryUsage?.systemPercentage || 0}%</span>
+                <span className="text-white">{(memoryUsage?.systemPercentage ?? 0).toFixed(2)}%</span>
               </div>
               <div className="progress-bar">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${memoryUsage?.systemPercentage || 0}%` }} transition={{ duration: 1 }} className="progress-bar-fill" />
@@ -483,7 +508,7 @@ export default function DashboardPage() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-400">Disco</span>
-                <span className="text-white">{diskUsage?.percentage || 0}%</span>
+                <span className="text-white">{(diskUsage?.percentage ?? 0).toFixed(2)}%</span>
               </div>
               <div className="progress-bar">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${diskUsage?.percentage || 0}%` }} transition={{ duration: 1 }} className="progress-bar-fill" />
@@ -670,7 +695,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Uso CPU</span>
-                <span className="text-white font-mono">{cpuUsage}%</span>
+                <span className="text-white font-mono">{cpuUsage.toFixed(2)}%</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Núcleos</span>
@@ -690,7 +715,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Uso</span>
-                <span className="text-white font-mono">{memoryUsage?.systemPercentage || 0}%</span>
+                <span className="text-white font-mono">{(memoryUsage?.systemPercentage ?? 0).toFixed(2)}%</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Total</span>
@@ -726,7 +751,7 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Uso</span>
-                <span className="text-white font-mono">{diskUsage?.percentage || 0}%</span>
+                <span className="text-white font-mono">{(diskUsage?.percentage ?? 0).toFixed(2)}%</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Total</span>

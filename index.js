@@ -65,7 +65,7 @@ global.prefix = new RegExp('^[#!./-]')
 // ============================================
 // POSTGRESQL DATABASE - SIMPLE
 // ============================================
-if (process.env.DEBUG_DB === 'true') console.log(chalk.cyan('🚀 Initializing PostgreSQL...'))
+if (process.env.LOG_DB === 'true') console.log(chalk.cyan('🚀 Initializing PostgreSQL...'))
 
 import Database from './lib/database.js'
 
@@ -110,7 +110,7 @@ global.loadDatabase = async function loadDatabase() {
 
     // Loguear solo una vez
     if (!global.__pgDatabaseReadyLogged) {
-      if (process.env.DEBUG_DB === 'true') console.log(chalk.green('✅ PostgreSQL ready'));
+      if (process.env.LOG_DB === 'true') console.log(chalk.green('✅ PostgreSQL ready'));
       global.__pgDatabaseReadyLogged = true
     }
 
@@ -123,7 +123,7 @@ global.loadDatabase = async function loadDatabase() {
 }
 
 // Load database
-if (process.env.DEBUG_DB === 'true') console.log(chalk.cyan('🚀 Starting database...'))
+if (process.env.LOG_DB === 'true') console.log(chalk.cyan('🚀 Starting database...'))
 await loadDatabase()
 
 // Asegurar estructura base del panel desde el arranque (evita perder métricas/logs antes del primer request al panel)
