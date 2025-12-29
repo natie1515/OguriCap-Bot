@@ -28,6 +28,7 @@ if (!birth) {
 return conn.reply(m.chat, `ꕥ La fecha ingresada no es válida o no tiene lógica.\n> Ejemplo: *${usedPrefix + command} 01/12/2000*`, m)
 }
 user.birth = birth
+if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Se ha establecido tu fecha de nacimiento como: *${user.birth}*!`, m)
 break
 }
@@ -36,6 +37,7 @@ if (!user.birth) {
 return conn.reply(m.chat, `ꕥ No tienes una fecha de nacimiento establecida que se pueda eliminar.`, m)
 }
 user.birth = ''
+if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Tu fecha de nacimiento ha sido eliminada.`, m)
 break
 }
@@ -63,6 +65,7 @@ if (user.genre === genre) {
 return conn.reply(m.chat, `ꕥ Ya tienes establecido el género como *${user.genre}*.`, m)
 }
 user.genre = genre
+if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Se ha establecido tu género como: *${user.genre}*!`, m)
 break
 }
@@ -71,12 +74,14 @@ if (!user.genre) {
 return conn.reply(m.chat, `ꕥ No tienes un género asignado.`, m)
 }
 user.genre = ''
+if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Se ha eliminado tu género.`, m)
 break
 }
 case 'setdescription': case 'setdesc': {
 if (!text) return conn.reply(m.chat, `❀ Debes especificar una descripción válida para tu perfil.\n\n> ✐ Ejemplo » *${usedPrefix + command} Hola, uso WhatsApp!*`, m)
 user.description = text
+if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Se ha establecido tu descripcion, puedes revisarla con #profile ฅ^•ﻌ•^ฅ`, m)
 break
 }
@@ -85,6 +90,7 @@ if (!user.description) {
 return conn.reply(m.chat, `ꕥ No tienes una descripción establecida que se pueda eliminar.`, m)
 }
 user.description = ''
+if (global.db?.write) await global.db.write().catch(() => {})
 return conn.reply(m.chat, `❀ Tu descripción ha sido eliminada.`, m)
 break
 }}} catch (error) {
