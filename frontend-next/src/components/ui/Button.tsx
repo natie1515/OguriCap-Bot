@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,10 +50,11 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading, icon, children, disabled, ...props }, ref) => {
+    const reduceMotion = useReducedMotion();
     return (
       <motion.button
-        whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
-        whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
+        whileHover={reduceMotion ? undefined : { scale: disabled || loading ? 1 : 1.02 }}
+        whileTap={reduceMotion ? undefined : { scale: disabled || loading ? 1 : 0.98 }}
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref as any}
         disabled={disabled || loading}

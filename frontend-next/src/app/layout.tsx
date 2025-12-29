@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
 import { Providers } from './providers';
+import { RouteProgress } from '@/components/ui/RouteProgress';
 
 export const metadata: Metadata = {
   title: 'Oguri Bot Panel',
@@ -49,6 +51,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <Providers>
+          <Suspense fallback={null}>
+            <RouteProgress />
+          </Suspense>
           {children}
         </Providers>
       </body>

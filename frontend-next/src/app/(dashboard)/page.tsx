@@ -17,6 +17,7 @@ import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useSocket, SOCKET_EVENTS } from '@/contexts/SocketContext';
 import { formatUptime } from '@/lib/utils';
+import { Magnetic } from '@/components/ui/Magnetic';
 
 // Animated Counter Component
 interface AnimatedCounterProps {
@@ -210,60 +211,70 @@ export default function DashboardPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
       >
-        <StatCard 
-          title="Admins Panel" 
-          value={currentStats?.totalUsuarios || 0} 
-          subtitle={`${currentStats?.usuariosActivos || 0} activos`} 
-          icon={<Users className="w-6 h-6" />} 
-          color="primary" 
-          delay={0} 
-          loading={statsLoading}
-          trend={currentStats?.tendencias?.usuarios}
-          animated={true}
-        />
-        <StatCard 
-          title="Comunidad" 
-          value={currentStats?.comunidad?.usuariosWhatsApp || 0} 
-          subtitle={`${currentStats?.comunidad?.usuariosActivos || 0} activos`} 
-          icon={<MessageSquare className="w-6 h-6" />} 
-          color="success" 
-          delay={0.1} 
-          loading={statsLoading}
-          trend={currentStats?.tendencias?.usuarios}
-          animated={true}
-        />
-        <StatCard 
-          title="Grupos" 
-          value={currentStats?.totalGrupos || 0} 
-          subtitle={`${currentStats?.gruposActivos || 0} activos`} 
-          icon={<MessageSquare className="w-6 h-6" />} 
-          color="violet" 
-          delay={0.2} 
-          loading={statsLoading}
-          trend={currentStats?.tendencias?.grupos}
-          animated={true}
-        />
-        <StatCard 
-          title="Aportes" 
-          value={currentStats?.totalAportes || 0} 
-          subtitle={`${currentStats?.aportesHoy || 0} hoy`} 
-          icon={<Package className="w-6 h-6" />} 
-          color="violet" 
-          delay={0.3} 
-          loading={statsLoading}
-          trend={currentStats?.tendencias?.aportes}
-          animated={true}
-        />
-        <StatCard 
-          title="SubBots" 
-          value={currentStats?.totalSubbots || totalCount} 
-          subtitle={`${onlineCount} online`} 
-          icon={<Zap className="w-6 h-6" />} 
-          color="cyan" 
-          delay={0.4} 
-          loading={statsLoading}
-          animated={true}
-        />
+        <Magnetic>
+          <StatCard 
+            title="Admins Panel" 
+            value={currentStats?.totalUsuarios || 0} 
+            subtitle={`${currentStats?.usuariosActivos || 0} activos`} 
+            icon={<Users className="w-6 h-6" />} 
+            color="primary" 
+            delay={0} 
+            loading={statsLoading}
+            trend={currentStats?.tendencias?.usuarios}
+            animated={true}
+          />
+        </Magnetic>
+        <Magnetic>
+          <StatCard 
+            title="Comunidad" 
+            value={currentStats?.comunidad?.usuariosWhatsApp || 0} 
+            subtitle={`${currentStats?.comunidad?.usuariosActivos || 0} activos`} 
+            icon={<MessageSquare className="w-6 h-6" />} 
+            color="success" 
+            delay={0.1} 
+            loading={statsLoading}
+            trend={currentStats?.tendencias?.usuarios}
+            animated={true}
+          />
+        </Magnetic>
+        <Magnetic>
+          <StatCard 
+            title="Grupos" 
+            value={currentStats?.totalGrupos || 0} 
+            subtitle={`${currentStats?.gruposActivos || 0} activos`} 
+            icon={<MessageSquare className="w-6 h-6" />} 
+            color="violet" 
+            delay={0.2} 
+            loading={statsLoading}
+            trend={currentStats?.tendencias?.grupos}
+            animated={true}
+          />
+        </Magnetic>
+        <Magnetic>
+          <StatCard 
+            title="Aportes" 
+            value={currentStats?.totalAportes || 0} 
+            subtitle={`${currentStats?.aportesHoy || 0} hoy`} 
+            icon={<Package className="w-6 h-6" />} 
+            color="violet" 
+            delay={0.3} 
+            loading={statsLoading}
+            trend={currentStats?.tendencias?.aportes}
+            animated={true}
+          />
+        </Magnetic>
+        <Magnetic>
+          <StatCard 
+            title="SubBots" 
+            value={currentStats?.totalSubbots || totalCount} 
+            subtitle={`${onlineCount} online`} 
+            icon={<Zap className="w-6 h-6" />} 
+            color="cyan" 
+            delay={0.4} 
+            loading={statsLoading}
+            animated={true}
+          />
+        </Magnetic>
       </motion.div>
 
       {/* Main Content Grid */}
