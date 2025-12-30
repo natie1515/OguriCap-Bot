@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { useSocket } from '@/contexts/SocketContext';
+import { SOCKET_EVENTS, useSocket } from '@/contexts/SocketContext';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import api from '@/services/api';
@@ -125,7 +125,8 @@ const LOG_LEVELS = {
 
 const LOG_CATEGORIES = [
   'system', 'bot', 'api', 'database', 'security', 
-  'performance', 'user', 'plugin', 'network', 'error'
+  'performance', 'user', 'plugin', 'network', 'error',
+  'terminal', 'mensaje', 'comando', 'evento', 'grupo', 'subbot', 'pedido', 'aporte', 'notificacion'
 ];
 
 // Componentes UI simples
@@ -171,6 +172,54 @@ export default function LogsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const { socket } = useSocket();
+
+  const normalizeLogEntry = (raw: any): LogEntry => {
+    const timestampRaw = raw?.timestamp ?? raw?.fecha ?? raw?.date ?? raw?.createdAt ?? raw?.time;
+    const timestamp = typeof timestampRaw === 'string' && timestampRaw
+      ? timestampRaw
+      : new Date().toISOString();
+
+    const levelRaw = String(raw?.level ?? raw?.nivel ?? raw?.severity ?? raw?.type ?? 'info').toLowerCase();
+    const level =
+      levelRaw === 'warning' ? 'warn' :
+      levelRaw === 'fatal' ? 'error' :
+      levelRaw;
+
+    const category = String(raw?.category ?? raw?.tipo ?? raw?.categoria ?? raw?.source ?? 'system');
+
+    const message = String(
+      raw?.message ?? raw?.mensaje ?? raw?.detalles ?? raw?.titulo ?? raw?.comando ?? raw?.text ?? ''
+    ) || 'Sin mensaje';
+
+    const dataBase = raw?.data ?? raw?.metadata ?? null;
+    const extra: any = {};
+    if (raw?.id != null) extra.id = raw.id;
+    if (raw?.usuario) extra.usuario = raw.usuario;
+    if (raw?.grupo) extra.grupo = raw.grupo;
+
+    const data =
+      dataBase && typeof dataBase === 'object'
+        ? Object.keys(extra).length ? { ...dataBase, ...extra } : dataBase
+        : Object.keys(extra).length ? extra : {};
+
+    const stackRaw = raw?.stack ?? raw?.error?.stack;
+    const stack = Array.isArray(stackRaw)
+      ? stackRaw.map((s: any) => String(s))
+      : typeof stackRaw === 'string' && stackRaw
+        ? stackRaw.split('\n')
+        : undefined;
+
+    return {
+      timestamp,
+      level,
+      category,
+      message,
+      data,
+      pid: raw?.pid,
+      hostname: raw?.hostname,
+      stack,
+    };
+  };
 
   // Initial load
   useEffect(() => {
@@ -276,7 +325,8 @@ export default function LogsPage() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewLog = (logEntry: LogEntry) => {
+    const handleNewLog = (rawEntry: any) => {
+      const logEntry = normalizeLogEntry(rawEntry);
       if (autoRefresh) {
         setLogs(prev => [logEntry, ...prev.slice(0, pageSize - 1)]);
         loadStats(); // Actualizar estadísticas
@@ -284,9 +334,11 @@ export default function LogsPage() {
     };
 
     socket.on('log:new', handleNewLog);
+    socket.on(SOCKET_EVENTS.LOG_ENTRY, handleNewLog);
 
     return () => {
       socket.off('log:new', handleNewLog);
+      socket.off(SOCKET_EVENTS.LOG_ENTRY, handleNewLog);
     };
   }, [socket, autoRefresh, pageSize]);
 
@@ -315,7 +367,8 @@ export default function LogsPage() {
         startDate: startDate || undefined,
         endDate: endDate || undefined
       });
-      setLogs(data.logs || []);
+      const list = Array.isArray(data?.logs) ? data.logs : [];
+      setLogs(list.map(normalizeLogEntry));
     } catch (error) {
       console.error('Error loading logs:', error);
       toast.error('Error cargando logs');
@@ -374,7 +427,9 @@ export default function LogsPage() {
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
+    const t = new Date(timestamp);
+    if (Number.isNaN(t.getTime())) return '-';
+    return t.toLocaleString();
   };
 
   const formatUptime = (ms: number) => {

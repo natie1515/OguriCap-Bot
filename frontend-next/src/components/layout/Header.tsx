@@ -6,7 +6,8 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useSocket } from '@/contexts/SocketContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
-import { Bell, Search, Moon, Sun, RefreshCw, Menu, X, Radio } from 'lucide-react';
+import { usePreferences } from '@/contexts/PreferencesContext';
+import { Bell, Search, Moon, Sun, RefreshCw, Menu, X, Radio, Volume2, VolumeX, Smartphone } from 'lucide-react';
 
 const menuItems = [
   { path: '/', label: 'Dashboard' },
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   const { isConnected: pollingConnected, isConnecting } = useBotStatus(5000);
   const { notifications, unreadCount } = useNotifications(30000);
   const reduceMotion = useReducedMotion();
+  const { preferences, togglePreference } = usePreferences();
 
   const currentPage = menuItems.find(item => item.path === pathname);
   const isConnected = pollingConnected;
@@ -170,6 +172,33 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                         <p className="text-sm">No hay notificaciones</p>
                       </div>
                     )}
+                  </div>
+                  <div className="p-3 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Efectos</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => togglePreference('soundEnabled')}
+                        title={preferences.soundEnabled ? 'Sonido: activado' : 'Sonido: desactivado'}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          preferences.soundEnabled
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {preferences.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => togglePreference('hapticsEnabled')}
+                        title={preferences.hapticsEnabled ? 'Vibración: activada' : 'Vibración: desactivada'}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          preferences.hapticsEnabled
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <Smartphone className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="p-3 border-t border-white/10">
                     <button

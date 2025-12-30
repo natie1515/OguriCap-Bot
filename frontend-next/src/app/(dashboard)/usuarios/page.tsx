@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Users, Search, RefreshCw, Shield, UserCheck, Mail, Phone, Calendar,
   CheckCircle, Edit, Plus, Trash2, X, Key, Eye,
@@ -10,6 +10,7 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Skeleton, SkeletonCircle } from '@/components/ui/Skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
@@ -35,6 +36,7 @@ export default function UsuariosPage() {
     rol: '', // Sin rol por defecto
     whatsapp_number: '' 
   });
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     loadUsers();
@@ -247,16 +249,20 @@ export default function UsuariosPage() {
     activos: Array.isArray(users) ? users.filter(u => (u as any).activo !== false).length : 0
   };
 
-  if (loading && users.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-12 h-12 animate-spin mx-auto mb-4 text-primary-400" />
-          <h2 className="text-xl font-semibold text-white">Cargando usuarios...</h2>
-        </div>
-      </div>
-    );
-  }
+  const tbodyVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: reduceMotion ? 0 : 0.02,
+      },
+    },
+  };
+
+  const rowVariants = {
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 },
+    show: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 },
+    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10 },
+  };
 
   return (
     <div className="space-y-6">
@@ -321,9 +327,52 @@ export default function UsuariosPage() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center">
-            <RefreshCw className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Cargando usuarios...</p>
+          <div className="overflow-x-auto">
+            <table className="table-glass w-full">
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Contacto</th>
+                  <th>Rol</th>
+                  <th>Registro</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <SkeletonCircle className="h-9 w-9" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32 rounded" />
+                          <Skeleton className="h-3 w-20 rounded" />
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <Skeleton className="h-4 w-36 rounded" />
+                    </td>
+                    <td>
+                      <Skeleton className="h-6 w-24 rounded-full" />
+                    </td>
+                    <td>
+                      <Skeleton className="h-4 w-28 rounded" />
+                    </td>
+                    <td>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-9 w-9 rounded-lg" />
+                        <Skeleton className="h-9 w-9 rounded-lg" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="p-12 text-center">
@@ -344,15 +393,14 @@ export default function UsuariosPage() {
                   <th>Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                <AnimatePresence>
-                  {filteredUsers.map((user, index) => (
+              <motion.tbody variants={tbodyVariants} initial="hidden" animate="show">
+                <AnimatePresence mode="popLayout">
+                  {filteredUsers.map((user) => (
                     <motion.tr
                       key={user.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ delay: index * 0.03 }}
+                      layout="position"
+                      variants={rowVariants}
+                      exit="exit"
                     >
                       <td>
                         <div className="flex items-center gap-3">
@@ -434,7 +482,7 @@ export default function UsuariosPage() {
                     </motion.tr>
                   ))}
                 </AnimatePresence>
-              </tbody>
+              </motion.tbody>
             </table>
           </div>
         )}

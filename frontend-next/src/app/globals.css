@@ -82,6 +82,15 @@ body {
   100% { transform: translateX(100%); }
 }
 
+@keyframes flashUpdate {
+  0% { background-color: rgba(99, 102, 241, 0.18); }
+  100% { background-color: rgba(99, 102, 241, 0); }
+}
+
+.flash-update {
+  animation: flashUpdate 1.2s ease-out;
+}
+
 @layer components {
   .glass {
     @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl;

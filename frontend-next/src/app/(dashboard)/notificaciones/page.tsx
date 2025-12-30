@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Bell, Search, RefreshCw, CheckCircle, AlertCircle, Info, AlertTriangle, Trash2, Check, CheckCheck, Plus } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect as Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
+import { Skeleton, SkeletonCircle } from '@/components/ui/Skeleton';
 import { SOCKET_EVENTS, useSocket } from '@/contexts/SocketContext';
+import { useFlashTokens } from '@/hooks/useFlashTokens';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -38,6 +40,10 @@ export default function NotificacionesPage() {
     categoria: 'sistema'
   });
   const { socket } = useSocket();
+  const reduceMotion = useReducedMotion();
+  const flash = useFlashTokens({ ttlMs: 1200 });
+  const hasLoadedOnceRef = useRef(false);
+  const prevSigRef = useRef<Record<number, string>>({});
 
   const createNotification = async () => {
     if (!newNotification.titulo.trim() || !newNotification.mensaje.trim()) {
@@ -94,7 +100,30 @@ export default function NotificacionesPage() {
         type: typeFilter !== 'all' ? typeFilter : undefined,
         read: readFilter !== 'all' ? readFilter : undefined
       });
-      setNotifications(data?.notificaciones || []);
+      const list = data?.notificaciones || [];
+      const nextSig: Record<number, string> = {};
+
+      if (hasLoadedOnceRef.current) {
+        let flashed = 0;
+        for (const n of list) {
+          const sig = `${n.leida ? 1 : 0}|${n.tipo}|${n.titulo}|${n.mensaje}|${n.fecha_creacion}`;
+          nextSig[n.id] = sig;
+
+          const prevSig = prevSigRef.current[n.id];
+          if ((!prevSig || prevSig !== sig) && flashed < 10) {
+            flash.trigger(String(n.id));
+            flashed += 1;
+          }
+        }
+      } else {
+        for (const n of list) {
+          nextSig[n.id] = `${n.leida ? 1 : 0}|${n.tipo}|${n.titulo}|${n.mensaje}|${n.fecha_creacion}`;
+        }
+        hasLoadedOnceRef.current = true;
+      }
+
+      prevSigRef.current = nextSig;
+      setNotifications(list);
       setPagination(data?.pagination);
     } catch (err) {
       toast.error('Error al cargar notificaciones');
@@ -170,6 +199,21 @@ export default function NotificacionesPage() {
 
   const unreadCount = notifications.filter(n => !n.leida).length;
 
+  const listVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: reduceMotion ? 0 : 0.03,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, x: -14 },
+    show: reduceMotion ? { opacity: 1 } : { opacity: 1, x: 0 },
+    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, x: 14 },
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -233,9 +277,25 @@ export default function NotificacionesPage() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center">
-            <RefreshCw className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Cargando notificaciones...</p>
+          <div className="p-6 space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-4">
+                <SkeletonCircle className="h-9 w-9" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Skeleton className="h-4 w-40 rounded" />
+                  <Skeleton className="h-3 w-full rounded" />
+                  <Skeleton className="h-3 w-2/3 rounded" />
+                  <div className="flex items-center gap-3 pt-1">
+                    <Skeleton className="h-3 w-16 rounded" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">
@@ -244,13 +304,24 @@ export default function NotificacionesPage() {
             <p className="text-gray-400">No tienes notificaciones pendientes</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
-            <AnimatePresence>
-              {notifications.map((notification, index) => (
-                <motion.div key={notification.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }} transition={{ delay: index * 0.03 }}
-                  className={`p-4 hover:bg-white/5 transition-colors ${!notification.leida ? 'bg-primary-500/5' : ''}`}>
-                  <div className="flex items-start gap-4">
+          <div>
+            <motion.div variants={listVariants} initial="hidden" animate="show" className="divide-y divide-white/5">
+              <AnimatePresence mode="popLayout">
+                {notifications.map((notification) => (
+                  <motion.div
+                    key={notification.id}
+                    layout="position"
+                    variants={itemVariants}
+                    exit="exit"
+                    className={`relative overflow-hidden p-4 hover:bg-white/5 transition-colors ${!notification.leida ? 'bg-primary-500/5' : ''}`}
+                  >
+                    {flash.tokens[String(notification.id)] && (
+                      <div
+                        key={flash.tokens[String(notification.id)]}
+                        className="flash-update pointer-events-none absolute inset-0"
+                      />
+                    )}
+                    <div className="flex items-start gap-4 relative">
                     <div className="p-2 rounded-lg bg-white/5">{getTypeIcon(notification.tipo)}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -282,9 +353,10 @@ export default function NotificacionesPage() {
                       </motion.button>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
           </div>
         )}
 

@@ -385,19 +385,143 @@ function pushPanelLog(entry) {
     panel.logs ||= []
     panel.logsCounter ||= 0
 
-    panel.logs.push({
+    const record = {
       id: panel.logsCounter++,
       fecha: new Date().toISOString(),
       nivel: 'info',
       ...entry,
-    })
+    }
+
+    panel.logs.push(record)
 
     const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
     if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
       panel.logs.splice(0, panel.logs.length - maxLogs)
     }
+
+    // Emitir al panel en tiempo real (Socket.IO) si está disponible
+    try {
+      emitPanelLogEntry(record)
+    } catch {}
   } catch {}
 }
+
+// EmitLogEntry (Socket.IO) con carga perezosa + buffer
+const emitPanelLogEntry = (() => {
+  let emitFn = null
+  const pending = []
+
+  import('./lib/socket-io.js')
+    .then((m) => {
+      emitFn = m?.emitLogEntry
+      if (typeof emitFn === 'function') {
+        while (pending.length) {
+          try { emitFn(pending.shift()) } catch { pending.shift() }
+        }
+      }
+    })
+    .catch(() => {})
+
+  return (record) => {
+    if (typeof emitFn === 'function') return emitFn(record)
+    pending.push(record)
+    if (pending.length > 50) pending.shift()
+  }
+})()
+
+// Captura de console.* para que los "print" del backend aparezcan en el panel
+function installPanelConsoleCapture() {
+  if (global.__panelConsoleCaptureInstalled) return
+  global.__panelConsoleCaptureInstalled = true
+
+  const original = {
+    log: console.log,
+    warn: console.warn,
+    error: console.error,
+    info: console.info,
+    debug: console.debug,
+  }
+
+  const WINDOW_MS = 1000
+  const MAX_PER_WINDOW = 40
+  const rate = { start: Date.now(), count: 0, dropped: 0 }
+
+  const safeStringify = (value) => {
+    try {
+      if (value instanceof Error) return value.stack || value.message || String(value)
+      if (typeof value === 'string') return value
+      if (typeof value === 'number' || typeof value === 'boolean' || value == null) return String(value)
+      const seen = new WeakSet()
+      return JSON.stringify(value, (k, v) => {
+        if (typeof v === 'object' && v !== null) {
+          if (seen.has(v)) return '[Circular]'
+          seen.add(v)
+        }
+        return v
+      })
+    } catch {
+      try { return String(value) } catch { return '[Unserializable]' }
+    }
+  }
+
+  const formatArgs = (args) => {
+    const msg = args.map(safeStringify).join(' ')
+    const max = 1800
+    return msg.length > max ? `${msg.slice(0, max)}…` : msg
+  }
+
+  const shouldDrop = () => {
+    const now = Date.now()
+    if (now - rate.start >= WINDOW_MS) {
+      if (rate.dropped > 0) {
+        pushPanelLog({
+          tipo: 'terminal',
+          nivel: 'warn',
+          mensaje: `[Console] Se descartaron ${rate.dropped} logs por rate-limit`,
+          metadata: { source: 'console', dropped: rate.dropped },
+        })
+      }
+      rate.start = now
+      rate.count = 0
+      rate.dropped = 0
+    }
+
+    rate.count += 1
+    if (rate.count > MAX_PER_WINDOW) {
+      rate.dropped += 1
+      return true
+    }
+
+    return false
+  }
+
+  const capture = (method, nivel, callOriginal) => (...args) => {
+    try {
+      if (callOriginal && typeof original[method] === 'function') original[method](...args)
+      if (shouldDrop()) return
+
+      pushPanelLog({
+        tipo: 'terminal',
+        nivel,
+        mensaje: formatArgs(args),
+        metadata: { source: 'console', method },
+      })
+    } catch {
+      try {
+        if (callOriginal && typeof original[method] === 'function') original[method](...args)
+      } catch {}
+    }
+  }
+
+  console.log = capture('log', 'info', true)
+  console.warn = capture('warn', 'warn', true)
+  console.error = capture('error', 'error', true)
+  // Mantener console.info silenciado en la terminal, pero capturado para el panel
+  console.info = capture('info', 'info', false)
+  console.debug = capture('debug', 'debug', false)
+}
+
+installPanelConsoleCapture()
 
 // ============================================
 // MANEJADOR DE ACTUALIZACIONES DE CONEXIÓN

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
   Clock, 
   Play, 
@@ -21,7 +21,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useSocket } from '@/contexts/SocketContext';
+import { useFlashTokens } from '@/hooks/useFlashTokens';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -65,6 +67,9 @@ export default function TareasPage() {
   const [showExecutions, setShowExecutions] = useState(false);
 
   const { socket } = useSocket();
+  const reduceMotion = useReducedMotion();
+  const taskFlash = useFlashTokens({ ttlMs: 1200 });
+  const executionFlash = useFlashTokens({ ttlMs: 1200 });
 
   useEffect(() => {
     loadTasks();
@@ -76,6 +81,7 @@ export default function TareasPage() {
 
     const handleTaskCreated = (data: any) => {
       if (!data?.task) return;
+      taskFlash.trigger(String(data.task.id));
       setTasks(prev => {
         const exists = prev.some(t => String(t.id) === String(data.task.id));
         return exists ? prev : [data.task, ...prev];
@@ -83,12 +89,15 @@ export default function TareasPage() {
     };
 
     const handleTaskUpdate = (data: any) => {
+      if (data?.taskId) taskFlash.trigger(String(data.taskId));
       setTasks(prev => prev.map(task => 
         task.id === data.taskId ? { ...task, ...data.updates } : task
       ));
     };
 
     const handleTaskExecution = (data: TaskExecution) => {
+      executionFlash.trigger(String((data as any)?.id ?? `${data.taskId}:${data.startTime ?? Date.now()}`));
+      taskFlash.trigger(String(data.taskId));
       setExecutions(prev => {
         const id = String((data as any)?.id ?? '');
         const next = id ? prev.filter(e => String((e as any)?.id ?? '') !== id) : prev;
@@ -121,7 +130,7 @@ export default function TareasPage() {
       socket.off('task:executed', handleTaskExecution);
       socket.off('task:deleted', handleTaskDeleted);
     };
-  }, [socket]);
+  }, [executionFlash, socket, taskFlash]);
 
   const loadTasks = async () => {
     try {
@@ -246,6 +255,21 @@ export default function TareasPage() {
     return schedule;
   };
 
+  const listVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: reduceMotion ? 0 : 0.04,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14 },
+    show: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 },
+    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: -14 },
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -326,9 +350,36 @@ export default function TareasPage() {
           </h2>
         </div>
         
-        <div className="divide-y divide-white/5">
-          <AnimatePresence>
-            {filteredTasks.length === 0 ? (
+        <div>
+          <motion.div variants={listVariants} initial="hidden" animate="show" className="divide-y divide-white/5">
+            <AnimatePresence mode="popLayout">
+              {isLoading && tasks.length === 0 ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={`sk-${i}`} className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-4 w-4 rounded" />
+                          <Skeleton className="h-4 w-44 rounded" />
+                          <Skeleton className="h-5 w-20 rounded-full" />
+                        </div>
+                        <Skeleton className="h-3 w-full rounded" />
+                        <Skeleton className="h-3 w-2/3 rounded" />
+                        <div className="flex items-center gap-4">
+                          <Skeleton className="h-3 w-28 rounded" />
+                          <Skeleton className="h-3 w-20 rounded" />
+                          <Skeleton className="h-3 w-24 rounded" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-20 rounded-lg" />
+                        <Skeleton className="h-8 w-20 rounded-lg" />
+                        <Skeleton className="h-8 w-20 rounded-lg" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : filteredTasks.length === 0 ? (
               <div className="p-8 text-center">
                 <Clock className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400">
@@ -342,12 +393,18 @@ export default function TareasPage() {
               filteredTasks.map((task) => (
                 <motion.div
                   key={task.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="p-4 hover:bg-white/5 transition-colors"
+                  layout="position"
+                  variants={itemVariants}
+                  exit="exit"
+                  className="relative overflow-hidden p-4 hover:bg-white/5 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
+                  {taskFlash.tokens[String(task.id)] && (
+                    <div
+                      key={taskFlash.tokens[String(task.id)]}
+                      className="flash-update pointer-events-none absolute inset-0"
+                    />
+                  )}
+                  <div className="flex items-start justify-between relative">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2">
@@ -448,7 +505,8 @@ export default function TareasPage() {
                 </motion.div>
               ))
             )}
-          </AnimatePresence>
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
 
@@ -474,34 +532,50 @@ export default function TareasPage() {
                   <p className="text-gray-400">No hay ejecuciones registradas</p>
                 </div>
               ) : (
-                <div className="divide-y divide-white/5">
-                  {executions.map((execution) => (
-                    <div key={execution.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {getStatusIcon(execution.status)}
-                          <div>
-                            <p className="font-medium text-white">{execution.taskName}</p>
-                            <p className="text-xs text-gray-400">
-                              {new Date(execution.startTime).toLocaleString()}
-                              {execution.manual && ' (Manual)'}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <p className="text-sm text-gray-300">
-                            {formatDuration(execution.duration)}
-                          </p>
-                          {execution.error && (
-                            <p className="text-xs text-red-400 max-w-xs truncate">
-                              {execution.error}
-                            </p>
+                <div>
+                  <motion.div variants={listVariants} initial="hidden" animate="show" className="divide-y divide-white/5">
+                    <AnimatePresence mode="popLayout">
+                      {executions.map((execution) => (
+                        <motion.div
+                          key={execution.id}
+                          layout="position"
+                          variants={itemVariants}
+                          exit="exit"
+                          className="relative overflow-hidden p-4"
+                        >
+                          {executionFlash.tokens[String(execution.id)] && (
+                            <div
+                              key={executionFlash.tokens[String(execution.id)]}
+                              className="flash-update pointer-events-none absolute inset-0"
+                            />
                           )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                          <div className="flex items-center justify-between relative">
+                            <div className="flex items-center gap-3">
+                              {getStatusIcon(execution.status)}
+                              <div>
+                                <p className="font-medium text-white">{execution.taskName}</p>
+                                <p className="text-xs text-gray-400">
+                                  {new Date(execution.startTime).toLocaleString()}
+                                  {execution.manual && ' (Manual)'}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right">
+                              <p className="text-sm text-gray-300">
+                                {formatDuration(execution.duration)}
+                              </p>
+                              {execution.error && (
+                                <p className="text-xs text-red-400 max-w-xs truncate">
+                                  {execution.error}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 </div>
               )}
             </div>
