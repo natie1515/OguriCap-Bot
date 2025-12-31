@@ -101,6 +101,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setConnectionError(null);
       newSocket.emit('request:botStatus');
       newSocket.emit('request:subbotStatus');
+      newSocket.emit('request:stats');
     });
 
     newSocket.on('disconnect', () => setIsConnected(false));

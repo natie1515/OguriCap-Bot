@@ -30,37 +30,9 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (typeof window !== 'undefined' && error?.response?.status === 401) {
-          const token = localStorage.getItem('token')
-          const url = String(error?.config?.url || '')
-
-          const isJwtExpired = (jwtToken: string) => {
-            try {
-              const parts = String(jwtToken || '').split('.')
-              if (parts.length !== 3) return false
-              const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-              const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4)
-              const decoded = JSON.parse(atob(padded))
-              const exp = Number(decoded?.exp)
-              if (!Number.isFinite(exp) || exp <= 0) return false
-              return Date.now() > (exp * 1000 + 30_000) // 30s de margen
-            } catch {
-              return false
-            }
-          }
-
-          const isAuthProbe = url.includes('/api/auth/me') || url.includes('/api/auth/verify')
-
-          // No expulsar al usuario por cualquier 401: solo si no hay token, si expiró,
-          // o si falló un endpoint de verificación de sesión.
-          if (!token || isJwtExpired(token) || isAuthProbe) {
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            if (window.location.pathname !== '/login') window.location.href = '/login'
-          } else {
-            // Mantener sesión; la UI debe manejar el 401 (p.ej. permisos/ruta).
-            console.warn('[API] 401 sin logout', { url })
-          }
+        if (error.response?.status === 401 && typeof window !== 'undefined') {
+          localStorage.removeItem('token')
+          if (window.location.pathname !== '/login') window.location.href = '/login'
         }
         if (error.response?.status === 503 && error.response?.data?.maintenanceMode && typeof window !== 'undefined') {
           // Verificar si el usuario es administrador antes de redirigir
@@ -257,12 +229,12 @@ class ApiService {
   }
 
   async deleteSubbot(subbotId: string) {
-    const response = await this.api.delete(`/api/subbots/${encodeURIComponent(subbotId)}`)
+    const response = await this.api.delete(`/api/subbot/${subbotId}`)
     return response.data
   }
 
   async getSubbotQR(subbotId: string) {
-    const response = await this.api.get(`/api/subbots/${encodeURIComponent(subbotId)}/qr`)
+    const response = await this.api.get(`/api/subbot/qr/${encodeURIComponent(subbotId)}`)
     return response.data
   }
 
@@ -273,73 +245,24 @@ class ApiService {
       this.api.get('/api/pedidos/stats').then(r => r.data).catch(() => ({}))
     ])
 
-    const totalUsuarios = overview.totalUsuarios ?? overview.usuarios ?? 0
-    const totalGrupos = overview.totalGrupos ?? overview.grupos ?? 0
-    const totalAportes = overview.totalAportes ?? overview.aportes ?? 0
-    const totalPedidos = overview.totalPedidos ?? overview.pedidos ?? 0
-    const totalSubbots = overview.totalSubbots ?? overview.subbots ?? 0
-
-    const usuariosActivos = overview.usuariosActivos ?? 0
-    const gruposActivos = overview.gruposActivos ?? 0
-    const aportesHoy = overview.aportesHoy ?? 0
-
-    const mensajesHoy = overview.mensajesHoy ?? 0
-    const comandosHoy = overview.comandosHoy ?? 0
-    const totalMensajes = overview.totalMensajes ?? 0
-    const totalComandos = overview.totalComandos ?? 0
-
-    const rendimiento = overview.rendimiento
-      ? {
-          tiempoRespuesta: overview.rendimiento.tiempoRespuesta ?? 0,
-          disponibilidad: overview.rendimiento.disponibilidad ?? 0,
-          errorRate: overview.rendimiento.errorRate ?? 0,
-          throughput: overview.rendimiento.throughput ?? 0,
-        }
-      : { tiempoRespuesta: 0, disponibilidad: 0, errorRate: 0, throughput: 0 }
-
-    const tendencias = overview.tendencias
-      ? {
-          usuarios: overview.tendencias.usuarios ?? 0,
-          grupos: overview.tendencias.grupos ?? 0,
-          aportes: overview.tendencias.aportes ?? 0,
-          pedidos: overview.tendencias.pedidos ?? 0,
-          mensajes: overview.tendencias.mensajes ?? 0,
-          comandos: overview.tendencias.comandos ?? 0,
-        }
-      : { usuarios: 0, grupos: 0, aportes: 0, pedidos: 0, mensajes: 0, comandos: 0 }
-
-    const comunidad = overview.comunidad
-      ? {
-          usuariosWhatsApp: overview.comunidad.usuariosWhatsApp ?? 0,
-          usuariosActivos: overview.comunidad.usuariosActivos ?? 0,
-          mensajesHoy: overview.comunidad.mensajesHoy ?? 0,
-          comandosHoy: overview.comunidad.comandosHoy ?? 0,
-          totalMensajes: overview.comunidad.totalMensajes ?? 0,
-          totalComandos: overview.comunidad.totalComandos ?? 0,
-          gruposConBot: overview.comunidad.gruposConBot ?? undefined,
-          mensajesRecibidos: overview.comunidad.mensajesRecibidos ?? undefined,
-          comandosEjecutados: overview.comunidad.comandosEjecutados ?? undefined,
-        }
-      : undefined
-
     return {
-      totalUsuarios,
-      totalGrupos,
-      totalAportes,
-      totalPedidos,
-      totalSubbots,
-      usuariosActivos,
-      gruposActivos,
-      aportesHoy,
+      totalUsuarios: overview.totalUsuarios ?? overview.usuarios ?? 0,
+      totalGrupos: overview.totalGrupos ?? overview.grupos ?? 0,
+      totalAportes: overview.totalAportes ?? overview.aportes ?? 0,
+      totalPedidos: overview.totalPedidos ?? overview.pedidos ?? 0,
+      totalSubbots: overview.totalSubbots ?? overview.subbots ?? 0,
+      usuariosActivos: overview.usuariosActivos || 0,
+      gruposActivos: overview.gruposActivos || 0,
+      aportesHoy: overview.aportesHoy || 0,
       pedidosHoy: pedidos.pedidosPendientes ?? overview.pedidosHoy ?? 0,
-      mensajesHoy,
-      comandosHoy,
-      totalMensajes,
-      totalComandos,
-      actividadPorHora: Array.isArray(overview.actividadPorHora) ? overview.actividadPorHora : [],
-      rendimiento,
-      tendencias,
-      comunidad,
+      mensajesHoy: overview.mensajesHoy || 0,
+      comandosHoy: overview.comandosHoy || 0,
+      totalMensajes: overview.totalMensajes || 0,
+      totalComandos: overview.totalComandos || 0,
+      actividadPorHora: Array.isArray(overview.actividadPorHora) ? overview.actividadPorHora : undefined,
+      rendimiento: overview.rendimiento,
+      tendencias: overview.tendencias,
+      comunidad: overview.comunidad,
     }
   }
 
@@ -372,6 +295,11 @@ class ApiService {
 
   async toggleProvider(idOrJid: string | number, es_proveedor: boolean) {
     const response = await this.api.patch(`/api/grupos/${idOrJid}/proveedor`, { es_proveedor });
+    return response.data;
+  }
+
+  async syncWhatsAppGroups(opts?: { clearOld?: boolean }) {
+    const response = await this.api.post('/api/grupos/sync', opts || {});
     return response.data;
   }
 
@@ -612,49 +540,8 @@ class ApiService {
     return response.data;
   }
 
-  async getSystemConfigVersions(limit = 50) {
-    const response = await this.api.get(`/api/system/config/versions?limit=${limit}`);
-    return response.data;
-  }
-
-  async rollbackSystemConfig(versionId: string) {
-    const response = await this.api.post('/api/system/config/rollback', { versionId });
-    return response.data;
-  }
-
   async addCurrentIPAsAdmin() {
     const response = await this.api.post('/api/system/add-admin-ip');
-    return response.data;
-  }
-
-  // Config Manager (versionado / rollback)
-  async getConfig(key = 'main') {
-    const response = await this.api.get(`/api/config/${encodeURIComponent(key)}`);
-    return response.data;
-  }
-
-  async updateConfig(key: string, config: any) {
-    const response = await this.api.put(`/api/config/${encodeURIComponent(key)}`, config);
-    return response.data;
-  }
-
-  async getConfigStats() {
-    const response = await this.api.get('/api/config/stats');
-    return response.data;
-  }
-
-  async getConfigVersions(key = 'main', limit = 50) {
-    const response = await this.api.get(`/api/config/${encodeURIComponent(key)}/versions?limit=${limit}`);
-    return response.data;
-  }
-
-  async rollbackConfig(key: string, versionId: string) {
-    const response = await this.api.post(`/api/config/${encodeURIComponent(key)}/rollback`, { versionId });
-    return response.data;
-  }
-
-  async importConfig(key: string, config: any) {
-    const response = await this.api.post(`/api/config/${encodeURIComponent(key)}/import`, { config });
     return response.data;
   }
 
@@ -709,11 +596,6 @@ class ApiService {
 
   async toggleGroupBot(groupId: string, action: 'on' | 'off') {
     const response = await this.api.post(`/api/grupos/${groupId}/toggle`, { action });
-    return response.data;
-  }
-
-  async syncWhatsAppGroups(options: { clearOld?: boolean } = {}) {
-    const response = await this.api.post('/api/grupos/sync', { clearOld: options.clearOld === true });
     return response.data;
   }
 
@@ -774,6 +656,34 @@ class ApiService {
   }
 
   // Bot Configuration
+  async getConfig(configKey: string = 'main') {
+    const response = await this.api.get(`/api/config/${encodeURIComponent(configKey)}`);
+    return response.data;
+  }
+
+  async updateConfig(configKey: string = 'main', config: any) {
+    const response = await this.api.put(`/api/config/${encodeURIComponent(configKey)}`, config);
+    return response.data;
+  }
+
+  async getConfigStats() {
+    const response = await this.api.get('/api/config/stats');
+    return response.data;
+  }
+
+  async getConfigVersions(configKey: string = 'main', limit: number = 50) {
+    const qp = new URLSearchParams();
+    if (limit) qp.set('limit', String(limit));
+    const suffix = qp.toString() ? `?${qp}` : '';
+    const response = await this.api.get(`/api/config/${encodeURIComponent(configKey)}/versions${suffix}`);
+    return response.data;
+  }
+
+  async rollbackConfig(configKey: string = 'main', versionId: string) {
+    const response = await this.api.post(`/api/config/${encodeURIComponent(configKey)}/rollback`, { versionId });
+    return response.data;
+  }
+
   async getBotConfig() {
     const response = await this.api.get('/api/bot/config');
     return response.data;
@@ -781,37 +691,6 @@ class ApiService {
 
   async updateBotConfig(config: any) {
     const response = await this.api.patch('/api/bot/config', config);
-    return response.data;
-  }
-
-  async getBotConfigVersions(limit = 50) {
-    const response = await this.api.get(`/api/bot/config/versions?limit=${limit}`);
-    return response.data;
-  }
-
-  async rollbackBotConfig(versionId: string) {
-    const response = await this.api.post('/api/bot/config/rollback', { versionId });
-    return response.data;
-  }
-
-  // Notifications configuration (no confundir con /api/notificaciones)
-  async getNotificationsConfig() {
-    const response = await this.api.get('/api/notifications/config');
-    return response.data;
-  }
-
-  async updateNotificationsConfig(config: any) {
-    const response = await this.api.patch('/api/notifications/config', config);
-    return response.data;
-  }
-
-  async getNotificationsConfigVersions(limit = 50) {
-    const response = await this.api.get(`/api/notifications/config/versions?limit=${limit}`);
-    return response.data;
-  }
-
-  async rollbackNotificationsConfig(versionId: string) {
-    const response = await this.api.post('/api/notifications/config/rollback', { versionId });
     return response.data;
   }
 
@@ -987,23 +866,13 @@ class ApiService {
   }
 
   // Backup and restore
-  async createBackup(options: {
-    type?: string
-    includeDatabase?: boolean
-    includeMedia?: boolean
-    includeConfig?: boolean
-    includeLogs?: boolean
-    compress?: boolean
-    encrypt?: boolean
-    description?: string
-    tags?: string[]
-  } = {}) {
-    const response = await this.api.post('/api/system/backup', options);
+  async createBackup(payload?: any) {
+    const response = await this.api.post('/api/backups', payload || {});
     return response.data;
   }
 
   async getBackups() {
-    const response = await this.api.get('/api/system/backups');
+    const response = await this.api.get('/api/backups');
     return response.data;
   }
 
@@ -1117,12 +986,6 @@ class ApiService {
   // Recent Activity
   async getRecentActivity(limit = 10) {
     const response = await this.api.get(`/api/dashboard/recent-activity?limit=${limit}`);
-    return response.data;
-  }
-
-  // Dependencies
-  async getDependencies() {
-    const response = await this.api.get('/api/dependencies');
     return response.data;
   }
 }

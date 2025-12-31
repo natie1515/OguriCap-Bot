@@ -136,13 +136,20 @@ const dayKey = getDayKey()
 panel.dailyMetrics[dayKey] ||= { mensajes: 0, comandos: 0, mensajesPorHora: {}, comandosPorHora: {}, erroresComandos: 0 }
 const dm = panel.dailyMetrics[dayKey]
 const hour = String(new Date().getHours()).padStart(2, '0')
-dm.mensajes = (dm.mensajes || 0) + 1
-dm.mensajesPorHora ||= {}
-dm.mensajesPorHora[hour] = (dm.mensajesPorHora[hour] || 0) + 1
+ dm.mensajes = (dm.mensajes || 0) + 1
+ dm.mensajesPorHora ||= {}
+ dm.mensajesPorHora[hour] = (dm.mensajesPorHora[hour] || 0) + 1
 
-// Actividad reciente (panel.logs): registrar mensajes de forma limitada para no spamear
-panel.logs ||= []
-panel.logsCounter ||= 0
+ // Emitir stats del dashboard en tiempo real (throttled)
+ try {
+   void import('./lib/socket-io.js')
+     .then((m) => m?.emitDashboardStatsUpdateThrottled?.())
+     .catch(() => {})
+ } catch {}
+ 
+ // Actividad reciente (panel.logs): registrar mensajes de forma limitada para no spamear
+ panel.logs ||= []
+ panel.logsCounter ||= 0
 const throttleMs = Number(process.env.PANEL_MESSAGE_LOG_THROTTLE_MS || 15000)
 const snippetMax = Number(process.env.PANEL_MESSAGE_SNIPPET_MAX || 120)
 global.__panelMsgLogDedup ||= new Map()
@@ -168,12 +175,12 @@ titulo: 'Mensaje',
 metadata: { mtype }
 })
 const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
-if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
-panel.logs.splice(0, panel.logs.length - maxLogs)
-}
-}
-} catch {}
-})
+ if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
+   panel.logs.splice(0, panel.logs.length - maxLogs)
+ }
+ }
+ } catch {}
+ })
 const user = global.db.data.users[m.sender]
 try {
 const actual = user.name || ""
@@ -436,10 +443,10 @@ const hour = String(new Date().getHours()).padStart(2, '0')
 dm.comandos = (dm.comandos || 0) + 1
 dm.comandosPorHora ||= {}
 dm.comandosPorHora[hour] = (dm.comandosPorHora[hour] || 0) + 1
-if (!commandSuccess) dm.erroresComandos = (dm.erroresComandos || 0) + 1
-panel.logs.push({
-id: panel.logsCounter++,
-usuario: m.sender,
+ if (!commandSuccess) dm.erroresComandos = (dm.erroresComandos || 0) + 1
+ panel.logs.push({
+   id: panel.logsCounter++,
+   usuario: m.sender,
 comando: `${usedPrefix}${command}`,
 detalles: typeof m.text === 'string' ? m.text : '',
 grupo: m.isGroup ? m.chat : '',
@@ -454,12 +461,19 @@ responseTime,
 error: commandSuccess ? null : commandErrorMsg,
 }
 })
-const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
-if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
-panel.logs.splice(0, panel.logs.length - maxLogs)
-}
-} catch {}
-})
+ const maxLogs = parseInt(process.env.PANEL_LOGS_MAX || '2000', 10)
+ if (Number.isFinite(maxLogs) && maxLogs > 0 && panel.logs.length > maxLogs) {
+   panel.logs.splice(0, panel.logs.length - maxLogs)
+ }
+
+ // Emitir stats del dashboard en tiempo real (throttled)
+ try {
+   void import('./lib/socket-io.js')
+     .then((m) => m?.emitDashboardStatsUpdateThrottled?.())
+     .catch(() => {})
+ } catch {}
+ } catch {}
+ })
 if (typeof plugin.after === "function") {
 try {
 await plugin.after.call(this, m, extra)
