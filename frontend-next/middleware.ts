@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server';
 const isPublicPath = (pathname: string) => {
   if (pathname === '/login') return true;
   if (pathname === '/register') return true;
+  if (pathname === '/reset-password') return true;
   if (pathname.startsWith('/maintenance')) return true;
   return false;
 };

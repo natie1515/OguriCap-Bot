@@ -175,6 +175,16 @@ class ApiService {
     return response.data
   }
 
+  async requestPasswordResetEmail(identifier: string) {
+    const response = await this.api.post('/api/auth/password-reset/request', { identifier })
+    return response.data
+  }
+
+  async confirmPasswordReset(token: string, newPassword: string) {
+    const response = await this.api.post('/api/auth/password-reset/confirm', { token, newPassword })
+    return response.data
+  }
+
   // Bot
   async getBotStatus(): Promise<BotStatus> {
     const response = await this.api.get('/api/bot/status')

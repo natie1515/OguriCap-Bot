@@ -76,12 +76,24 @@ export default function LoginPage() {
   // Prefill username después de registrarse
   useEffect(() => {
     try {
-      const u = typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('username')
-        : null;
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const u = params.get('username');
       if (u && !username) setUsername(u);
+
+      const registered = params.get('registered');
+      const role = params.get('role');
+      if (registered === '1') {
+        const roleText = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Usuario';
+        toast.success(`Tu rol es ${roleText}. Iniciá sesión para continuar.`);
+
+        params.delete('registered');
+        params.delete('role');
+        const qs = params.toString();
+        router.replace(qs ? `/login?${qs}` : '/login');
+      }
     } catch {}
-  }, [username]);
+  }, [username, router]);
 
   const checkMaintenanceStatus = async () => {
     try {
@@ -473,7 +485,7 @@ export default function LoginPage() {
                   href="/register"
                   className="mt-2 block w-full text-center text-sm text-primary-400 hover:text-primary-300 transition-colors"
                 >
-                  Registrarte (rol usuario)
+                  Registrarte
                 </Link>
               </div>
             </motion.div>
