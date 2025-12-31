@@ -27,7 +27,12 @@ export default function UsuariosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showViewPasswordModal, setShowViewPasswordModal] = useState(false);
-  const [viewPasswordData, setViewPasswordData] = useState<{ username: string; password: string | null; reset?: boolean } | null>(null);
+  const [viewPasswordData, setViewPasswordData] = useState<{
+    username: string;
+    password: string | null;
+    reset?: boolean;
+    message?: string;
+  } | null>(null);
   const [newRole, setNewRole] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState({ 
@@ -186,7 +191,18 @@ export default function UsuariosPage() {
 
   const handleViewPassword = async (user: User) => {
     try {
-      const ok = confirm('Esto restablecerá la contraseña del usuario y generará una contraseña temporal. ¿Continuar?');
+      // 1) Intentar ver la contraseña guardada (si existe)
+      const existing = await api.viewUsuarioPassword(user.id);
+      if (existing?.password) {
+        setViewPasswordData(existing);
+        setShowViewPasswordModal(true);
+        return;
+      }
+
+      // 2) Fallback: generar temporal
+      const ok = confirm(
+        'No hay contraseña en texto disponible para este usuario. Esto restablecerá la contraseña y generará una temporal. ¿Continuar?'
+      );
       if (!ok) return;
       const response = await api.viewUsuarioPassword(user.id, { reset: true });
       setViewPasswordData(response);
@@ -439,7 +455,7 @@ export default function UsuariosPage() {
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleViewPassword(user)}
                               className="p-2 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors"
-                              title="Generar contraseña temporal"
+                              title="Ver / generar contraseña"
                             >
                               <Eye className="w-4 h-4" />
                             </motion.button>
@@ -627,14 +643,20 @@ export default function UsuariosPage() {
       </Modal>
 
       {/* View Password Modal */}
-      <Modal isOpen={showViewPasswordModal} onClose={() => setShowViewPasswordModal(false)} title="Contraseña Temporal">
+      <Modal
+        isOpen={showViewPasswordModal}
+        onClose={() => setShowViewPasswordModal(false)}
+        title={viewPasswordData?.reset ? 'Contraseña Temporal' : 'Contraseña'}
+      >
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-white/5">
             <p className="text-sm text-gray-400">Usuario</p>
             <p className="text-white font-medium">{viewPasswordData?.username}</p>
           </div>
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-sm text-gray-400 mb-2">Contraseña Temporal (se acaba de generar)</p>
+            <p className="text-sm text-gray-400 mb-2">
+              {viewPasswordData?.reset ? 'Contraseña temporal (se acaba de generar)' : 'Contraseña (guardada encriptada para owner)'}
+            </p>
             <div className="flex items-center justify-between">
               <p className="text-white font-mono text-lg">{viewPasswordData?.password}</p>
               <Button 
@@ -649,11 +671,13 @@ export default function UsuariosPage() {
               </Button>
             </div>
           </div>
-          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-            <p className="text-xs text-yellow-400">
-              Esta acción invalida la contraseña anterior. El usuario deberá iniciar sesión con esta contraseña temporal y cambiarla.
-            </p>
-          </div>
+          {viewPasswordData?.reset && (
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <p className="text-xs text-yellow-400">
+                Esta acción invalida la contraseña anterior. El usuario deberá iniciar sesión con esta contraseña temporal y cambiarla.
+              </p>
+            </div>
+          )}
           <div className="flex gap-3 pt-4">
             <Button variant="secondary" className="w-full" onClick={() => setShowViewPasswordModal(false)}>
               Cerrar
