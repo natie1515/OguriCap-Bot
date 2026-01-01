@@ -258,7 +258,10 @@ const SupportChatPanel: React.FC<{ onBack: () => void; onClose: () => void }> = 
             )}
           </div>
 
-          <div ref={scrollRef} className="rounded-xl border border-white/10 bg-white/5 p-3 min-h-[320px] max-h-[55vh] overflow-y-auto">
+          <div
+            ref={scrollRef}
+            className="rounded-xl border border-white/10 bg-white/5 p-3 min-h-[220px] md:min-h-[320px] max-h-[55vh] overflow-y-auto"
+          >
             {!chat ? (
               <div className="text-center py-10">
                 <p className="text-gray-400">Aún no hay mensajes.</p>
@@ -370,8 +373,10 @@ export const FloatingSupportButton: React.FC = () => {
       <Modal
         isOpen={open}
         onClose={closeModal}
-        title={view === 'chat' ? 'Chat de Soporte' : 'Soporte'}
-        className={view === 'chat' ? 'max-w-4xl' : undefined}
+        // En vista "chat" evitamos el header del Modal porque ya renderizamos uno propio
+        // (si no, queda doble header y en pantallas bajas se desajusta/recorta).
+        title={view === 'chat' ? undefined : 'Soporte'}
+        className={view === 'chat' ? 'max-w-4xl p-4 md:p-6' : undefined}
       >
         {view === 'chat' ? (
           <SupportChatPanel onBack={() => setView('menu')} onClose={closeModal} />
