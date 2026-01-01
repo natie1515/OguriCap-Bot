@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, X, Mail, ExternalLink, Ticket, RefreshCw, Send, Lock, Unlock, Users, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { MessageCircle, X, Mail, ExternalLink, RefreshCw, Send, Lock, Unlock, Users, ArrowLeft } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -356,7 +355,6 @@ export const FloatingSupportButton: React.FC = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'menu' | 'chat'>('menu');
-  const router = useRouter();
 
   const { whatsappUrl, emailUrl, supportUrl } = useMemo(() => {
     const whatsapp = cleanPhoneNumber(process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '');
@@ -444,17 +442,6 @@ export const FloatingSupportButton: React.FC = () => {
                   </Button>
                 </a>
               )}
-              <Button
-                variant="secondary"
-                className="w-full justify-between"
-                icon={<Ticket className="w-4 h-4" />}
-                onClick={() => {
-                  closeModal();
-                  router.push('/pedidos');
-                }}
-              >
-                Ticket (Pedidos) (opcional)
-              </Button>
             </div>
 
             <div className="flex justify-end">
