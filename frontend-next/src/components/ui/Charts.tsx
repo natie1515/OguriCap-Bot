@@ -92,6 +92,11 @@ export const BarChart: React.FC<BarChartProps> = ({
   minBarHeight = 4,
 }) => {
   const maxValue = Math.max(...data.map(d => d.value), 1);
+  const didMountRef = React.useRef(false);
+
+  React.useEffect(() => {
+    didMountRef.current = true;
+  }, []);
 
   return (
     <div className="flex items-end gap-1" style={{ height }}>
@@ -106,6 +111,12 @@ export const BarChart: React.FC<BarChartProps> = ({
               : ratio;
         const heightPct = item.value > 0 ? `${scaled * 100}%` : '0%';
         const barMinHeight = item.value > 0 ? minBarHeight : 0;
+        const delay = animated && !didMountRef.current ? index * 0.05 : 0;
+        const transition = animated
+          ? didMountRef.current
+            ? { duration: 0.35, ease: 'easeOut' as const }
+            : { duration: 0.8, delay, ease: 'easeOut' as const }
+          : undefined;
 
         return (
           <div key={index} className="flex-1 h-full flex flex-col items-center">
@@ -113,7 +124,7 @@ export const BarChart: React.FC<BarChartProps> = ({
               <motion.div
                 initial={animated ? { height: 0, opacity: 0 } : undefined}
                 animate={animated ? { height: heightPct, opacity: 1 } : undefined}
-                transition={animated ? { duration: 0.8, delay: index * 0.1, ease: "easeOut" } : undefined}
+                transition={transition}
                 whileHover={{ scale: 1.05, filter: "brightness(1.2)" }}
                 className="w-full rounded-t-lg transition-all duration-200 cursor-pointer relative"
                 style={{ backgroundColor: item.color || '#6366f1', minHeight: barMinHeight }}
