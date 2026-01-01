@@ -10,7 +10,8 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { useSocket } from '@/contexts/SocketContext';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePedidosSmartRefresh } from '@/hooks/useSmartRefresh';
@@ -34,7 +35,6 @@ export default function PedidosPage() {
   const [stats, setStats] = useState<any>(null);
   const [creatingPedido, setCreatingPedido] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false);
-  const { isConnected: isSocketConnected } = useSocket();
 
   const loadPedidos = useCallback(async () => {
     try {
@@ -201,44 +201,56 @@ export default function PedidosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Gestión de Pedidos</h1>
-          <p className="text-gray-400 mt-1">Administra las solicitudes de la comunidad</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3 items-center">
-          {/* Indicador de conexión Socket.IO */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            smartRefreshConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-          }`}>
-            <Radio className={`w-3 h-3 ${smartRefreshConnected ? 'animate-pulse' : ''}`} />
-            {smartRefreshConnected ? 'Tiempo Real' : 'Modo Fallback'}
-          </div>
-          
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-            Nuevo Pedido
-          </Button>
-          <Button 
-            variant="secondary" 
-            icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />} 
-            onClick={manualRefresh} 
-            loading={isRefreshing}
-            title={smartRefreshConnected ? 'Actualización manual (automática por eventos)' : 'Actualización manual'}
-          >
-            {isRefreshing ? 'Actualizando...' : 'Actualizar'}
-          </Button>
-        </motion.div>
-      </div>
+      <PageHeader
+        title="Gesti?n de Pedidos"
+        description="Administra las solicitudes de la comunidad"
+        icon={<ShoppingCart className="w-6 h-6 text-primary-400" />}
+        actions={
+          <>
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                smartRefreshConnected
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              }`}
+            >
+              <Radio className={`w-3 h-3 ${smartRefreshConnected ? 'animate-pulse' : ''}`} />
+              {smartRefreshConnected ? 'Tiempo Real' : 'Modo Fallback'}
+            </div>
+
+            <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
+              Nuevo Pedido
+            </Button>
+            <Button
+              variant="secondary"
+              icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
+              onClick={manualRefresh}
+              loading={isRefreshing}
+              title={smartRefreshConnected ? 'Actualizaci?n manual (autom?tica por eventos)' : 'Actualizaci?n manual'}
+            >
+              {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Pedidos" value={stats?.total || 0} icon={<ShoppingCart className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Pendientes" value={stats?.pendientes || 0} icon={<Clock className="w-6 h-6" />} color="warning" delay={0.1} />
-        <StatCard title="En Proceso" value={stats?.en_proceso || 0} icon={<Loader2 className="w-6 h-6" />} color="info" delay={0.2} />
-        <StatCard title="Completados" value={stats?.completados || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.06} stagger={0.06}>
+        <StaggerItem>
+          <StatCard title="Total Pedidos" value={stats?.total || 0} icon={<ShoppingCart className="w-6 h-6" />} color="primary" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Pendientes" value={stats?.pendientes || 0} icon={<Clock className="w-6 h-6" />} color="warning" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="En Proceso" value={stats?.en_proceso || 0} icon={<Loader2 className="w-6 h-6" />} color="info" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Completados" value={stats?.completados || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0} />
+        </StaggerItem>
+      </Stagger>
 
-      {/* Filters */}
+      {/* Filters */}      {/* Filters */}
       <Card animated delay={0.2} className="p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
@@ -300,9 +312,22 @@ export default function PedidosPage() {
                 </tr>
               </thead>
               <tbody>
-                <AnimatePresence>
+                <AnimatePresence mode="popLayout" initial={false}>
                   {pedidos.map((pedido, index) => (
-                    <motion.tr key={pedido.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ delay: index * 0.03 }}>
+                    <motion.tr
+                      key={pedido.id}
+                      layout="position"
+                      initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(10px)' }}
+                      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(10px)' }}
+                      transition={{
+                        delay: index * 0.03,
+                        opacity: { duration: 0.18, ease: 'easeOut' },
+                        filter: { duration: 0.22, ease: 'easeOut' },
+                        y: { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 },
+                        scale: { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 },
+                      }}
+                    >
                       <td>
                         <div className="max-w-xs">
                           <p className="font-medium text-white truncate">{pedido.titulo}</p>

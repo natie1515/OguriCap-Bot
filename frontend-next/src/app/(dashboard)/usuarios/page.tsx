@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Skeleton, SkeletonCircle } from '@/components/ui/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
@@ -320,29 +322,40 @@ export default function UsuariosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Gestión de Usuarios</h1>
-          <p className="text-gray-400 mt-1">Administra usuarios, roles y permisos del sistema</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-            Nuevo Usuario
-          </Button>
-          <Button variant="secondary" icon={<RefreshCw className="w-4 h-4" />} onClick={loadUsers} loading={loading}>
-            Actualizar
-          </Button>
-        </motion.div>
-      </div>
+      <PageHeader
+        title="Gestión de Usuarios"
+        description="Administra usuarios, roles y permisos del sistema"
+        icon={<Users className="w-6 h-6 text-primary-400" />}
+        actions={
+          <>
+            <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
+              Nuevo Usuario
+            </Button>
+            <Button variant="secondary" icon={<RefreshCw className="w-4 h-4" />} onClick={loadUsers} loading={loading}>
+              Actualizar
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard title="Total" value={stats.total} icon={<Users className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Admins" value={stats.admins} icon={<Shield className="w-6 h-6" />} color="danger" delay={0.1} />
-        <StatCard title="Moderadores" value={stats.moderadores} icon={<UserCheck className="w-6 h-6" />} color="info" delay={0.2} />
-        <StatCard title="Usuarios" value={stats.usuarios} icon={<Users className="w-6 h-6" />} color="success" delay={0.3} />
-        <StatCard title="Activos" value={stats.activos} icon={<CheckCircle className="w-6 h-6" />} color="violet" delay={0.4} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-5 gap-4" delay={0.06} stagger={0.06}>
+        <StaggerItem>
+          <StatCard title="Total" value={stats.total} icon={<Users className="w-6 h-6" />} color="primary" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Admins" value={stats.admins} icon={<Shield className="w-6 h-6" />} color="danger" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Moderadores" value={stats.moderadores} icon={<UserCheck className="w-6 h-6" />} color="info" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Usuarios" value={stats.usuarios} icon={<Users className="w-6 h-6" />} color="success" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Activos" value={stats.activos} icon={<CheckCircle className="w-6 h-6" />} color="violet" delay={0} />
+        </StaggerItem>
+      </Stagger>
 
       {/* Filters */}
       <Card animated delay={0.2} className="p-6">

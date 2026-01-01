@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
   FileText, 
   Search, 
@@ -37,6 +37,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { SOCKET_EVENTS, useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
@@ -175,6 +178,7 @@ export default function LogsPage() {
   const { socket } = useSocket();
   const { user } = useAuth();
   const canControl = !!user && ['owner', 'admin', 'administrador'].includes(String(user.rol || '').toLowerCase());
+  const reduceMotion = useReducedMotion();
 
   const normalizeLogEntry = (raw: any): LogEntry => {
     const timestampRaw = raw?.timestamp ?? raw?.fecha ?? raw?.date ?? raw?.createdAt ?? raw?.time;
@@ -542,6 +546,21 @@ export default function LogsPage() {
     return LOG_LEVELS[level as keyof typeof LOG_LEVELS] || LOG_LEVELS.info;
   };
 
+  const logsListVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: reduceMotion ? 0 : 0.02,
+      },
+    },
+  };
+
+  const logItemVariants = {
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14, scale: 0.99, filter: 'blur(10px)' },
+    show: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
+    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.99, filter: 'blur(10px)' },
+  };
+
   if (isLoading && logs.length === 0 && !systemMetrics) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -553,65 +572,73 @@ export default function LogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Logs & Sistema</h1>
-          <p className="text-gray-400">Gestión de logs y monitoreo del sistema</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            variant={autoRefresh ? "primary" : "secondary"}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
-            Auto-refresh
-          </Button>
-          
-          <Button
-            onClick={() => {
-              if (activeTab === 'logs') {
-                loadLogs();
-                loadStats();
-              } else {
-                loadSystemData();
-              }
-            }}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Actualizar
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Logs & Sistema"
+        description="Gesti?n de logs y monitoreo del sistema"
+        icon={<FileText className="w-6 h-6 text-primary-400" />}
+        actions={
+          <>
+            <Button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              variant={autoRefresh ? "primary" : "secondary"}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+              Auto-refresh
+            </Button>
+
+            <Button
+              onClick={() => {
+                if (activeTab === 'logs') {
+                  loadLogs();
+                  loadStats();
+                } else {
+                  loadSystemData();
+                }
+              }}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualizar
+            </Button>
+          </>
+        }
+      />
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg">
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'logs'
-              ? 'bg-primary-500 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
-        >
-          <FileText className="w-4 h-4 inline mr-2" />
-          Logs del Sistema
-        </button>
-        <button
-          onClick={() => setActiveTab('system')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'system'
-              ? 'bg-primary-500 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
-        >
-          <Activity className="w-4 h-4 inline mr-2" />
-          Monitoreo del Sistema
-        </button>
-      </div>
+      <Reveal>
+        <div className="relative flex space-x-1 bg-gray-800/70 border border-white/10 p-1 rounded-xl overflow-hidden">
+          <motion.div
+            className="absolute inset-y-1 rounded-lg bg-gradient-to-r from-primary-500 to-violet-600 shadow-glow"
+            initial={false}
+            animate={{ x: activeTab === 'logs' ? '0%' : '100%' }}
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 32, mass: 0.8 }}
+            style={{ width: 'calc(50% - 4px)' }}
+          />
+
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={
+              'relative z-10 flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-colors ' +
+              (activeTab === 'logs' ? 'text-white' : 'text-gray-300 hover:text-white')
+            }
+          >
+            <FileText className="w-4 h-4 inline mr-2" />
+            Logs del Sistema
+          </button>
+          <button
+            onClick={() => setActiveTab('system')}
+            className={
+              'relative z-10 flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-colors ' +
+              (activeTab === 'system' ? 'text-white' : 'text-gray-300 hover:text-white')
+            }
+          >
+            <Activity className="w-4 h-4 inline mr-2" />
+            Monitoreo del Sistema
+          </button>
+        </div>
+      </Reveal>
 
       {error && (
         <Card className="border-red-200 bg-red-50">
@@ -656,137 +683,124 @@ export default function LogsPage() {
             </Button>
           </div>
 
-          {/* Estadísticas de Logs */}
+          {/* Estad?sticas de Logs */}
           {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-6"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-blue-500/20">
-                    <FileText className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Total Logs</p>
-                    <p className="text-xl font-bold text-white">{stats.totalLogs.toLocaleString()}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-red-400">Errores</span>
-                    <span className="text-white">{stats.errorCount}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-yellow-400">Warnings</span>
-                    <span className="text-white">{stats.warnCount}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-400">Info</span>
-                    <span className="text-white">{stats.infoCount}</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="glass-card p-6"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-green-500/20">
-                    <HardDrive className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Almacenamiento</p>
-                    <p className="text-xl font-bold text-white">{stats.diskUsage.formattedSize}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Archivos</span>
-                    <span className="text-white">{stats.diskUsage.fileCount}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Rotados</span>
-                    <span className="text-white">{stats.filesRotated}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Comprimidos</span>
-                    <span className="text-white">{stats.filesCompressed}</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="glass-card p-6"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-purple-500/20">
-                    <Clock className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Tiempo Activo</p>
-                    <p className="text-xl font-bold text-white">{formatUptime(stats.uptime)}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Buffer</span>
-                    <span className="text-white">{stats.bufferSize}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Streams</span>
-                    <span className="text-white">{stats.activeStreams}</span>
-                  </div>
-                  {stats.lastLogTime && (
-                    <div className="text-xs text-gray-500">
-                      Último: {formatTimestamp(stats.lastLogTime)}
+            <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" delay={0.08} stagger={0.07}>
+              <StaggerItem>
+                <div className="glass-card p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-blue-500/20">
+                      <FileText className="w-5 h-5 text-blue-400" />
                     </div>
-                  )}
-                </div>
-              </motion.div>
+                    <div>
+                      <p className="text-sm text-gray-400">Total Logs</p>
+                      <p className="text-xl font-bold text-white">{stats.totalLogs.toLocaleString()}</p>
+                    </div>
+                  </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass-card p-6"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-yellow-500/20">
-                    <Database className="w-5 h-5 text-yellow-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Estado</p>
-                    <p className="text-xl font-bold text-white">Activo</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-400" />
-                    <span className="text-sm text-gray-400">Logging habilitado</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-400" />
-                    <span className="text-sm text-gray-400">Rotación automática</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-400" />
-                    <span className="text-sm text-gray-400">Compresión activa</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-red-400">Errores</span>
+                      <span className="text-white">{stats.errorCount}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-yellow-400">Warnings</span>
+                      <span className="text-white">{stats.warnCount}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-400">Info</span>
+                      <span className="text-white">{stats.infoCount}</span>
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            </div>
+              </StaggerItem>
+
+              <StaggerItem>
+                <div className="glass-card p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-green-500/20">
+                      <HardDrive className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Almacenamiento</p>
+                      <p className="text-xl font-bold text-white">{stats.diskUsage.formattedSize}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Archivos</span>
+                      <span className="text-white">{stats.diskUsage.fileCount}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Rotados</span>
+                      <span className="text-white">{stats.filesRotated}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Comprimidos</span>
+                      <span className="text-white">{stats.filesCompressed}</span>
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+
+              <StaggerItem>
+                <div className="glass-card p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-purple-500/20">
+                      <Clock className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Tiempo Activo</p>
+                      <p className="text-xl font-bold text-white">{formatUptime(stats.uptime)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Buffer</span>
+                      <span className="text-white">{stats.bufferSize}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Streams</span>
+                      <span className="text-white">{stats.activeStreams}</span>
+                    </div>
+                    {stats.lastLogTime && (
+                      <div className="text-xs text-gray-500">?ltimo: {formatTimestamp(stats.lastLogTime)}</div>
+                    )}
+                  </div>
+                </div>
+              </StaggerItem>
+
+              <StaggerItem>
+                <div className="glass-card p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-yellow-500/20">
+                      <Database className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Estado</p>
+                      <p className="text-xl font-bold text-white">Activo</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400" />
+                      <span className="text-sm text-gray-400">Logging habilitado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-sm text-gray-400">Rotaci?n autom?tica</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
+                      <span className="text-sm text-gray-400">Compresi?n activa</span>
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+            </Stagger>
           )}
 
           {/* Filtros */}
@@ -899,25 +913,37 @@ export default function LogsPage() {
               </div>
             </div>
             
-            <div className="divide-y divide-white/5">
-              {logs.length === 0 ? (
-                <div className="p-8 text-center">
-                  <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400">No se encontraron logs</p>
-                </div>
-              ) : (
-                logs.map((log, index) => {
-                  const levelConfig = getLevelConfig(log.level);
-                  const Icon = levelConfig.icon;
-                  const isExpanded = expandedLogs.has(index);
-                  
-                  return (
-                    <motion.div
-                      key={`${log.timestamp}-${index}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="p-4 hover:bg-white/5 transition-colors"
-                    >
+            <motion.div variants={logsListVariants} initial="hidden" animate="show" className="divide-y divide-white/5">
+              <AnimatePresence mode="popLayout" initial={false}>
+                {logs.length === 0 ? (
+                  <motion.div key="empty" variants={logItemVariants} exit="exit" className="p-8 text-center">
+                    <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400">No se encontraron logs</p>
+                  </motion.div>
+                ) : (
+                  logs.map((log, index) => {
+                    const levelConfig = getLevelConfig(log.level);
+                    const Icon = levelConfig.icon;
+                    const isExpanded = expandedLogs.has(index);
+
+                    return (
+                      <motion.div
+                        key={`${log.timestamp}-${index}`}
+                        layout="position"
+                        variants={logItemVariants}
+                        exit="exit"
+                        transition={
+                          reduceMotion
+                            ? { duration: 0 }
+                            : {
+                                opacity: { duration: 0.18, ease: 'easeOut' },
+                                filter: { duration: 0.22, ease: 'easeOut' },
+                                y: { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 },
+                                scale: { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 },
+                              }
+                        }
+                        className="p-4 hover:bg-white/5 transition-colors"
+                      >
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-lg ${levelConfig.color} flex-shrink-0`}>
                           <Icon className="w-4 h-4" />
@@ -1003,11 +1029,12 @@ export default function LogsPage() {
                           </AnimatePresence>
                         </div>
                       </div>
-                    </motion.div>
-                  );
-                })
-              )}
-            </div>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </AnimatePresence>
+            </motion.div>
           </div>
         </>
       )}

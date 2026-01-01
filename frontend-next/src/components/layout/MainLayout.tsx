@@ -54,10 +54,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={pathname}
-              initial={reduceMotion ? false : { opacity: 0, y: 16, filter: 'blur(6px)' }}
-              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, filter: 'blur(6px)' }}
-              transition={{ duration: 0.28, ease: 'easeOut' }}
+              layout="position"
+              initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.985, filter: 'blur(10px)' }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.985, filter: 'blur(10px)' }}
+              transition={
+                reduceMotion
+                  ? { duration: 0.12 }
+                  : {
+                      opacity: { duration: 0.18, ease: 'easeOut' },
+                      filter: { duration: 0.22, ease: 'easeOut' },
+                      y: { type: 'spring', stiffness: 380, damping: 34, mass: 0.9 },
+                      scale: { type: 'spring', stiffness: 380, damping: 34, mass: 0.9 },
+                    }
+              }
             >
               {children}
             </motion.div>
@@ -80,4 +90,3 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     </div>
   );
 };
-

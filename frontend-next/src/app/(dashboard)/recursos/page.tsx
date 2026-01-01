@@ -25,6 +25,10 @@ import {
   Minus
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSocket } from '@/contexts/SocketContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
@@ -154,7 +158,7 @@ export default function RecursosPage() {
     };
 
     const handleAlertStateChanged = (data: any) => {
-      toast.error(`🚨 Alerta: ${data.resource} en estado ${data.newState}`);
+      toast.error(`Alerta: ${data.resource} en estado ${data.newState}`);
       loadResourceStats(); // Recargar stats para obtener estados actualizados
     };
 
@@ -314,73 +318,76 @@ export default function RecursosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Monitoreo de Recursos</h1>
-          <p className="text-gray-400">Monitoreo en tiempo real del sistema y recursos</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setShowSettings(!showSettings)}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            Configurar
-          </Button>
-          
-          <Button
-            onClick={() => exportMetrics('json')}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Exportar
-          </Button>
-          
-          <Button
-            onClick={toggleMonitoring}
-            variant={isMonitoring ? "danger" : "primary"}
-            className="flex items-center gap-2"
-          >
-            <Activity className="w-4 h-4" />
-            {isMonitoring ? 'Detener' : 'Iniciar'}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Monitoreo de Recursos"
+        description="Monitoreo en tiempo real del sistema y recursos"
+        icon={<Activity className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
+            <Button
+              onClick={() => setShowSettings(!showSettings)}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Configurar
+            </Button>
+
+            <Button
+              onClick={() => exportMetrics('json')}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+
+            <Button
+              onClick={toggleMonitoring}
+              variant={isMonitoring ? "danger" : "primary"}
+              className="flex items-center gap-2"
+            >
+              <Activity className="w-4 h-4" />
+              {isMonitoring ? 'Detener' : 'Iniciar'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Estado del monitoreo */}
-      <div className="glass-card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-green-400' : 'bg-red-400'}`} />
-            <span className="text-white font-medium">
-              {isMonitoring ? 'Monitoreo Activo' : 'Monitoreo Detenido'}
-            </span>
-            {isMonitoring && (
-              <span className="text-sm text-gray-400">
-                (actualización cada {updateInterval / 1000}s)
-              </span>
+      <Reveal>
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div
+                className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-green-400' : 'bg-red-400'}`}
+                animate={
+                  isMonitoring
+                    ? { scale: [1, 1.25, 1], opacity: [1, 0.7, 1] }
+                    : { scale: 1, opacity: 1 }
+                }
+                transition={isMonitoring ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+              />
+              <span className="text-white font-medium">{isMonitoring ? 'Monitoreo Activo' : 'Monitoreo Detenido'}</span>
+              {isMonitoring && <span className="text-sm text-gray-400">(actualización cada {updateInterval / 1000}s)</span>}
+            </div>
+
+            {metrics && (
+              <div className="text-sm text-gray-400">
+                Última actualización: {new Date(metrics.timestamp).toLocaleTimeString()}
+              </div>
             )}
           </div>
-          
-          {metrics && (
-            <div className="text-sm text-gray-400">
-              Última actualización: {new Date(metrics.timestamp).toLocaleTimeString()}
-            </div>
-          )}
         </div>
-      </div>
+      </Reveal>
 
       {/* Métricas principales */}
       {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" delay={0.02} stagger={0.06}>
           {/* CPU */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+          <StaggerItem
             className="glass-card p-6"
+            whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -389,7 +396,9 @@ export default function RecursosPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">CPU</p>
-                  <p className="text-xl font-bold text-white">{metrics.cpu.usage.toFixed(1)}%</p>
+                  <p className="text-xl font-bold text-white">
+                    <AnimatedNumber value={metrics.cpu.usage} decimals={1} />%
+                  </p>
                 </div>
               </div>
               
@@ -402,7 +411,9 @@ export default function RecursosPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Uso</span>
-                <span className="text-white">{metrics.cpu.usage.toFixed(1)}%</span>
+                <span className="text-white">
+                  <AnimatedNumber value={metrics.cpu.usage} decimals={1} />%
+                </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
                 <div 
@@ -414,14 +425,12 @@ export default function RecursosPage() {
                 {metrics.cpu.cores} núcleos • {metrics.cpu.model}
               </div>
             </div>
-          </motion.div>
+          </StaggerItem>
 
           {/* Memoria */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+          <StaggerItem
             className="glass-card p-6"
+            whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -430,7 +439,9 @@ export default function RecursosPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Memoria</p>
-                  <p className="text-xl font-bold text-white">{metrics.memory.usage.toFixed(1)}%</p>
+                  <p className="text-xl font-bold text-white">
+                    <AnimatedNumber value={metrics.memory.usage} decimals={1} />%
+                  </p>
                 </div>
               </div>
               
@@ -455,14 +466,12 @@ export default function RecursosPage() {
                 {formatBytes(metrics.memory.free)} libre de {formatBytes(metrics.memory.total)}
               </div>
             </div>
-          </motion.div>
+          </StaggerItem>
 
           {/* Disco */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+          <StaggerItem
             className="glass-card p-6"
+            whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -471,7 +480,9 @@ export default function RecursosPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Disco</p>
-                  <p className="text-xl font-bold text-white">{metrics.disk.usage}%</p>
+                  <p className="text-xl font-bold text-white">
+                    <AnimatedNumber value={metrics.disk.usage} />%
+                  </p>
                 </div>
               </div>
               
@@ -496,14 +507,12 @@ export default function RecursosPage() {
                 {metrics.disk.available} disponible • {metrics.disk.filesystem}
               </div>
             </div>
-          </motion.div>
+          </StaggerItem>
 
           {/* Bot Status */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+          <StaggerItem
             className="glass-card p-6"
+            whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -531,27 +540,34 @@ export default function RecursosPage() {
               )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Chats</span>
-                <span className="text-white">{metrics.bot.database.chats}</span>
+                <span className="text-white">
+                  <AnimatedNumber value={metrics.bot.database.chats} />
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">SubBots</span>
-                <span className="text-white">{metrics.bot.subbots.connected}/{metrics.bot.subbots.total}</span>
+                <span className="text-white">
+                  <AnimatedNumber value={metrics.bot.subbots.connected} />/<AnimatedNumber value={metrics.bot.subbots.total} />
+                </span>
               </div>
             </div>
-          </motion.div>
-        </div>
+          </StaggerItem>
+        </Stagger>
       )}
 
       {/* Información del sistema */}
       {metrics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Stagger className="grid grid-cols-1 lg:grid-cols-2 gap-6" delay={0.04} stagger={0.08}>
           {/* Información del proceso */}
-          <div className="glass-card p-6">
+          <StaggerItem
+            className="glass-card p-6"
+            whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+          >
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Server className="w-5 h-5" />
               Información del Proceso
             </h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-400">Tiempo activo</p>
@@ -567,53 +583,68 @@ export default function RecursosPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Plataforma</p>
-                <p className="text-white font-medium">{metrics.process.platform} {metrics.process.arch}</p>
+                <p className="text-white font-medium">
+                  {metrics.process.platform} {metrics.process.arch}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-400">Reinicios</p>
-                <p className="text-white font-medium">{metrics.process.restarts}</p>
+                <p className="text-white font-medium">
+                  <AnimatedNumber value={metrics.process.restarts} />
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-400">Errores</p>
-                <p className="text-white font-medium">{metrics.process.errors}</p>
+                <p className="text-white font-medium">
+                  <AnimatedNumber value={metrics.process.errors} />
+                </p>
               </div>
             </div>
-          </div>
+          </StaggerItem>
 
           {/* Estadísticas de la base de datos */}
-          <div className="glass-card p-6">
+          <StaggerItem
+            className="glass-card p-6"
+            whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+          >
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Database className="w-5 h-5" />
               Base de Datos
             </h3>
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-blue-400" />
                   <span className="text-gray-400">Usuarios</span>
                 </div>
-                <span className="text-white font-medium">{metrics.bot.database.users}</span>
+                <span className="text-white font-medium">
+                  <AnimatedNumber value={metrics.bot.database.users} />
+                </span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-green-400" />
                   <span className="text-gray-400">Grupos</span>
                 </div>
-                <span className="text-white font-medium">{metrics.bot.database.groups}</span>
+                <span className="text-white font-medium">
+                  <AnimatedNumber value={metrics.bot.database.groups} />
+                </span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-purple-400" />
                   <span className="text-gray-400">Total Chats</span>
                 </div>
-                <span className="text-white font-medium">{metrics.bot.database.chats}</span>
+                <span className="text-white font-medium">
+                  <AnimatedNumber value={metrics.bot.database.chats} />
+                </span>
               </div>
             </div>
-          </div>
-        </div>
+          </StaggerItem>
+        </Stagger>
       )}
 
       {/* Configuración de umbrales */}

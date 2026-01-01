@@ -4,6 +4,7 @@ import * as React from 'react';
 import { motion, useReducedMotion, type HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 
 interface CardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
   animated?: boolean;
@@ -197,7 +198,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           transition={animated ? { duration: 0.5, delay: delay + 0.3, type: "spring" } : undefined}
         >
           {typeof value === 'number' ? (
-            <AnimatedCounter value={value} duration={1} />
+            <AnimatedNumber value={value} duration={0.6} />
           ) : (
             value
           )}
@@ -293,48 +294,6 @@ export const GlowCard: React.FC<GlowCardProps> = ({
       </div>
     </motion.div>
   );
-};
-
-// Animated Counter Component
-interface AnimatedCounterProps {
-  value: number;
-  duration?: number;
-  className?: string;
-}
-
-const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
-  value,
-  duration = 1,
-  className = "",
-}) => {
-  const [displayValue, setDisplayValue] = React.useState(0);
-
-  React.useEffect(() => {
-    let startTime: number;
-    let animationFrame: number;
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
-      
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      setDisplayValue(Math.floor(easeOutQuart * value));
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
-  }, [value, duration]);
-
-  return <span className={className}>{displayValue.toLocaleString()}</span>;
 };
 
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };

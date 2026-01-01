@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { SimpleSelect as Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton, SkeletonCircle } from '@/components/ui/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { SOCKET_EVENTS, useSocket } from '@/contexts/SocketContext';
 import { useFlashTokens } from '@/hooks/useFlashTokens';
 import api from '@/services/api';
@@ -203,49 +205,74 @@ export default function NotificacionesPage() {
     hidden: {},
     show: {
       transition: {
-        staggerChildren: reduceMotion ? 0 : 0.03,
+        staggerChildren: reduceMotion ? 0 : 0.04,
       },
     },
   };
 
   const itemVariants = {
-    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, x: -14 },
-    show: reduceMotion ? { opacity: 1 } : { opacity: 1, x: 0 },
-    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, x: 14 },
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.99, filter: 'blur(10px)' },
+    show: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
+    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.99, filter: 'blur(10px)' },
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Notificaciones</h1>
-          <p className="text-gray-400 mt-1">Gestiona las notificaciones del sistema</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
-          <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-            Nueva Notificación
-          </Button>
-          {unreadCount > 0 && (
-            <Button variant="success" size="sm" icon={<CheckCheck className="w-4 h-4" />} onClick={markAllAsRead}>
-              Marcar todas leídas
+      <PageHeader
+        title="Notificaciones"
+        description="Gestiona las notificaciones del sistema"
+        icon={<Bell className="w-6 h-6 text-primary-400" />}
+        actions={
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Nueva Notificaci?n
             </Button>
-          )}
-          <Button variant="secondary" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={loadNotifications} loading={loading}>
-            Actualizar
-          </Button>
-        </motion.div>
-      </div>
+            {unreadCount > 0 && (
+              <Button
+                variant="success"
+                size="sm"
+                icon={<CheckCheck className="w-4 h-4" />}
+                onClick={markAllAsRead}
+              >
+                Marcar todas le?das
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw className="w-4 h-4" />}
+              onClick={loadNotifications}
+              loading={loading}
+            >
+              Actualizar
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total" value={stats?.total || notifications.length} icon={<Bell className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Sin Leer" value={stats?.unread || unreadCount} icon={<AlertCircle className="w-6 h-6" />} color="warning" delay={0.1} />
-        <StatCard title="Hoy" value={stats?.today || 0} icon={<Info className="w-6 h-6" />} color="info" delay={0.2} />
-        <StatCard title="Esta Semana" value={stats?.thisWeek || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.06} stagger={0.06}>
+        <StaggerItem>
+          <StatCard title="Total" value={stats?.total || notifications.length} icon={<Bell className="w-6 h-6" />} color="primary" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Sin Leer" value={stats?.unread || unreadCount} icon={<AlertCircle className="w-6 h-6" />} color="warning" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Hoy" value={stats?.today || 0} icon={<Info className="w-6 h-6" />} color="info" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Esta Semana" value={stats?.thisWeek || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0} />
+        </StaggerItem>
+      </Stagger>
 
-      {/* Filters */}
+      {/* Filters */}      {/* Filters */}
       <Card animated delay={0.2} className="p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">

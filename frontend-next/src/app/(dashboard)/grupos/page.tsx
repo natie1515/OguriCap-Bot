@@ -10,6 +10,8 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useGroupsSmartRefresh } from '@/hooks/useSmartRefresh';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
@@ -156,56 +158,69 @@ export default function GruposPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-white">Gestión de Grupos</h1>
+      <PageHeader
+        title="Gesti?n de Grupos"
+        description="Administra los grupos de WhatsApp conectados"
+        icon={<MessageSquare className="w-6 h-6 text-primary-400" />}
+        actions={
+          <>
             {connectionStatus && (
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                connectionStatus.connected 
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  connectionStatus.connected ? 'bg-emerald-400' : 'bg-red-400'
-                }`} />
+              <div
+                className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                  connectionStatus.connected
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                }`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    connectionStatus.connected ? 'bg-emerald-400' : 'bg-red-400'
+                  }`}
+                />
                 {connectionStatus.connected ? 'Bot Conectado' : 'Bot Desconectado'}
               </div>
             )}
-          </div>
-          <p className="text-gray-400 mt-1">Administra los grupos de WhatsApp conectados</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
-          {/* Indicador de conexión Socket.IO */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            isSocketConnected 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-          }`}>
-            <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
-            {isSocketConnected ? 'Tiempo Real' : 'Modo Fallback'}
-          </div>
-          
-          <Button 
-            variant="primary" 
-            icon={<Plus className="w-4 h-4" />} 
-            onClick={() => setShowSyncModal(true)}
-            loading={syncing}
-          >
-            Sincronizar WhatsApp
-          </Button>
-        </motion.div>
-      </div>
+
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                isSocketConnected
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              }`}
+            >
+              <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
+              {isSocketConnected ? 'Tiempo Real' : 'Modo Fallback'}
+            </div>
+
+            <Button
+              variant="primary"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={() => setShowSyncModal(true)}
+              loading={syncing}
+            >
+              Sincronizar WhatsApp
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Grupos" value={stats.total} icon={<MessageSquare className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Bot Activo" value={stats.botActivo} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0.1} />
-        <StatCard title="Bot Inactivo" value={stats.botInactivo} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0.2} />
-        <StatCard title="Proveedores" value={stats.proveedores} icon={<Star className="w-6 h-6" />} color="warning" delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.06} stagger={0.06}>
+        <StaggerItem>
+          <StatCard title="Total Grupos" value={stats.total} icon={<MessageSquare className="w-6 h-6" />} color="primary" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Bot Activo" value={stats.botActivo} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Bot Inactivo" value={stats.botInactivo} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard title="Proveedores" value={stats.proveedores} icon={<Star className="w-6 h-6" />} color="warning" delay={0} />
+        </StaggerItem>
+      </Stagger>
 
-      {/* Filters */}
+      {/* Filters */}      {/* Filters */}
       <Card animated delay={0.2} className="p-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">

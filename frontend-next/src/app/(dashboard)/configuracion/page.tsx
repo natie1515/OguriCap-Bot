@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, StatCard } from '@/components/ui/Card';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { SimpleSelect as Select } from '@/components/ui/Select';
 import { ProgressRing } from '@/components/ui/Charts';
 import { useSocket } from '@/contexts/SocketContext';
@@ -894,61 +896,90 @@ export default function ConfiguracionPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Configuración</h1>
-          <p className="text-gray-400">Administra la configuración del sistema y el bot</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setShowVersions(!showVersions)}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <History className="w-4 h-4" />
-            {showVersions ? 'Ocultar' : 'Ver'} Historial
-          </Button>
-          
-          <Button
-            onClick={exportConfiguration}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Exportar
-          </Button>
-          
-          <label className="cursor-pointer">
-            <input
-              id="import-input"
-              type="file"
-              accept=".json"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) importConfiguration(file);
-              }}
-              className="hidden"
-            />
+      <PageHeader
+        title="Configuración"
+        description="Administra la configuración del sistema y el bot"
+        icon={<Settings className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
             <Button
+              onClick={() => setShowVersions(!showVersions)}
               variant="secondary"
               className="flex items-center gap-2"
-              onClick={() => document.getElementById('import-input')?.click()}
             >
-              <Upload className="w-4 h-4" />
-              Importar
+              <History className="w-4 h-4" />
+              {showVersions ? 'Ocultar' : 'Ver'} Historial
             </Button>
-          </label>
-        </div>
-      </div>
+
+            <Button
+              onClick={exportConfiguration}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+
+            <label className="cursor-pointer">
+              <input
+                id="import-input"
+                type="file"
+                accept=".json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) importConfiguration(file);
+                }}
+                className="hidden"
+              />
+              <Button
+                variant="secondary"
+                className="flex items-center gap-2"
+                onClick={() => document.getElementById('import-input')?.click()}
+              >
+                <Upload className="w-4 h-4" />
+                Importar
+              </Button>
+            </label>
+          </>
+        }
+      />
 
       {/* System Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Uptime" value={formatUptime(uptime)} icon={<Clock className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Memoria" value={`${memoryUsage?.systemPercentage || 0}%`} icon={<Cpu className="w-6 h-6" />} color="info" delay={0.1} />
-        <StatCard title="Plataforma" value={systemStats?.platform || 'N/A'} icon={<HardDrive className="w-6 h-6" />} color="violet" delay={0.2} />
-        <StatCard title="Node.js" value={systemStats?.node || 'N/A'} icon={<Database className="w-6 h-6" />} color="success" delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Uptime" value={formatUptime(uptime)} icon={<Clock className="w-6 h-6" />} color="primary" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Memoria"
+            value={`${memoryUsage?.systemPercentage || 0}%`}
+            icon={<Cpu className="w-6 h-6" />}
+            color="info"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Plataforma"
+            value={systemStats?.platform || 'N/A'}
+            icon={<HardDrive className="w-6 h-6" />}
+            color="violet"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Node.js"
+            value={systemStats?.node || 'N/A'}
+            icon={<Database className="w-6 h-6" />}
+            color="success"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+      </Stagger>
 
       {/* Advanced Configuration Sections */}
       {selectedConfig === 'main' && (

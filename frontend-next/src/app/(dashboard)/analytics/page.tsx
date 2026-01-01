@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { 
   BarChart, 
   Bar, 
@@ -29,6 +28,10 @@ import {
 } from 'lucide-react';
 import { useSocket } from '@/contexts/SocketContext';
 import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -281,15 +284,13 @@ export default function AnalyticsPage() {
     const IconComponent = metric.icon;
     
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-6"
-      >
+      <div className="glass-card p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-400 mb-1">{metric.title}</p>
-            <p className="text-2xl font-bold text-white">{metric.value.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-white">
+              <AnimatedNumber value={metric.value} duration={0.6} />
+            </p>
             <div className="flex items-center mt-2">
               {metric.changeType === 'increase' ? (
                 <TrendingUp className="w-4 h-4 text-green-400 mr-1" />
@@ -300,7 +301,7 @@ export default function AnalyticsPage() {
                 metric.changeType === 'increase' ? 'text-green-400' : 
                 metric.changeType === 'decrease' ? 'text-red-400' : 'text-gray-400'
               }`}>
-                {metric.change > 0 ? '+' : ''}{metric.change}%
+                {metric.change > 0 ? '+' : ''}<AnimatedNumber value={metric.change} duration={0.6} />%
               </span>
             </div>
           </div>
@@ -310,228 +311,201 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Analytics Dashboard</h1>
-          <p className="text-gray-400">
-            Métricas y estadísticas en tiempo real
-            {lastUpdate && (
-              <span className="ml-2">
-                • Última actualización: {lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value as any)}
-              className="input-glass min-w-[100px]"
+      <PageHeader
+        title="Analytics"
+        description={
+          lastUpdate
+            ? `M?tricas y estad?sticas en tiempo real ? ?ltima actualizaci?n: ${lastUpdate.toLocaleTimeString('es-ES')}`
+            : 'M?tricas y estad?sticas en tiempo real'
+        }
+        icon={<Activity className="w-6 h-6 text-primary-400" />}
+        actions={
+          <>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value as any)}
+                className="input-glass min-w-[110px]"
+              >
+                <option value="1h">1 Hora</option>
+                <option value="24h">24 Horas</option>
+                <option value="7d">7 D?as</option>
+                <option value="30d">30 D?as</option>
+              </select>
+            </div>
+
+            <Button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              variant={autoRefresh ? 'primary' : 'secondary'}
+              className="flex items-center gap-2"
+              title={autoRefresh ? 'Auto-refresh activo' : 'Auto-refresh pausado'}
             >
-              <option value="1h">1 Hora</option>
-              <option value="24h">24 Horas</option>
-              <option value="7d">7 Días</option>
-              <option value="30d">30 Días</option>
-            </select>
-          </div>
-          
-          <Button
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            variant={autoRefresh ? 'primary' : 'secondary'}
-            className="flex items-center gap-2"
-          >
-            <Activity className={`w-4 h-4 ${autoRefresh ? 'animate-pulse' : ''}`} />
-            Auto
-          </Button>
-          
-          <Button
-            onClick={loadAnalytics}
-            variant="secondary"
-            loading={isLoading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Actualizar
-          </Button>
-          
-          <Button
-            onClick={exportData}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Exportar
-          </Button>
-        </div>
-      </div>
+              <Activity className={`w-4 h-4 ${autoRefresh ? 'animate-pulse' : ''}`} />
+              Auto
+            </Button>
 
-      {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Button onClick={loadAnalytics} variant="secondary" loading={isLoading} className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Actualizar
+            </Button>
+
+            <Button onClick={exportData} variant="secondary" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+          </>
+        }
+      />
+
+      {/* M?tricas principales */}
+      <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" delay={0.06} stagger={0.06}>
         {metrics.map((metric, index) => (
-          <MetricCard key={index} metric={metric} />
+          <StaggerItem key={index}>
+            <MetricCard metric={metric} />
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Comandos en el tiempo */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-6"
-        >
-          <h3 className="text-lg font-semibold text-white mb-4">Comandos Ejecutados</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={commandsOverTime}>
+      {/* Gr?ficos */}
+      <Stagger className="grid grid-cols-1 lg:grid-cols-2 gap-6" delay={0.08} stagger={0.08}>
+        <StaggerItem>
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Comandos Ejecutados</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={commandsOverTime}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9CA3AF" />
+                <YAxis stroke="#9CA3AF" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={colors.primary}
+                  fill={`${colors.primary}30`}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </StaggerItem>
+
+        <StaggerItem>
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Actividad de Usuarios</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={userActivity}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9CA3AF" />
+                <YAxis stroke="#9CA3AF" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={colors.success}
+                  strokeWidth={2}
+                  dot={{ fill: colors.success, strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </StaggerItem>
+
+        <StaggerItem>
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Comandos M?s Usados</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topCommands} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis type="number" stroke="#9CA3AF" />
+                <YAxis dataKey="name" type="category" stroke="#9CA3AF" width={80} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Bar dataKey="value" fill={colors.info} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </StaggerItem>
+
+        <StaggerItem>
+          <div className="glass-card p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Tasa de Errores</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={errorRates}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="name" stroke="#9CA3AF" />
+                <YAxis stroke="#9CA3AF" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={colors.error}
+                  fill={`${colors.error}30`}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </StaggerItem>
+      </Stagger>
+
+      {/* Tiempo de respuesta */}
+      <Reveal>
+        <div className="glass-card p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Tiempo de Respuesta Promedio</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={responseTimeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="name" stroke="#9CA3AF" />
               <YAxis stroke="#9CA3AF" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1F2937',
                   border: '1px solid #374151',
                   borderRadius: '8px'
-                }} 
+                }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke={colors.primary} 
-                fill={`${colors.primary}30`}
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={colors.warning}
                 strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </motion.div>
-
-        {/* Actividad de usuarios */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-6"
-        >
-          <h3 className="text-lg font-semibold text-white mb-4">Actividad de Usuarios</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={userActivity}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke={colors.success} 
-                strokeWidth={2}
-                dot={{ fill: colors.success, strokeWidth: 2, r: 4 }}
+                dot={{ fill: colors.warning, strokeWidth: 2, r: 3 }}
               />
             </LineChart>
           </ResponsiveContainer>
-        </motion.div>
-
-        {/* Top comandos */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-6"
-        >
-          <h3 className="text-lg font-semibold text-white mb-4">Comandos Más Usados</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topCommands} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis type="number" stroke="#9CA3AF" />
-              <YAxis dataKey="name" type="category" stroke="#9CA3AF" width={80} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Bar dataKey="value" fill={colors.info} radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </motion.div>
-
-        {/* Tasa de errores */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-6"
-        >
-          <h3 className="text-lg font-semibold text-white mb-4">Tasa de Errores</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={errorRates}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke={colors.error} 
-                fill={`${colors.error}30`}
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </motion.div>
-      </div>
-
-      {/* Tiempo de respuesta */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="glass-card p-6"
-      >
-        <h3 className="text-lg font-semibold text-white mb-4">Tiempo de Respuesta Promedio</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={responseTimeData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" stroke="#9CA3AF" />
-            <YAxis stroke="#9CA3AF" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1F2937', 
-                border: '1px solid #374151',
-                borderRadius: '8px'
-              }} 
-            />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke={colors.warning} 
-              strokeWidth={2}
-              dot={{ fill: colors.warning, strokeWidth: 2, r: 3 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </motion.div>
+        </div>
+      </Reveal>
     </div>
   );
 }
