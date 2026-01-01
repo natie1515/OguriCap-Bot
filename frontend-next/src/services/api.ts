@@ -267,37 +267,6 @@ class ApiService {
     return response.data
   }
 
-  // Support chat (panel)
-  async getMySupportChat() {
-    const response = await this.api.get('/api/support/my-chat')
-    return response.data
-  }
-
-  async createOrSendMySupportChat(message: string) {
-    const response = await this.api.post('/api/support/my-chat', { message })
-    return response.data
-  }
-
-  async getSupportChats() {
-    const response = await this.api.get('/api/support/chats')
-    return response.data
-  }
-
-  async getSupportChat(chatId: number | string) {
-    const response = await this.api.get(`/api/support/chats/${encodeURIComponent(String(chatId))}`)
-    return response.data
-  }
-
-  async sendSupportMessage(chatId: number | string, message: string) {
-    const response = await this.api.post(`/api/support/chats/${encodeURIComponent(String(chatId))}/messages`, { message })
-    return response.data
-  }
-
-  async closeSupportChat(chatId: number | string) {
-    const response = await this.api.post(`/api/support/chats/${encodeURIComponent(String(chatId))}/close`)
-    return response.data
-  }
-
   // Dashboard
   async getStats(): Promise<DashboardStats> {
     const [overview, pedidos] = await Promise.all([
@@ -627,6 +596,8 @@ class ApiService {
     const response = await this.api.get('/api/bot/global-state');
     return response.data;
   }
+
+  // Support chat feature removed (use floating button: WhatsApp/Email/Pedidos)
 
   async getBotGlobalOffMessage() {
     const response = await this.api.get('/api/bot/global-off-message');

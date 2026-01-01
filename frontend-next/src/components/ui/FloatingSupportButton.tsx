@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { MessageCircle, X, Mail, ExternalLink, Ticket } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -12,6 +12,7 @@ function cleanPhoneNumber(input: string) {
 export const FloatingSupportButton: React.FC = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const { whatsappUrl, emailUrl, supportUrl } = useMemo(() => {
     const whatsapp = cleanPhoneNumber(process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '');
@@ -27,24 +28,27 @@ export const FloatingSupportButton: React.FC = () => {
   }, []);
 
   return (
-    <div ref={constraintsRef} className="fixed inset-0 z-50 pointer-events-none">
-      <motion.div
-        className="absolute bottom-6 right-6 pointer-events-auto"
-        drag
-        dragMomentum={false}
-        dragConstraints={constraintsRef}
-        whileTap={{ scale: 0.98 }}
-      >
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="h-14 w-14 rounded-full bg-gradient-to-br from-primary-500 to-violet-600 shadow-lg shadow-primary-500/20 border border-white/10 flex items-center justify-center hover:brightness-110 transition"
-          title="Soporte"
+    <>
+      <div ref={constraintsRef} className="fixed inset-0 z-50 pointer-events-none">
+        <motion.div
+          className="absolute bottom-6 right-6 pointer-events-auto"
+          drag
+          dragMomentum={false}
+          dragConstraints={constraintsRef}
+          whileTap={{ scale: 0.98 }}
         >
-          <MessageCircle className="w-6 h-6 text-white" />
-        </button>
-      </motion.div>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="h-14 w-14 rounded-full bg-gradient-to-br from-primary-500 to-violet-600 shadow-lg shadow-primary-500/20 border border-white/10 flex items-center justify-center hover:brightness-110 transition"
+            title="Soporte"
+          >
+            <MessageCircle className="w-6 h-6 text-white" />
+          </button>
+        </motion.div>
+      </div>
 
+      {/* Importante: el Modal NO debe estar dentro de un contenedor con pointer-events-none */}
       <Modal isOpen={open} onClose={() => setOpen(false)} title="Soporte">
         <div className="space-y-4">
           <p className="text-sm text-gray-400 [html.light_&]:text-gray-600">
@@ -52,11 +56,6 @@ export const FloatingSupportButton: React.FC = () => {
           </p>
 
           <div className="grid grid-cols-1 gap-3">
-            <Link href="/soporte" onClick={() => setOpen(false)}>
-              <Button variant="primary" className="w-full justify-between" icon={<MessageCircle className="w-4 h-4" />}>
-                Chat en el Panel
-              </Button>
-            </Link>
             {whatsappUrl && (
               <a href={whatsappUrl} target="_blank" rel="noreferrer">
                 <Button variant="success" className="w-full justify-between" icon={<ExternalLink className="w-4 h-4" />}>
@@ -78,11 +77,17 @@ export const FloatingSupportButton: React.FC = () => {
                 </Button>
               </a>
             )}
-            <Link href="/pedidos" onClick={() => setOpen(false)}>
-              <Button variant="primary" className="w-full justify-between" icon={<Ticket className="w-4 h-4" />}>
-                Crear Ticket (Pedidos)
-              </Button>
-            </Link>
+            <Button
+              variant="primary"
+              className="w-full justify-between"
+              icon={<Ticket className="w-4 h-4" />}
+              onClick={() => {
+                setOpen(false);
+                router.push('/pedidos');
+              }}
+            >
+              Crear Ticket (Pedidos)
+            </Button>
           </div>
 
           <div className="flex justify-end">
@@ -92,6 +97,6 @@ export const FloatingSupportButton: React.FC = () => {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 };
