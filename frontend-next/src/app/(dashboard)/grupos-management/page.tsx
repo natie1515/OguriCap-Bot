@@ -9,6 +9,8 @@ import {
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useSocket } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import api from '@/services/api';
@@ -170,44 +172,56 @@ export default function GruposManagementPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/20 rounded-xl">
-              <Users className="w-8 h-8 text-indigo-400" />
+      <PageHeader
+        title="Gestión de Grupos"
+        description="Administra el estado del bot en cada grupo"
+        icon={<Users className="w-5 h-5 text-indigo-400" />}
+        actions={
+          <>
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                isSocketConnected
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}
+            >
+              <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
+              {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
             </div>
-            Gestión de Grupos
-          </h1>
-          <p className="text-gray-400 mt-2">Administra el estado del bot en cada grupo</p>
-        </motion.div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            isSocketConnected 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
-            <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
-            {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
-          </div>
-          <Button variant="secondary" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={fetchData}>
-            Actualizar
-          </Button>
-          <Button variant="danger" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => setIsShutdownModalOpen(true)}>
-            Apagar Global
-          </Button>
-          <Button variant="success" size="sm" icon={<ToggleRight className="w-4 h-4" />} onClick={handleStartupGlobally} loading={isStartingUp}>
-            Encender Global
-          </Button>
-        </div>
-      </div>
+            <Button variant="secondary" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={fetchData}>
+              Actualizar
+            </Button>
+            <Button variant="danger" size="sm" icon={<Power className="w-4 h-4" />} onClick={() => setIsShutdownModalOpen(true)}>
+              Apagar Global
+            </Button>
+            <Button
+              variant="success"
+              size="sm"
+              icon={<ToggleRight className="w-4 h-4" />}
+              onClick={handleStartupGlobally}
+              loading={isStartingUp}
+            >
+              Encender Global
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Grupos" value={groups.length} icon={<Users className="w-6 h-6" />} color="primary" delay={0} loading={isLoading} />
-        <StatCard title="Bot Activo" value={activeGroups} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0.1} loading={isLoading} />
-        <StatCard title="Bot Inactivo" value={inactiveGroups} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0.2} loading={isLoading} />
-        <StatCard title="Notificaciones" value={notificationStats?.total || 0} icon={<Bell className="w-6 h-6" />} color="warning" delay={0.3} loading={isLoading} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Total Grupos" value={groups.length} icon={<Users className="w-6 h-6" />} color="primary" delay={0} loading={isLoading} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Bot Activo" value={activeGroups} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0} loading={isLoading} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Bot Inactivo" value={inactiveGroups} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0} loading={isLoading} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Notificaciones" value={notificationStats?.total || 0} icon={<Bell className="w-6 h-6" />} color="warning" delay={0} loading={isLoading} animated={false} />
+        </StaggerItem>
+      </Stagger>
 
       {/* Tabs */}
       <Card animated delay={0.2} className="overflow-hidden">

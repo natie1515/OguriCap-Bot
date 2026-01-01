@@ -27,6 +27,9 @@ import {
   Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSocket } from '@/contexts/SocketContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
@@ -94,12 +97,12 @@ export default function AlertasPage() {
       
       // Mostrar toast para alertas críticas
       if (data.severity >= 4) {
-        toast.error(`🚨 Alerta Crítica: ${data.ruleName}`, {
+        toast.error(`Alerta Crítica: ${data.ruleName}`, {
           duration: 10000,
           position: 'top-right'
         });
       } else if (data.severity >= 3) {
-        toast.error(`⚠️ Alerta: ${data.ruleName}`, {
+        toast.error(`Alerta: ${data.ruleName}`, {
           duration: 5000,
           position: 'top-right'
         });
@@ -343,40 +346,32 @@ export default function AlertasPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Sistema de Alertas</h1>
-          <p className="text-gray-400">Monitoreo y gestión de alertas del sistema</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setShowRules(!showRules)}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            {showRules ? 'Ocultar' : 'Ver'} Reglas
-          </Button>
-          
-          <Button
-            onClick={() => setShowCreateRule(true)}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva Regla
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Sistema de Alertas"
+        description="Monitoreo y gestión de alertas del sistema"
+        icon={<Bell className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
+            <Button
+              onClick={() => setShowRules(!showRules)}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              {showRules ? 'Ocultar' : 'Ver'} Reglas
+            </Button>
+
+            <Button onClick={() => setShowCreateRule(true)} variant="primary" className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Nueva Regla
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-4"
-        >
+      <Stagger className="grid grid-cols-1 md:grid-cols-4 gap-4" delay={0.02} stagger={0.06}>
+        <StaggerItem whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }} className="glass-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-red-500/20">
               <Bell className="w-5 h-5 text-red-400" />
@@ -384,18 +379,13 @@ export default function AlertasPage() {
             <div>
               <p className="text-sm text-gray-400">Activas</p>
               <p className="text-xl font-bold text-white">
-                {alerts.filter(a => a.state === 'active').length}
+                <AnimatedNumber value={alerts.filter(a => a.state === 'active').length} />
               </p>
             </div>
           </div>
-        </motion.div>
+        </StaggerItem>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-4"
-        >
+        <StaggerItem whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }} className="glass-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-yellow-500/20">
               <Eye className="w-5 h-5 text-yellow-400" />
@@ -403,18 +393,13 @@ export default function AlertasPage() {
             <div>
               <p className="text-sm text-gray-400">Reconocidas</p>
               <p className="text-xl font-bold text-white">
-                {alerts.filter(a => a.state === 'acknowledged').length}
+                <AnimatedNumber value={alerts.filter(a => a.state === 'acknowledged').length} />
               </p>
             </div>
           </div>
-        </motion.div>
+        </StaggerItem>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-4"
-        >
+        <StaggerItem whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }} className="glass-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-green-500/20">
               <CheckCircle className="w-5 h-5 text-green-400" />
@@ -422,18 +407,13 @@ export default function AlertasPage() {
             <div>
               <p className="text-sm text-gray-400">Resueltas</p>
               <p className="text-xl font-bold text-white">
-                {alerts.filter(a => a.state === 'resolved').length}
+                <AnimatedNumber value={alerts.filter(a => a.state === 'resolved').length} />
               </p>
             </div>
           </div>
-        </motion.div>
+        </StaggerItem>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-4"
-        >
+        <StaggerItem whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }} className="glass-card p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/20">
               <Settings className="w-5 h-5 text-blue-400" />
@@ -441,12 +421,12 @@ export default function AlertasPage() {
             <div>
               <p className="text-sm text-gray-400">Reglas</p>
               <p className="text-xl font-bold text-white">
-                {rules.filter(r => r.enabled).length}/{rules.length}
+                <AnimatedNumber value={rules.filter(r => r.enabled).length} />/<AnimatedNumber value={rules.length} />
               </p>
             </div>
           </div>
-        </motion.div>
-      </div>
+        </StaggerItem>
+      </Stagger>
 
       {/* Filtros */}
       <div className="glass-card p-4">

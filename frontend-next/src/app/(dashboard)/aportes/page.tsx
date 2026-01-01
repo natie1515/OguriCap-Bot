@@ -10,6 +10,10 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAportesSmartRefresh } from '@/hooks/useSmartRefresh';
 import api from '@/services/api';
@@ -209,77 +213,104 @@ export default function AportesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Gestión de Aportes</h1>
-          <p className="text-gray-400 mt-1">Revisa y modera los aportes de la comunidad</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3 items-center">
-          {/* Indicador de conexión Socket.IO */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            smartRefreshConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-          }`}>
-            <Radio className={`w-3 h-3 ${smartRefreshConnected ? 'animate-pulse' : ''}`} />
-            {smartRefreshConnected ? 'Tiempo Real' : 'Modo Fallback'}
-          </div>
-          
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-            Nuevo Aporte
-          </Button>
-          <Button 
-            variant="secondary" 
-            icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />} 
-            onClick={manualRefresh} 
-            loading={isRefreshing}
-            title={smartRefreshConnected ? 'Actualización manual (automática por eventos)' : 'Actualización manual'}
-          >
-            {isRefreshing ? 'Actualizando...' : 'Actualizar'}
-          </Button>
-        </motion.div>
-      </div>
+      <PageHeader
+        title="Gestión de Aportes"
+        description="Revisa y modera los aportes de la comunidad"
+        icon={<Package className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                smartRefreshConnected
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              }`}
+            >
+              <Radio className={`w-3 h-3 ${smartRefreshConnected ? 'animate-pulse' : ''}`} />
+              {smartRefreshConnected ? 'Tiempo Real' : 'Modo Fallback'}
+            </div>
+
+            <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
+              Nuevo Aporte
+            </Button>
+            <Button
+              variant="secondary"
+              icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
+              onClick={manualRefresh}
+              loading={isRefreshing}
+              title={smartRefreshConnected ? 'Actualización manual (automática por eventos)' : 'Actualización manual'}
+            >
+              {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Aportes" value={stats?.total || 0} icon={<Package className="w-6 h-6" />} color="primary" delay={0} />
-        <StatCard title="Pendientes" value={stats?.pendientes || 0} icon={<Clock className="w-6 h-6" />} color="warning" delay={0.1} />
-        <StatCard title="Aprobados" value={stats?.aprobados || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0.2} />
-        <StatCard title="Rechazados" value={stats?.rechazados || 0} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Total Aportes" value={stats?.total || 0} icon={<Package className="w-6 h-6" />} color="primary" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Pendientes" value={stats?.pendientes || 0} icon={<Clock className="w-6 h-6" />} color="warning" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Aprobados" value={stats?.aprobados || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Rechazados" value={stats?.rechazados || 0} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0} animated={false} />
+        </StaggerItem>
+      </Stagger>
 
       {/* Filters */}
-      <Card animated delay={0.2} className="p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder="Buscar aportes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadAportes()} className="input-search w-full" />
+      <Reveal>
+        <Card animated delay={0.2} className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar aportes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && loadAportes()}
+                className="input-search w-full"
+              />
+            </div>
+            <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+              <SelectTrigger className="md:w-40">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pendiente">Pendientes</SelectItem>
+                <SelectItem value="aprobado">Aprobados</SelectItem>
+                <SelectItem value="rechazado">Rechazados</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={tipoFilter} onValueChange={setTipoFilter}>
+              <SelectTrigger className="md:w-40">
+                <SelectValue placeholder="Todos los tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los tipos</SelectItem>
+                <SelectItem value="imagen">Imágenes</SelectItem>
+                <SelectItem value="video">Videos</SelectItem>
+                <SelectItem value="audio">Audio</SelectItem>
+                <SelectItem value="documento">Documentos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
-            <SelectTrigger className="md:w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pendiente">Pendientes</SelectItem>
-              <SelectItem value="aprobado">Aprobados</SelectItem>
-              <SelectItem value="rechazado">Rechazados</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="md:w-40"><SelectValue placeholder="Todos los tipos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los tipos</SelectItem>
-              <SelectItem value="imagen">Imágenes</SelectItem>
-              <SelectItem value="video">Videos</SelectItem>
-              <SelectItem value="audio">Audio</SelectItem>
-              <SelectItem value="documento">Documentos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
+        </Card>
+      </Reveal>
 
       {/* Aportes Table */}
       <Card animated delay={0.3} className="overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <h2 className="text-lg font-semibold text-white">Lista de Aportes</h2>
-          <p className="text-gray-400 text-sm mt-1">{aportes.length} aportes mostrados</p>
+          <p className="text-gray-400 text-sm mt-1">
+            <AnimatedNumber value={aportes.length} /> aportes mostrados
+          </p>
         </div>
 
         {loading ? (

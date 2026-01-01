@@ -9,6 +9,10 @@ import {
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { AutoRefreshIndicator } from '@/components/ui/AutoRefreshIndicator';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -157,104 +161,116 @@ export default function CommunityUsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Usuarios de la Comunidad</h1>
-          <p className="text-gray-400 mt-1">Gestiona los miembros de tu comunidad de WhatsApp</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
-          <AutoRefreshIndicator isActive={true} interval={60000} onRefresh={loadData} />
-        </motion.div>
-      </div>
+      <PageHeader
+        title="Usuarios de la Comunidad"
+        description="Gestiona los miembros de tu comunidad de WhatsApp"
+        icon={<Users className="w-5 h-5 text-primary-400" />}
+        actions={<AutoRefreshIndicator isActive={true} interval={60000} onRefresh={loadData} />}
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Usuarios" 
-          value={stats?.totalUsers || 0} 
-          subtitle={`${stats?.newUsersToday || 0} nuevos hoy`}
-          icon={<Users className="w-6 h-6" />} 
-          color="primary" 
-          delay={0} 
-          loading={!stats} 
-        />
-        <StatCard 
-          title="Usuarios Activos" 
-          value={stats?.activeUsers || 0} 
-          subtitle="Últimos 7 días"
-          icon={<Activity className="w-6 h-6" />} 
-          color="success" 
-          delay={0.1} 
-          loading={!stats} 
-        />
-        <StatCard 
-          title="Mensajes Totales" 
-          value={stats?.messagesTotal || 0} 
-          subtitle={`${stats?.commandsTotal || 0} comandos`}
-          icon={<MessageSquare className="w-6 h-6" />} 
-          color="info" 
-          delay={0.2} 
-          loading={!stats} 
-        />
-        <StatCard 
-          title="Usuarios Baneados" 
-          value={stats?.bannedUsers || 0} 
-          subtitle="Moderación activa"
-          icon={<Ban className="w-6 h-6" />} 
-          color="danger" 
-          delay={0.3} 
-          loading={!stats} 
-        />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Total Usuarios"
+            value={stats?.totalUsers || 0}
+            subtitle={`${stats?.newUsersToday || 0} nuevos hoy`}
+            icon={<Users className="w-6 h-6" />}
+            color="primary"
+            delay={0}
+            loading={!stats}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Usuarios Activos"
+            value={stats?.activeUsers || 0}
+            subtitle="Últimos 7 días"
+            icon={<Activity className="w-6 h-6" />}
+            color="success"
+            delay={0}
+            loading={!stats}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Mensajes Totales"
+            value={stats?.messagesTotal || 0}
+            subtitle={`${stats?.commandsTotal || 0} comandos`}
+            icon={<MessageSquare className="w-6 h-6" />}
+            color="info"
+            delay={0}
+            loading={!stats}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Usuarios Baneados"
+            value={stats?.bannedUsers || 0}
+            subtitle="Moderación activa"
+            icon={<Ban className="w-6 h-6" />}
+            color="danger"
+            delay={0}
+            loading={!stats}
+            animated={false}
+          />
+        </StaggerItem>
+      </Stagger>
 
       {/* Filters */}
-      <Card className="p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o número..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-glass pl-10 w-full"
-              />
+      <Reveal>
+        <Card className="p-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o número..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input-glass pl-10 w-full"
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-400" />
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="input-glass min-w-[120px]"
+                >
+                  <option value="all">Todos</option>
+                  <option value="active">Activos</option>
+                  <option value="inactive">Inactivos</option>
+                  <option value="banned">Baneados</option>
+                </select>
+              </div>
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
                 className="input-glass min-w-[120px]"
               >
-                <option value="all">Todos</option>
-                <option value="active">Activos</option>
-                <option value="inactive">Inactivos</option>
-                <option value="banned">Baneados</option>
+                <option value="all">Todos los roles</option>
+                <option value="owner">Propietarios</option>
+                <option value="admin">Administradores</option>
+                <option value="member">Miembros</option>
               </select>
             </div>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="input-glass min-w-[120px]"
-            >
-              <option value="all">Todos los roles</option>
-              <option value="owner">Propietarios</option>
-              <option value="admin">Administradores</option>
-              <option value="member">Miembros</option>
-            </select>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </Reveal>
 
       {/* Users List */}
+      <Reveal>
       <Card className="overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <h3 className="text-lg font-semibold text-white">
-            Lista de Usuarios ({filteredUsers.length})
+            Lista de Usuarios (<AnimatedNumber value={filteredUsers.length} />)
           </h3>
         </div>
         
@@ -437,42 +453,57 @@ export default function CommunityUsersPage() {
           </div>
         )}
       </Card>
+      </Reveal>
 
       {/* Top Users */}
       {stats?.topUsers && stats.topUsers.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Usuarios Más Activos
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.topUsers.slice(0, 3).map((user, index) => (
-              <div key={user.jid} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                    index === 1 ? 'bg-gray-400/20 text-gray-300' :
-                    'bg-amber-600/20 text-amber-400'
-                  }`}>
-                    #{index + 1}
+        <Reveal>
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Usuarios Más Activos
+            </h3>
+            <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4" delay={0.02} stagger={0.06}>
+              {stats.topUsers.slice(0, 3).map((user, index) => (
+                <StaggerItem
+                  key={user.jid}
+                  whileHover={{ y: -6, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+                  className="p-4 rounded-xl bg-white/5 border border-white/10"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        index === 0
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : index === 1
+                            ? 'bg-gray-400/20 text-gray-300'
+                            : 'bg-amber-600/20 text-amber-400'
+                      }`}
+                    >
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">{user.name || user.pushName || 'Usuario'}</p>
+                      <p className="text-xs text-gray-400">{user.jid.split('@')[0]}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-white">{user.name || user.pushName || 'Usuario'}</p>
-                    <p className="text-xs text-gray-400">{user.jid.split('@')[0]}</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Mensajes:</span>
+                    <span className="text-white font-medium">
+                      <AnimatedNumber value={user.messageCount} />
+                    </span>
                   </div>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Mensajes:</span>
-                  <span className="text-white font-medium">{user.messageCount}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Comandos:</span>
-                  <span className="text-white font-medium">{user.commandCount}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Comandos:</span>
+                    <span className="text-white font-medium">
+                      <AnimatedNumber value={user.commandCount} />
+                    </span>
+                  </div>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          </Card>
+        </Reveal>
       )}
     </div>
   );

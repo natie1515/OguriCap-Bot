@@ -6,6 +6,8 @@ import { Bot, Send, User, Sparkles, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SimpleSelect } from '@/components/ui/Select';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -94,36 +96,39 @@ export default function AiChatPage() {
 
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">AI Chat</h1>
-          <p className="text-gray-400 mt-1">Conversa con la inteligencia artificial</p>
-        </motion.div>
-        <div className="flex items-center gap-3">
-          <div className="w-52">
-            <SimpleSelect
-              value={model}
-              onChange={setModel}
-              options={MODEL_OPTIONS}
-              placeholder="Modelo"
-              disabled={isLoading}
-            />
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<RefreshCw className="w-4 h-4" />}
-            onClick={() => {
-              setMessages([]);
-              setSessionId(`session-${Date.now()}`);
-            }}
-          >
-            Limpiar
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="AI Chat"
+        description="Conversa con la inteligencia artificial"
+        icon={<Sparkles className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
+            <div className="w-52">
+              <SimpleSelect
+                value={model}
+                onChange={setModel}
+                options={MODEL_OPTIONS}
+                placeholder="Modelo"
+                disabled={isLoading}
+              />
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw className="w-4 h-4" />}
+              onClick={() => {
+                setMessages([]);
+                setSessionId(`session-${Date.now()}`);
+              }}
+            >
+              Limpiar
+            </Button>
+          </>
+        }
+        className="mb-6"
+      />
 
-      <Card animated className="flex-1 flex flex-col overflow-hidden">
+      <Reveal className="flex-1">
+        <Card className="flex-1 flex flex-col overflow-hidden">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
@@ -142,7 +147,7 @@ export default function AiChatPage() {
                 key={message.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index < 8 ? index * 0.04 : 0 }}
                 className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {message.role === 'assistant' && (
@@ -202,7 +207,8 @@ export default function AiChatPage() {
             </Button>
           </div>
         </div>
-      </Card>
+        </Card>
+      </Reveal>
     </div>
   );
 }

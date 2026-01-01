@@ -10,6 +10,9 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusIndicator } from '@/components/ui/StatusIndicator';
 import { ProgressRing } from '@/components/ui/Charts';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useBotStatus, useBotGlobalState, useSystemStats } from '@/hooks/useRealTime';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -143,20 +146,23 @@ export default function BotStatusPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Estado del Bot</h1>
-          <p className="text-gray-400 mt-1">Gestiona la conexión y configuración del bot principal</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            isSocketConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
+      <PageHeader
+        title="Estado del Bot"
+        description="Gestiona la conexión y configuración del bot principal"
+        icon={<Bot className="w-5 h-5 text-primary-400" />}
+        actions={
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+              isSocketConnected
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}
+          >
             <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
             {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
           </div>
-        </motion.div>
-      </div>
+        }
+      />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -219,7 +225,7 @@ export default function BotStatusPage() {
               )
             ) : (
               <p className="text-sm text-gray-400 [html.light_&]:text-gray-600">
-                Solo admins/owner pueden controlar la conexiÇün del bot.
+                Solo admins/owner pueden controlar la conexi?n del bot.
               </p>
             )}
           </div>
@@ -252,15 +258,21 @@ export default function BotStatusPage() {
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
               <span className="text-gray-400 text-sm">Memoria</span>
-              <span className="text-white font-medium">{memoryUsage?.systemPercentage || 0}%</span>
+              <span className="text-white font-medium">
+                <AnimatedNumber value={memoryUsage?.systemPercentage || 0} decimals={1} />%
+              </span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
               <span className="text-gray-400 text-sm">CPU</span>
-              <span className="text-white font-medium">{cpuUsage}%</span>
+              <span className="text-white font-medium">
+                <AnimatedNumber value={Number(cpuUsage) || 0} />%
+              </span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-xl bg-white/5">
               <span className="text-gray-400 text-sm">Disco</span>
-              <span className="text-white font-medium">{diskUsage?.percentage || 0}%</span>
+              <span className="text-white font-medium">
+                <AnimatedNumber value={diskUsage?.percentage || 0} decimals={1} />%
+              </span>
             </div>
           </div>
         </Card>
@@ -351,18 +363,48 @@ export default function BotStatusPage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Estado" value={connected ? 'Online' : 'Offline'}
-          icon={connected ? <Wifi className="w-6 h-6" /> : <WifiOff className="w-6 h-6" />}
-          color={connected ? 'success' : 'danger'} delay={0.4} />
-        <StatCard title="Uptime" value={status?.uptime || formatUptime(uptime)}
-          icon={<Clock className="w-6 h-6" />} color="info" delay={0.5} />
-        <StatCard title="Memoria" value={`${memoryUsage?.systemPercentage || 0}%`}
-          icon={<Activity className="w-6 h-6" />} color="warning" delay={0.6} />
-        <StatCard title="Global" value={isOn ? 'Activo' : 'Inactivo'}
-          icon={isOn ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
-          color={isOn ? 'success' : 'danger'} delay={0.7} />
-      </div>
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Estado"
+            value={connected ? 'Online' : 'Offline'}
+            icon={connected ? <Wifi className="w-6 h-6" /> : <WifiOff className="w-6 h-6" />}
+            color={connected ? 'success' : 'danger'}
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Uptime"
+            value={status?.uptime || formatUptime(uptime)}
+            icon={<Clock className="w-6 h-6" />}
+            color="info"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Memoria"
+            value={`${memoryUsage?.systemPercentage || 0}%`}
+            icon={<Activity className="w-6 h-6" />}
+            color="warning"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Global"
+            value={isOn ? 'Activo' : 'Inactivo'}
+            icon={isOn ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+            color={isOn ? 'success' : 'danger'}
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+      </Stagger>
     </div>
   );
 }

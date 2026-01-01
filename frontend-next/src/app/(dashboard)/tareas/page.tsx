@@ -21,7 +21,12 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { StatCard } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSocket } from '@/contexts/SocketContext';
 import { useFlashTokens } from '@/hooks/useFlashTokens';
 import api from '@/services/api';
@@ -207,6 +212,20 @@ export default function TareasPage() {
     return true;
   });
 
+  const summary = React.useMemo(() => {
+    let enabled = 0;
+    let running = 0;
+    let failed = 0;
+
+    for (const task of tasks) {
+      if (task.enabled) enabled += 1;
+      if (task.status === 'running') running += 1;
+      if (task.status === 'failed') failed += 1;
+    }
+
+    return { total: tasks.length, enabled, running, failed };
+  }, [tasks]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'running': return <Activity className="w-4 h-4 text-blue-400 animate-spin" />;
@@ -273,86 +292,116 @@ export default function TareasPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Tareas Programadas</h1>
-          <p className="text-gray-400">Gestiona tareas automáticas del sistema</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setShowExecutions(!showExecutions)}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <History className="w-4 h-4" />
-            {showExecutions ? 'Ocultar' : 'Ver'} Historial
-          </Button>
-          
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva Tarea
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Tareas Programadas"
+        description="Gestiona tareas automáticas del sistema"
+        icon={<Calendar className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
+            <Button
+              onClick={() => setShowExecutions(!showExecutions)}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <History className="w-4 h-4" />
+              {showExecutions ? 'Ocultar' : 'Ver'} Historial
+            </Button>
+
+            <Button onClick={() => setShowCreateModal(true)} variant="primary" className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Nueva Tarea
+            </Button>
+          </>
+        }
+      />
+
+      <Stagger className="grid grid-cols-2 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Total" value={summary.total} icon={<Activity className="w-6 h-6" />} color="info" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Habilitadas"
+            value={summary.enabled}
+            icon={<CheckCircle className="w-6 h-6" />}
+            color="success"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="En ejecución"
+            value={summary.running}
+            icon={<Activity className="w-6 h-6" />}
+            color="warning"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Fallidas"
+            value={summary.failed}
+            icon={<AlertTriangle className="w-6 h-6" />}
+            color="danger"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+      </Stagger>
 
       {/* Filtros */}
-      <div className="glass-card p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar tareas..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input-glass pl-10"
-              />
+      <Reveal>
+        <div className="glass-card p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar tareas..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input-glass pl-10"
+                />
+              </div>
             </div>
+
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as any)}
+                className="input-glass min-w-[120px]"
+              >
+                <option value="all">Todas</option>
+                <option value="enabled">Habilitadas</option>
+                <option value="disabled">Deshabilitadas</option>
+                <option value="running">En ejecución</option>
+              </select>
+            </div>
+
+            <Button onClick={loadTasks} variant="secondary" loading={isLoading} className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Actualizar
+            </Button>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
-              className="input-glass min-w-[120px]"
-            >
-              <option value="all">Todas</option>
-              <option value="enabled">Habilitadas</option>
-              <option value="disabled">Deshabilitadas</option>
-              <option value="running">En ejecución</option>
-            </select>
-          </div>
-          
-          <Button
-            onClick={loadTasks}
-            variant="secondary"
-            loading={isLoading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Actualizar
-          </Button>
         </div>
-      </div>
+      </Reveal>
 
       {/* Lista de tareas */}
-      <div className="glass-card">
-        <div className="p-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold text-white">
-            Tareas ({filteredTasks.length})
-          </h2>
-        </div>
-        
-        <div>
-          <motion.div variants={listVariants} initial="hidden" animate="show" className="divide-y divide-white/5">
-            <AnimatePresence mode="popLayout">
+      <Reveal>
+        <div className="glass-card">
+          <div className="p-4 border-b border-white/10">
+            <h2 className="text-lg font-semibold text-white">
+              Tareas (<AnimatedNumber value={filteredTasks.length} />)
+            </h2>
+          </div>
+
+          <div>
+            <motion.div variants={listVariants} initial="hidden" animate="show" className="divide-y divide-white/5">
+              <AnimatePresence mode="popLayout">
               {isLoading && tasks.length === 0 ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={`sk-${i}`} className="p-4">
@@ -443,9 +492,13 @@ export default function TareasPage() {
                         
                         <div className="flex items-center gap-1">
                           <CheckCircle className="w-3 h-3 text-green-400" />
-                          <span>{task.successCount}</span>
+                          <span>
+                            <AnimatedNumber value={task.successCount} />
+                          </span>
                           <XCircle className="w-3 h-3 text-red-400 ml-2" />
-                          <span>{task.errorCount}</span>
+                          <span>
+                            <AnimatedNumber value={task.errorCount} />
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -505,10 +558,11 @@ export default function TareasPage() {
                 </motion.div>
               ))
             )}
-            </AnimatePresence>
-          </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* Historial de ejecuciones */}
       <AnimatePresence>

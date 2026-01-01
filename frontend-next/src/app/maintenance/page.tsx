@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Wrench, RefreshCw, Clock, AlertTriangle, Bot, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -9,6 +9,7 @@ export default function MaintenancePage() {
   const [isChecking, setIsChecking] = useState(false);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const reduceMotion = useReducedMotion();
 
   const checkStatus = async () => {
     setIsChecking(true);
@@ -76,13 +77,13 @@ export default function MaintenancePage() {
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          animate={{ x: [0, 100, 0], y: [0, -50, 0] }}
-          transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
+          animate={reduceMotion ? { opacity: 1 } : { x: [0, 100, 0], y: [0, -50, 0] }}
+          transition={reduceMotion ? { duration: 0.12 } : { repeat: Infinity, duration: 20, ease: 'linear' }}
           className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{ x: [0, -100, 0], y: [0, 50, 0] }}
-          transition={{ repeat: Infinity, duration: 25, ease: 'linear' }}
+          animate={reduceMotion ? { opacity: 1 } : { x: [0, -100, 0], y: [0, 50, 0] }}
+          transition={reduceMotion ? { duration: 0.12 } : { repeat: Infinity, duration: 25, ease: 'linear' }}
           className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl"
         />
       </div>
@@ -97,8 +98,8 @@ export default function MaintenancePage() {
           {/* Logo y icono animado */}
           <div className="flex items-center justify-center mb-6">
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              animate={reduceMotion ? undefined : { rotate: 360 }}
+              transition={reduceMotion ? undefined : { duration: 2, repeat: Infinity, ease: "linear" }}
               className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mr-4"
             >
               <Wrench className="w-8 h-8 text-orange-400" />
@@ -198,15 +199,23 @@ export default function MaintenancePage() {
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 1, 0.5]
-                }}
-                transition={{ 
-                  duration: 1.5, 
-                  repeat: Infinity, 
-                  delay: i * 0.2 
-                }}
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        scale: [1, 1.2, 1],
+                        opacity: [0.5, 1, 0.5],
+                      }
+                }
+                transition={
+                  reduceMotion
+                    ? undefined
+                    : {
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: i * 0.2,
+                      }
+                }
                 className="w-2 h-2 bg-orange-400 rounded-full"
               />
             ))}

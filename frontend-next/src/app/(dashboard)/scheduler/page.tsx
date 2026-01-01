@@ -9,6 +9,10 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { AutoRefreshIndicator } from '@/components/ui/AutoRefreshIndicator';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import api from '@/services/api';
 import { useGroups } from '@/contexts/GroupsContext';
 import toast from 'react-hot-toast';
@@ -234,73 +238,86 @@ export default function SchedulerPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-3xl font-bold text-white">Programador de Mensajes</h1>
-          <p className="text-gray-400 mt-1">Programa mensajes automáticos para tu comunidad</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
-          <AutoRefreshIndicator isActive={true} interval={60000} onRefresh={loadMessages} />
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
-            Nuevo Mensaje
-          </Button>
-        </motion.div>
-      </div>
+      <PageHeader
+        title="Programador de Mensajes"
+        description="Programa mensajes automáticos para tu comunidad"
+        icon={<Calendar className="w-5 h-5 text-primary-400" />}
+        actions={
+          <>
+            <AutoRefreshIndicator isActive={true} interval={60000} onRefresh={loadMessages} />
+            <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowCreateModal(true)}>
+              Nuevo Mensaje
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary-500/20">
-              <Calendar className="w-5 h-5 text-primary-400" />
+      <Stagger className="grid grid-cols-1 md:grid-cols-4 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <Card hover={false} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary-500/20">
+                <Calendar className="w-5 h-5 text-primary-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={messages.length} />
+                </p>
+                <p className="text-xs text-gray-400">Total Programados</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{messages.length}</p>
-              <p className="text-xs text-gray-400">Total Programados</p>
+          </Card>
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <Card hover={false} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/20">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={messages.filter(m => m.enabled).length} />
+                </p>
+                <p className="text-xs text-gray-400">Activos</p>
+              </div>
             </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20">
-              <CheckCircle className="w-5 h-5 text-emerald-400" />
+          </Card>
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <Card hover={false} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/20">
+                <Clock className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={messages.filter(m => m.enabled && new Date(m.next_send) > new Date()).length} />
+                </p>
+                <p className="text-xs text-gray-400">Pendientes</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{messages.filter(m => m.enabled).length}</p>
-              <p className="text-xs text-gray-400">Activos</p>
+          </Card>
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <Card hover={false} className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-violet-500/20">
+                <Send className="w-5 h-5 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={messages.reduce((sum, m) => sum + m.sent_count, 0)} />
+                </p>
+                <p className="text-xs text-gray-400">Enviados</p>
+              </div>
             </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/20">
-              <Clock className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {messages.filter(m => m.enabled && new Date(m.next_send) > new Date()).length}
-              </p>
-              <p className="text-xs text-gray-400">Pendientes</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-violet-500/20">
-              <Send className="w-5 h-5 text-violet-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {messages.reduce((sum, m) => sum + m.sent_count, 0)}
-              </p>
-              <p className="text-xs text-gray-400">Enviados</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </StaggerItem>
+      </Stagger>
 
       {/* Messages List */}
-      <div className="space-y-4">
+      <Reveal className="space-y-4">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <Card key={i} className="p-6 animate-pulse">
@@ -334,7 +351,7 @@ export default function SchedulerPage() {
               key={message.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index < 8 ? index * 0.05 : 0 }}
             >
               <Card className="p-6 hover:bg-white/5 transition-colors">
                 <div className="flex items-start justify-between">
@@ -429,7 +446,7 @@ export default function SchedulerPage() {
             </motion.div>
           ))
         )}
-      </div>
+      </Reveal>
 
       {/* Create/Edit Modal */}
       {showCreateModal && (

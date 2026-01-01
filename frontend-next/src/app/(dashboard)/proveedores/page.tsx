@@ -10,6 +10,10 @@ import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { SimpleSelect as Select } from '@/components/ui/Select';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -176,25 +180,21 @@ export default function ProveedoresPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 rounded-xl">
-              <Building2 className="w-8 h-8 text-purple-400" />
-            </div>
-            Gestión de Proveedores
-          </h1>
-          <p className="text-gray-400 mt-2">Administra los proveedores de contenido</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setShowCreateModal(true)} variant="primary" icon={<Plus className="w-4 h-4" />}>
-            Nuevo Proveedor
-          </Button>
-          <Button onClick={loadProveedores} variant="secondary" loading={loading} icon={<RefreshCw className="w-4 h-4" />}>
-            Actualizar
-          </Button>
-        </div>
-      </motion.div>
+      <PageHeader
+        title="Gestión de Proveedores"
+        description="Administra los proveedores de contenido"
+        icon={<Building2 className="w-5 h-5 text-purple-400" />}
+        actions={
+          <>
+            <Button onClick={() => setShowCreateModal(true)} variant="primary" icon={<Plus className="w-4 h-4" />}>
+              Nuevo Proveedor
+            </Button>
+            <Button onClick={loadProveedores} variant="secondary" loading={loading} icon={<RefreshCw className="w-4 h-4" />}>
+              Actualizar
+            </Button>
+          </>
+        }
+      />
 
       {/* Alerts */}
       <AnimatePresence>
@@ -218,43 +218,68 @@ export default function ProveedoresPage() {
       </AnimatePresence>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="Total Proveedores" value={stats?.total || 0} icon={<Building2 className="w-6 h-6" />} color="violet" delay={0} />
-        <StatCard title="Activos" value={stats?.activos || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0.1} />
-        <StatCard title="Inactivos" value={stats?.inactivos || 0} icon={<Clock className="w-6 h-6" />} color="warning" delay={0.2} />
-        <StatCard title="Suspendidos" value={stats?.suspendidos || 0} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-1 md:grid-cols-4 gap-6" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Total Proveedores" value={stats?.total || 0} icon={<Building2 className="w-6 h-6" />} color="violet" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Activos" value={stats?.activos || 0} icon={<CheckCircle className="w-6 h-6" />} color="success" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Inactivos" value={stats?.inactivos || 0} icon={<Clock className="w-6 h-6" />} color="warning" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Suspendidos" value={stats?.suspendidos || 0} icon={<XCircle className="w-6 h-6" />} color="danger" delay={0} animated={false} />
+        </StaggerItem>
+      </Stagger>
 
       {/* Filters */}
-      <Card animated delay={0.2} className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input type="text" placeholder="Buscar proveedores..." value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} className="input-glass w-full pl-10" />
+      <Reveal>
+        <Card animated delay={0.2} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Buscar proveedores..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-glass w-full pl-10"
+              />
+            </div>
+            <Select
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={[
+                { value: 'all', label: 'Todos los tipos' },
+                { value: 'manhwa', label: 'Manhwa' },
+                { value: 'manga', label: 'Manga' },
+                { value: 'anime', label: 'Anime' },
+                { value: 'novela', label: 'Novela' },
+                { value: 'general', label: 'General' },
+              ]}
+            />
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'all', label: 'Todos los estados' },
+                { value: 'activo', label: 'Activo' },
+                { value: 'inactivo', label: 'Inactivo' },
+                { value: 'suspendido', label: 'Suspendido' },
+              ]}
+            />
           </div>
-          <Select value={typeFilter} onChange={setTypeFilter} options={[
-            { value: 'all', label: 'Todos los tipos' },
-            { value: 'manhwa', label: 'Manhwa' },
-            { value: 'manga', label: 'Manga' },
-            { value: 'anime', label: 'Anime' },
-            { value: 'novela', label: 'Novela' },
-            { value: 'general', label: 'General' }
-          ]} />
-          <Select value={statusFilter} onChange={setStatusFilter} options={[
-            { value: 'all', label: 'Todos los estados' },
-            { value: 'activo', label: 'Activo' },
-            { value: 'inactivo', label: 'Inactivo' },
-            { value: 'suspendido', label: 'Suspendido' }
-          ]} />
-        </div>
-      </Card>
+        </Card>
+      </Reveal>
 
       {/* List */}
       <Card animated delay={0.3} className="overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <h2 className="text-xl font-semibold text-white">Lista de Proveedores</h2>
-          <p className="text-gray-400 mt-1">{filteredProveedores.length} de {proveedores.length} proveedores</p>
+          <p className="text-gray-400 mt-1">
+            <AnimatedNumber value={filteredProveedores.length} /> de <AnimatedNumber value={proveedores.length} /> proveedores
+          </p>
         </div>
 
         {loading ? (

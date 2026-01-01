@@ -9,6 +9,10 @@ import {
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSocket } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -328,29 +332,27 @@ export default function SubbotsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-xl">
-              <Bot className="w-8 h-8 text-blue-400" />
-            </div>
-            {isUsuario ? 'Mis SubBots' : 'Gestión de Subbots'}
-          </h1>
-          <p className="text-gray-400 mt-2">
-            {isUsuario
-              ? 'Crea y revisa tus subbots (solo tú y admins/owner pueden verlos)'
-              : 'Crea y gestiona subbots para conectar múltiples cuentas de WhatsApp'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            isSocketConnected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
+      <PageHeader
+        title={isUsuario ? 'Mis SubBots' : 'Gestión de Subbots'}
+        description={
+          isUsuario
+            ? 'Crea y revisa tus subbots (solo tú y admins/owner pueden verlos)'
+            : 'Crea y gestiona subbots para conectar múltiples cuentas de WhatsApp'
+        }
+        icon={<Bot className="w-5 h-5 text-blue-400" />}
+        actions={
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+              isSocketConnected
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}
+          >
             <Radio className={`w-3 h-3 ${isSocketConnected ? 'animate-pulse' : ''}`} />
             {isSocketConnected ? 'Tiempo Real' : 'Sin conexión'}
           </div>
-        </div>
-      </motion.div>
+        }
+      />
 
       {/* Alerts */}
       <AnimatePresence>
@@ -374,46 +376,77 @@ export default function SubbotsPage() {
       </AnimatePresence>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="Total Subbots" value={subbots.length}
-          subtitle={`${subbots.filter(s => s.type === 'qr').length} QR • ${subbots.filter(s => s.type === 'code').length} Códigos`}
-          icon={<Bot className="w-6 h-6" />} color="info" delay={0} />
-        <StatCard title="Conectados" value={subbots.filter(s => s.isOnline).length}
-          subtitle="Activos ahora" icon={<Wifi className="w-6 h-6" />} color="success" delay={0.1} />
-        <StatCard title="Esperando" value={subbots.filter(s => !s.isOnline && s.status === 'activo').length}
-          subtitle="Por conectar" icon={<Clock className="w-6 h-6" />} color="warning" delay={0.2} />
-        <StatCard title="Tiempo Real" value={isSocketConnected ? 'Activo' : 'Inactivo'}
-          subtitle="Socket.IO" icon={<Zap className="w-6 h-6" />} color={isSocketConnected ? 'success' : 'danger'} delay={0.3} />
-      </div>
+      <Stagger className="grid grid-cols-1 md:grid-cols-4 gap-6" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Total Subbots"
+            value={subbots.length}
+            subtitle={`${subbots.filter(s => s.type === 'qr').length} QR • ${subbots.filter(s => s.type === 'code').length} Códigos`}
+            icon={<Bot className="w-6 h-6" />}
+            color="info"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Conectados" value={subbots.filter(s => s.isOnline).length} subtitle="Activos ahora" icon={<Wifi className="w-6 h-6" />} color="success" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Esperando"
+            value={subbots.filter(s => !s.isOnline && s.status === 'activo').length}
+            subtitle="Por conectar"
+            icon={<Clock className="w-6 h-6" />}
+            color="warning"
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard
+            title="Tiempo Real"
+            value={isSocketConnected ? 'Activo' : 'Inactivo'}
+            subtitle="Socket.IO"
+            icon={<Zap className="w-6 h-6" />}
+            color={isSocketConnected ? 'success' : 'danger'}
+            delay={0}
+            animated={false}
+          />
+        </StaggerItem>
+      </Stagger>
 
       {/* Create Subbot */}
-      <Card animated delay={0.2} className="p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Crear Nuevo Subbot</h2>
-        <div className="flex gap-4">
-          <Button onClick={createQRSubbot} loading={actionLoading === 'qr'} variant="primary" icon={<QrCode className="w-5 h-5" />}>
-            Crear QR Subbot
-          </Button>
-          <Button onClick={() => setShowPhoneModal(true)} loading={actionLoading === 'code'} variant="success" icon={<Key className="w-5 h-5" />}>
-            Crear CODE Subbot
-          </Button>
-        </div>
-        <p className="text-sm text-gray-400 mt-3">
-          • <strong className="text-gray-300">QR Subbot:</strong> Escanea el código QR con WhatsApp<br />
-          • <strong className="text-gray-300">CODE Subbot:</strong> Usa el código de emparejamiento
-        </p>
-        {isSocketConnected && (
-          <p className="text-sm text-emerald-400 mt-2 flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Los códigos QR y de pairing aparecerán automáticamente en tiempo real
+      <Reveal>
+        <Card animated delay={0.2} className="p-6">
+          <h2 className="text-xl font-semibold text-white mb-4">Crear Nuevo Subbot</h2>
+          <div className="flex gap-4">
+            <Button onClick={createQRSubbot} loading={actionLoading === 'qr'} variant="primary" icon={<QrCode className="w-5 h-5" />}>
+              Crear QR Subbot
+            </Button>
+            <Button onClick={() => setShowPhoneModal(true)} loading={actionLoading === 'code'} variant="success" icon={<Key className="w-5 h-5" />}>
+              Crear CODE Subbot
+            </Button>
+          </div>
+          <p className="text-sm text-gray-400 mt-3">
+            • <strong className="text-gray-300">QR Subbot:</strong> Escanea el código QR con WhatsApp<br />
+            • <strong className="text-gray-300">CODE Subbot:</strong> Usa el código de emparejamiento
           </p>
-        )}
-      </Card>
+          {isSocketConnected && (
+            <p className="text-sm text-emerald-400 mt-2 flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Los códigos QR y de pairing aparecerán automáticamente en tiempo real
+            </p>
+          )}
+        </Card>
+      </Reveal>
 
       {/* Subbots List */}
       <Card animated delay={0.3} className="overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <h2 className="text-xl font-semibold text-white">Subbots Activos</h2>
-          <p className="text-gray-400 mt-1">{subbots.length} subbot{subbots.length !== 1 ? 's' : ''} configurado{subbots.length !== 1 ? 's' : ''}</p>
+          <p className="text-gray-400 mt-1">
+            <AnimatedNumber value={subbots.length} /> subbot{subbots.length !== 1 ? 's' : ''} configurado{subbots.length !== 1 ? 's' : ''}
+          </p>
         </div>
 
         {loading ? (

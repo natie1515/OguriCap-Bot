@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Image, Video, Music, File, Trash2, Download, Eye, Upload, Search, Loader2, FileText, ImageIcon } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Modal } from '@/components/ui/Modal';
 import { SimpleSelect as Select } from '@/components/ui/Select';
 import api from '@/services/api';
@@ -194,81 +198,113 @@ export default function MultimediaPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 bg-pink-500/20 rounded-xl">
-              <ImageIcon className="w-8 h-8 text-pink-400" />
-            </div>
-            Gestión de Multimedia
-          </h1>
-          <p className="text-gray-400 mt-2">Administra archivos multimedia del sistema</p>
-        </div>
-        <Button onClick={() => setShowUploadModal(true)} variant="primary" icon={<Upload className="w-4 h-4" />}>
-          Subir Archivos
-        </Button>
-      </motion.div>
+      <PageHeader
+        title="Gestión de Multimedia"
+        description="Administra archivos multimedia del sistema"
+        icon={<ImageIcon className="w-5 h-5 text-pink-400" />}
+        actions={
+          <Button onClick={() => setShowUploadModal(true)} variant="primary" icon={<Upload className="w-4 h-4" />}>
+            Subir Archivos
+          </Button>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <StatCard title="Total Archivos" value={stats?.totalFiles || 0} icon={<ImageIcon className="w-6 h-6" />} color="info" delay={0} />
-        <StatCard title="Videos" value={stats?.videos || 0} icon={<Video className="w-6 h-6" />} color="violet" delay={0.1} />
-        <StatCard title="Imágenes" value={stats?.images || 0} icon={<Image className="w-6 h-6" />} color="success" delay={0.2} />
-        <StatCard title="Audio" value={stats?.audio || 0} icon={<Music className="w-6 h-6" />} color="warning" delay={0.3} />
-        <StatCard title="Documentos" value={stats?.documents || 0} icon={<FileText className="w-6 h-6" />} color="cyan" delay={0.4} />
-      </div>
+      <Stagger className="grid grid-cols-1 md:grid-cols-5 gap-4" delay={0.02} stagger={0.07}>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Total Archivos" value={stats?.totalFiles || 0} icon={<ImageIcon className="w-6 h-6" />} color="info" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Videos" value={stats?.videos || 0} icon={<Video className="w-6 h-6" />} color="violet" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Imágenes" value={stats?.images || 0} icon={<Image className="w-6 h-6" />} color="success" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Audio" value={stats?.audio || 0} icon={<Music className="w-6 h-6" />} color="warning" delay={0} animated={false} />
+        </StaggerItem>
+        <StaggerItem whileHover={{ y: -8, scale: 1.015, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <StatCard title="Documentos" value={stats?.documents || 0} icon={<FileText className="w-6 h-6" />} color="cyan" delay={0} animated={false} />
+        </StaggerItem>
+      </Stagger>
 
       {/* Filters */}
-      <Card animated delay={0.2} className="p-6">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 max-w-md relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input type="text" placeholder="Buscar archivos..." value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadData()}
-              className="input-glass w-full pl-10" />
+      <Reveal>
+        <Card animated delay={0.2} className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 max-w-md relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Buscar archivos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && loadData()}
+                className="input-glass w-full pl-10"
+              />
+            </div>
+            <Select
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={[
+                { value: 'all', label: 'Todos los tipos' },
+                { value: 'image', label: 'Imágenes' },
+                { value: 'video', label: 'Videos' },
+                { value: 'audio', label: 'Audio' },
+                { value: 'document', label: 'Documentos' },
+              ]}
+            />
           </div>
-          <Select value={typeFilter} onChange={setTypeFilter} options={[
-            { value: 'all', label: 'Todos los tipos' },
-            { value: 'image', label: 'Imágenes' },
-            { value: 'video', label: 'Videos' },
-            { value: 'audio', label: 'Audio' },
-            { value: 'document', label: 'Documentos' }
-          ]} />
-        </div>
-      </Card>
+        </Card>
+      </Reveal>
 
       {/* Gallery */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <Reveal>
         {items.length === 0 ? (
-          <div className="col-span-full">
-            <Card className="p-8 text-center">
-              <ImageIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No se encontraron archivos multimedia.</p>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="col-span-full">
+              <Card className="p-8 text-center">
+                <ImageIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No se encontraron archivos multimedia.</p>
+              </Card>
+            </div>
           </div>
         ) : (
-          items.map((item, index) => {
-            const TypeIcon = getTypeIcon(item.type);
-            const typeColor = getTypeColor(item.type);
-            return (
-              <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-                <Card className="overflow-hidden hover:border-pink-500/30 transition-all cursor-pointer">
-                  <div className="aspect-video bg-white/5 relative overflow-hidden rounded-t-xl" onClick={() => { setSelectedItem(item); setShowViewModal(true); }}>
-                    {item.type === 'image' ? (
-                      <div className="w-full h-full relative bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-                        <img 
-                          src={item.url} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent && parent.querySelector('.fallback-icon') === null) {
-                              const fallback = document.createElement('div');
-                              fallback.className = 'fallback-icon absolute inset-0 flex items-center justify-center';
-                              fallback.innerHTML = `
+          <Stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" delay={0.03} stagger={0.045}>
+            <AnimatePresence mode="popLayout">
+              {items.map((item) => {
+                const TypeIcon = getTypeIcon(item.type);
+                const typeColor = getTypeColor(item.type);
+                return (
+                  <StaggerItem
+                    key={item.id}
+                    layout="position"
+                    exit={{ opacity: 0, y: -12, scale: 0.985, filter: 'blur(8px)' }}
+                    whileHover={{ y: -8, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+                  >
+                    <Card hover={false} className="group overflow-hidden hover:border-pink-500/30 transition-all cursor-pointer">
+                      <div
+                        className="aspect-video bg-white/5 relative overflow-hidden rounded-t-xl"
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setShowViewModal(true);
+                        }}
+                      >
+                        {item.type === 'image' ? (
+                          <div className="w-full h-full relative bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                            <img
+                              src={item.url}
+                              alt={item.name}
+                              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent && parent.querySelector('.fallback-icon') === null) {
+                                  const fallback = document.createElement('div');
+                                  fallback.className = 'fallback-icon absolute inset-0 flex items-center justify-center';
+                                  fallback.innerHTML = `
                                 <div class="text-center p-4">
                                   <div class="w-16 h-16 mx-auto mb-3 rounded-xl bg-red-500/20 flex items-center justify-center">
                                     <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,65 +315,79 @@ export default function MultimediaPage() {
                                   <p class="text-xs text-gray-500 mt-1 break-all">${item.name}</p>
                                 </div>
                               `;
-                              parent.appendChild(fallback);
-                            }
-                          }}
-                        />
+                                  parent.appendChild(fallback);
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className={`p-4 rounded-xl transition-transform duration-500 ease-out group-hover:scale-110 ${typeColor}`}>
+                              <TypeIcon className="w-12 h-12" />
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full border backdrop-blur-sm ${typeColor}`}>
+                            {item.format?.toUpperCase() || 'FILE'}
+                          </span>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className={`p-4 rounded-xl ${typeColor}`}><TypeIcon className="w-12 h-12" /></div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-white truncate mb-1" title={item.name}>
+                          {item.name}
+                        </h3>
+                        {item.description && <p className="text-sm text-gray-400 line-clamp-2 mb-3">{item.description}</p>}
+                        <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                          <span>{formatFileSize(item.size)}</span>
+                          <span>
+                            <AnimatedNumber value={item.views || 0} /> vistas
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedItem(item);
+                                setShowViewModal(true);
+                              }}
+                              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                item.url && window.open(item.url, '_blank');
+                              }}
+                              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                              title="Descargar"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(item.id);
+                            }}
+                            className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute top-2 right-2">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full border backdrop-blur-sm ${typeColor}`}>
-                        {item.format?.toUpperCase() || 'FILE'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-white truncate mb-1" title={item.name}>
-                      {item.name}
-                    </h3>
-                    {item.description && (
-                      <p className="text-sm text-gray-400 line-clamp-2 mb-3">{item.description}</p>
-                    )}
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <span>{formatFileSize(item.size)}</span>
-                      <span>{item.views || 0} vistas</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setShowViewModal(true); }}
-                          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                          title="Ver detalles"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); item.url && window.open(item.url, '_blank'); }}
-                          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                          title="Descargar"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            );
-          })
+                    </Card>
+                  </StaggerItem>
+                );
+              })}
+            </AnimatePresence>
+          </Stagger>
         )}
-      </div>
+      </Reveal>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
