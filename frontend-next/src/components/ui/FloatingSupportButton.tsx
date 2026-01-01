@@ -17,6 +17,9 @@ interface SupportMessage {
   id: number;
   senderRole: 'user' | 'staff';
   sender: string;
+  senderDisplay?: string;
+  senderEmail?: string;
+  senderRoleName?: string;
   text: string;
   created_at: string;
 }
@@ -24,6 +27,9 @@ interface SupportMessage {
 interface SupportChat {
   id: number;
   owner: string;
+  ownerDisplay?: string;
+  ownerEmail?: string;
+  ownerRoleName?: string;
   status: ChatStatus;
   created_at: string;
   updated_at: string;
@@ -33,11 +39,16 @@ interface SupportChat {
 interface SupportChatListItem {
   id: number;
   owner: string;
+  ownerDisplay?: string;
+  ownerEmail?: string;
+  ownerRoleName?: string;
   status: string;
   created_at?: string;
   updated_at?: string;
   lastMessage?: string;
   lastSender?: string;
+  lastSenderDisplay?: string;
+  lastSenderRole?: string;
 }
 
 function formatTime(ts?: string) {
@@ -210,6 +221,7 @@ const SupportChatPanel: React.FC<{ onBack: () => void; onClose: () => void }> = 
                 {chats.map((c) => {
                   const active = selectedChatId === c.id;
                   const status = String(c.status || 'open');
+                  const ownerName = String(c.ownerDisplay || c.owner || 'usuario');
                   return (
                     <button
                       key={c.id}
@@ -220,7 +232,7 @@ const SupportChatPanel: React.FC<{ onBack: () => void; onClose: () => void }> = 
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-white truncate">{c.owner || 'usuario'}</p>
+                        <p className="text-sm font-semibold text-white truncate">{ownerName}</p>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full ${
                             status === 'open' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-500/20 text-gray-400'
@@ -248,7 +260,11 @@ const SupportChatPanel: React.FC<{ onBack: () => void; onClose: () => void }> = 
                 <Unlock className="w-4 h-4 text-emerald-400" />
               )}
               <p className="text-sm text-gray-400">
-                {chat ? `Chat #${chat.id} • ${chat.owner}` : canManage ? 'Selecciona un chat' : 'Escribe para iniciar el chat'}
+                {chat
+                  ? `Chat #${chat.id} • ${chat.ownerDisplay || chat.owner}`
+                  : canManage
+                    ? 'Selecciona un chat'
+                    : 'Escribe para iniciar el chat'}
               </p>
             </div>
             {canManage && chat && (
@@ -269,7 +285,10 @@ const SupportChatPanel: React.FC<{ onBack: () => void; onClose: () => void }> = 
             ) : (
               <div className="space-y-3">
                 {(chat.messages || []).map((m) => {
-                  const mine = !canManage && m.senderRole === 'user';
+                  const currentUsername = String(user?.username || '').trim();
+                  const mine = canManage
+                    ? m.senderRole === 'staff' && !!currentUsername && (m.sender === currentUsername || m.senderDisplay === currentUsername)
+                    : m.senderRole === 'user';
                   const fromStaff = m.senderRole === 'staff';
                   const align = mine ? 'justify-end' : 'justify-start';
                   const bubble = mine
@@ -278,11 +297,20 @@ const SupportChatPanel: React.FC<{ onBack: () => void; onClose: () => void }> = 
                     ? 'bg-emerald-500/15 text-gray-200'
                     : 'bg-white/10 text-gray-200';
 
+                  const ownerName = String(chat?.ownerDisplay || chat?.owner || 'usuario');
+                  const senderBase = fromStaff
+                    ? String(m.senderDisplay || m.sender || 'Soporte')
+                    : String(m.senderDisplay || (m.sender === 'usuario' ? ownerName : m.sender) || ownerName);
+                  const senderRoleName = String(m.senderRoleName || '').trim();
+                  const senderLabel = fromStaff
+                    ? `Soporte (${senderBase}${senderRoleName ? ` • ${senderRoleName}` : ''})`
+                    : senderBase;
+
                   return (
                     <div key={m.id} className={`flex ${align}`}>
                       <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${bubble}`}>
                         <div className="flex items-center justify-between gap-3 mb-1">
-                          <p className="text-xs text-gray-400 [html.light_&]:text-gray-600">{fromStaff ? `Soporte (${m.sender})` : m.sender}</p>
+                          <p className="text-xs text-gray-400 [html.light_&]:text-gray-600">{senderLabel}</p>
                           <p className="text-[11px] text-gray-500 [html.light_&]:text-gray-600">{formatTime(m.created_at)}</p>
                         </div>
                         <p className="text-sm whitespace-pre-wrap break-words">{m.text}</p>
