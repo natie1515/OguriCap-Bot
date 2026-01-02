@@ -6,6 +6,7 @@ import { Header } from './Header';
 import { useBotStatus, useConnectionHealth } from '@/hooks/useRealTime';
 import { RealTimeBadge } from '@/components/ui/StatusIndicator';
 import { FloatingSupportButton } from '@/components/ui/FloatingSupportButton';
+import { RouteProgressBar } from '@/components/motion/RouteProgressBar';
 import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
@@ -21,6 +22,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="h-screen overflow-hidden mesh-bg">
+      <RouteProgressBar />
       {/* Animated background particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div

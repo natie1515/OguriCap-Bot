@@ -49,7 +49,7 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
           )}
 
           <motion.div
-            className="mt-3 h-[2px] w-24 rounded-full bg-gradient-to-r from-primary-500 via-cyan-400 to-emerald-400"
+            className="mt-3 h-[2px] w-24 rounded-full bg-gradient-to-r from-primary-500 via-cyan-400 to-emerald-400 header-underline-animated"
             initial={reduceMotion ? false : { opacity: 0, scaleX: 0 }}
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scaleX: 1 }}
             transition={reduceMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 420, damping: 30, mass: 0.6 }}
@@ -71,4 +71,3 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
     </div>
   );
 }
-

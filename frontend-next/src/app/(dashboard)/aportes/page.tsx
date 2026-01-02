@@ -15,12 +15,15 @@ import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useSocket } from '@/contexts/SocketContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useAportesSmartRefresh } from '@/hooks/useSmartRefresh';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import { Aporte } from '@/types';
 
 export default function AportesPage() {
+  const { isModerator: isModeratorFn } = usePermissions();
+  const canModerate = isModeratorFn();
   const [aportes, setAportes] = useState<Aporte[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +40,8 @@ export default function AportesPage() {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isConnected: isSocketConnected } = useSocket();
+  const [deleteTarget, setDeleteTarget] = useState<Aporte | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadAportes = useCallback(async () => {
     try {
@@ -73,6 +78,10 @@ export default function AportesPage() {
   }, [loadAportes, loadStats]);
 
   const updateEstado = async (id: number, estado: string, motivo?: string) => {
+    if (!canModerate) {
+      toast.error('Permisos insuficientes');
+      return;
+    }
     try {
       await api.approveAporte(id, estado, motivo);
       setAportes(prev => prev.map(a => a.id === id ? { ...a, estado: estado as any } : a));
@@ -91,6 +100,26 @@ export default function AportesPage() {
       loadStats();
     } catch (err) {
       toast.error('Error al actualizar estado');
+    }
+  };
+
+  const deleteAporte = async (aporte: Aporte) => {
+    if (!canModerate) {
+      toast.error('Permisos insuficientes');
+      return;
+    }
+    try {
+      setDeleting(true);
+      await api.deleteAporte(aporte.id);
+      toast.success('Aporte eliminado');
+      setAportes(prev => prev.filter(a => a.id !== aporte.id));
+      if (selectedAporte?.id === aporte.id) setSelectedAporte(null);
+      setDeleteTarget(null);
+      loadStats();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Error al eliminar aporte');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -361,7 +390,18 @@ export default function AportesPage() {
                           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setSelectedAporte(aporte)} className="p-2 rounded-lg text-cyan-400 hover:bg-cyan-500/10 transition-colors">
                             <Eye className="w-4 h-4" />
                           </motion.button>
-                          {aporte.estado === 'pendiente' && (
+                          {canModerate && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => setDeleteTarget(aporte)}
+                              className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                              title="Eliminar aporte"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          )}
+                          {canModerate && aporte.estado === 'pendiente' && (
                             <>
                               <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => updateEstado(aporte.id, 'aprobado')} className="p-2 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition-colors">
                                 <ThumbsUp className="w-4 h-4" />
@@ -420,12 +460,58 @@ export default function AportesPage() {
                 <p className="text-white capitalize">{selectedAporte.tipo}</p>
               </div>
             </div>
-            {selectedAporte.estado === 'pendiente' && (
+            {canModerate && (
               <div className="flex gap-3 pt-4">
-                <Button variant="primary" className="flex-1" icon={<ThumbsUp className="w-4 h-4" />} onClick={() => updateEstado(selectedAporte.id, 'aprobado')}>Aprobar</Button>
-                <Button variant="danger" className="flex-1" icon={<ThumbsDown className="w-4 h-4" />} onClick={() => updateEstado(selectedAporte.id, 'rechazado')}>Rechazar</Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={() => setDeleteTarget(selectedAporte)}
+                >
+                  Eliminar
+                </Button>
+                {selectedAporte.estado === 'pendiente' && (
+                  <>
+                    <Button variant="primary" className="flex-1" icon={<ThumbsUp className="w-4 h-4" />} onClick={() => updateEstado(selectedAporte.id, 'aprobado')}>Aprobar</Button>
+                    <Button variant="danger" className="flex-1" icon={<ThumbsDown className="w-4 h-4" />} onClick={() => updateEstado(selectedAporte.id, 'rechazado')}>Rechazar</Button>
+                  </>
+                )}
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => (deleting ? null : setDeleteTarget(null))}
+        title="Eliminar aporte"
+      >
+        {deleteTarget && (
+          <div className="space-y-4">
+            <p className="text-gray-300 text-sm">
+              ¿Seguro que quieres eliminar el aporte <span className="text-white font-medium">#{deleteTarget.id}</span>?
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={() => deleteAporte(deleteTarget)}
+                loading={deleting}
+              >
+                Eliminar
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

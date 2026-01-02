@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 
 interface ProgressRingProps {
@@ -94,6 +94,8 @@ export const BarChart: React.FC<BarChartProps> = ({
 }) => {
   const maxValue = Math.max(...data.map(d => d.value), 1);
   const didMountRef = React.useRef(false);
+  const reduceMotion = useReducedMotion();
+  const shouldAnimate = animated && !reduceMotion;
 
   React.useEffect(() => {
     didMountRef.current = true;
@@ -112,34 +114,37 @@ export const BarChart: React.FC<BarChartProps> = ({
               : ratio;
         const heightPct = item.value > 0 ? `${scaled * 100}%` : '0%';
         const barMinHeight = item.value > 0 ? minBarHeight : 0;
-        const delay = animated && !didMountRef.current ? index * 0.05 : 0;
-        const transition = animated
+        const delay = shouldAnimate && !didMountRef.current ? index * 0.05 : 0;
+        const transition = shouldAnimate
           ? didMountRef.current
-            ? { duration: 0.35, ease: 'easeOut' as const }
-            : { duration: 0.8, delay, ease: 'easeOut' as const }
-          : undefined;
+            ? { type: 'spring' as const, stiffness: 260, damping: 30, mass: 0.9 }
+            : { type: 'spring' as const, stiffness: 220, damping: 26, mass: 0.9, delay }
+          : { duration: 0 };
 
         return (
           <div key={index} className="flex-1 h-full flex flex-col items-center">
             <div className="w-full flex-1 flex items-end group">
               <motion.div
-                initial={animated ? { height: 0, opacity: 0 } : undefined}
-                animate={animated ? { height: heightPct, opacity: 1 } : undefined}
+                initial={shouldAnimate ? { height: 0, opacity: 0 } : false}
+                animate={{ height: heightPct, opacity: 1 }}
                 transition={transition}
-                whileHover={{ scale: 1.05, filter: "brightness(1.2)" }}
+                whileHover={!reduceMotion ? { scale: 1.05, filter: "brightness(1.2)" } : undefined}
                 className="w-full rounded-t-lg transition-all duration-200 cursor-pointer relative"
-                style={{ backgroundColor: item.color || '#6366f1', minHeight: barMinHeight }}
+                style={{
+                  background: `linear-gradient(180deg, ${item.color || '#6366f1'} 0%, rgba(0,0,0,0.12) 100%)`,
+                  minHeight: barMinHeight
+                }}
               >
                 {/* Tooltip on hover */}
                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                  {item.value}
+                  {reduceMotion ? item.value : <AnimatedNumber value={item.value} duration={0.4} />}
                 </div>
               </motion.div>
             </div>
             <motion.span 
-              initial={animated ? { opacity: 0, y: 10 } : undefined}
-              animate={animated ? { opacity: 1, y: 0 } : undefined}
-              transition={animated ? { duration: 0.4, delay: index * 0.1 + 0.5 } : undefined}
+              initial={shouldAnimate ? { opacity: 0, y: 10 } : false}
+              animate={shouldAnimate ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+              transition={shouldAnimate ? { duration: 0.35, delay: index * 0.05 + 0.25, ease: 'easeOut' } : { duration: 0 }}
               className="text-xs text-gray-500 mt-2 truncate w-full text-center"
             >
               {item.label}

@@ -134,6 +134,23 @@ export const StatCard: React.FC<StatCardProps> = ({
   animated = true
 }) => {
   const reduceMotion = useReducedMotion();
+  const shouldAnimate = animated && !reduceMotion;
+  const prevValueRef = React.useRef<number | string | null>(null);
+  const [flash, setFlash] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!shouldAnimate) return;
+    if (prevValueRef.current === null) {
+      prevValueRef.current = value as any;
+      return;
+    }
+    if (prevValueRef.current !== (value as any)) {
+      prevValueRef.current = value as any;
+      setFlash(true);
+      const t = window.setTimeout(() => setFlash(false), 900);
+      return () => window.clearTimeout(t);
+    }
+  }, [shouldAnimate, value]);
   if (loading) {
     return (
       <motion.div
@@ -157,7 +174,10 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <motion.div
-      className={`p-6 rounded-xl bg-gradient-to-br ${gradientClasses[color]} border backdrop-blur-sm relative overflow-hidden group`}
+      className={cn(
+        `p-6 rounded-xl bg-gradient-to-br ${gradientClasses[color]} border backdrop-blur-sm relative overflow-hidden group`,
+        flash && 'flash-update'
+      )}
       initial={!reduceMotion && animated ? { opacity: 0, y: 30, scale: 0.9 } : undefined}
       whileInView={!reduceMotion && animated ? { opacity: 1, y: 0, scale: 1 } : undefined}
       viewport={!reduceMotion && animated ? { once: true, amount: 0.35 } : undefined}

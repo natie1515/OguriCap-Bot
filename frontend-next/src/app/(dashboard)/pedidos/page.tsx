@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart, Search, RefreshCw, Clock, CheckCircle, XCircle, Loader2, Eye, Plus, X,
-  ArrowUp, ArrowDown, Minus, Radio, Heart, Sparkles, Bot, Download, Send,
+  ArrowUp, ArrowDown, Minus, Radio, Heart, Sparkles, Bot, Download, Send, Trash2,
 } from 'lucide-react';
 import { Card, StatCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -21,7 +21,9 @@ import { Pedido } from '@/types';
 
 export default function PedidosPage() {
   const { user } = useAuth();
-  const { isAdmin, isModerator } = usePermissions();
+  const { isAdmin: isAdminFn, isModerator: isModeratorFn } = usePermissions();
+  const isAdmin = isAdminFn();
+  const isModerator = isModeratorFn();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,6 +43,8 @@ export default function PedidosPage() {
   const [sendToJid, setSendToJid] = useState('');
   const [sendingItemId, setSendingItemId] = useState<number | null>(null);
   const [markCompletedOnSend, setMarkCompletedOnSend] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Pedido | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadPedidos = useCallback(async () => {
     try {
@@ -191,6 +195,22 @@ export default function PedidosPage() {
       toast.success('Voto registrado');
     } catch (err) {
       toast.error('Error al votar');
+    }
+  };
+  
+  const deletePedido = async (pedido: Pedido) => {
+    try {
+      setDeleting(true);
+      await api.deletePedido(pedido.id);
+      toast.success('Pedido eliminado');
+      setPedidos(prev => prev.filter(p => p.id !== pedido.id));
+      if (selectedPedido?.id === pedido.id) setSelectedPedido(null);
+      setDeleteTarget(null);
+      loadStats();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Error al eliminar pedido');
+    } finally {
+      setDeleting(false);
     }
   };
   const createPedido = async () => {
@@ -439,6 +459,17 @@ export default function PedidosPage() {
                           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => voteForPedido(pedido.id)} className="p-2 rounded-lg text-pink-400 hover:bg-pink-500/10 transition-colors" title="Votar pedido">
                             <Heart className="w-4 h-4" />
                           </motion.button>
+                          {(isAdmin || isModerator) && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => setDeleteTarget(pedido)}
+                              className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                              title="Eliminar pedido"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          )}
                           {(isAdmin || isModerator) && pedido.estado === 'pendiente' && (
                             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => updateEstado(pedido.id, 'en_proceso')} className="p-2 rounded-lg text-amber-400 hover:bg-amber-500/10 transition-colors" title="Marcar en proceso">
                               <Loader2 className="w-4 h-4" />
@@ -672,6 +703,16 @@ export default function PedidosPage() {
               <Button variant="secondary" className="flex-1" icon={<Heart className="w-4 h-4" />} onClick={() => { voteForPedido(selectedPedido.id); setSelectedPedido(null); }}>
                 Votar ({(selectedPedido as any).votos || 0})
               </Button>
+              {(isAdmin || isModerator) && (
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={() => setDeleteTarget(selectedPedido)}
+                >
+                  Eliminar
+                </Button>
+              )}
               {(isAdmin || isModerator) && selectedPedido.estado === 'pendiente' && (
                 <Button variant="primary" className="flex-1" onClick={() => { updateEstado(selectedPedido.id, 'en_proceso'); setSelectedPedido(null); }}>
                   Iniciar Proceso
@@ -682,6 +723,40 @@ export default function PedidosPage() {
                   Completar
                 </Button>
               )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => (deleting ? null : setDeleteTarget(null))}
+        title="Eliminar pedido"
+      >
+        {deleteTarget && (
+          <div className="space-y-4">
+            <p className="text-gray-300 text-sm">
+              ¿Seguro que quieres eliminar el pedido <span className="text-white font-medium">#{deleteTarget.id}</span>?
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={() => deletePedido(deleteTarget)}
+                loading={deleting}
+              >
+                Eliminar
+              </Button>
             </div>
           </div>
         )}

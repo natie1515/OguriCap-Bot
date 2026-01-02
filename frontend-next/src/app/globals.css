@@ -91,6 +91,72 @@ body {
   animation: flashUpdate 1.2s ease-out;
 }
 
+.route-progress-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.route-progress-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 35%, #06b6d4 70%, #34d399 100%);
+  background-size: 200% 100%;
+  animation: gradient 2.2s ease infinite;
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.35);
+  border-radius: 9999px;
+}
+
+.header-underline-animated {
+  background-size: 200% 100%;
+  animation: gradient 3s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-underline-animated::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.65) 50%, transparent 100%);
+  animation: headerSheen 2.6s ease-in-out infinite;
+  filter: blur(0.5px);
+  opacity: 0.35;
+}
+
+@keyframes headerSheen {
+  0% { transform: translateX(0%); }
+  60% { transform: translateX(260%); }
+  100% { transform: translateX(260%); }
+}
+
+.btn-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.22) 42%, transparent 60%);
+  transform: translateX(-35%);
+}
+
+.btn-sheen:hover::after {
+  opacity: 1;
+  animation: btnSheen 0.9s ease-out;
+}
+
+@keyframes btnSheen {
+  0% { transform: translateX(-45%); }
+  100% { transform: translateX(45%); }
+}
+
 @layer components {
   .glass {
     @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl;
@@ -98,6 +164,40 @@ body {
 
   .glass-card {
     @apply bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(99,102,241,0.35), rgba(139,92,246,0.25), rgba(6,182,212,0.25), rgba(52,211,153,0.2));
+    background-size: 200% 100%;
+    animation: gradient 10s ease infinite;
+    opacity: 0.45;
+    pointer-events: none;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .glass-card::after {
+    content: '';
+    position: absolute;
+    inset: -40% -30%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 55%);
+    opacity: 0.25;
+    transform: translate3d(0, 0, 0);
+    pointer-events: none;
+    transition: opacity 260ms ease, transform 340ms ease;
+  }
+
+  .glass-card:hover::after {
+    opacity: 0.5;
+    transform: translate3d(2%, -2%, 0);
   }
 
   .glass-dark {
@@ -226,7 +326,11 @@ body {
   }
 
   .table-glass tr {
-    @apply transition-colors duration-200 hover:bg-white/5;
+    @apply transition-colors duration-200;
+  }
+
+  .table-glass tr:hover {
+    background: linear-gradient(90deg, rgba(99,102,241,0.10) 0%, rgba(255,255,255,0.04) 50%, rgba(6,182,212,0.08) 100%);
   }
 
   .skeleton {

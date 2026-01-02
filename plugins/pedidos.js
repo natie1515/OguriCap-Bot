@@ -2,6 +2,39 @@ import fs from 'fs'
 import path from 'path'
 import { classifyProviderLibraryContent } from '../lib/provider-content-classifier.js'
 
+const shouldSkipDuplicateCommand = (m, command) => {
+  try {
+    const msgId = m?.key?.id || m?.id || m?.message?.key?.id || null
+    if (!msgId) return false
+
+    global.__panelPedidoCommandSeen ||= new Map()
+    const seen = global.__panelPedidoCommandSeen
+    const now = Date.now()
+    const key = `${String(command || '')}|${String(m?.chat || '')}|${String(m?.sender || '')}|${String(msgId)}`
+
+    const prev = seen.get(key)
+    if (prev && now - prev < 2 * 60 * 1000) return true
+    seen.set(key, now)
+
+    if (seen.size > 2000) {
+      const minTs = now - 6 * 60 * 60 * 1000
+      for (const [k, ts] of seen.entries()) {
+        if (ts < minTs) seen.delete(k)
+      }
+      if (seen.size > 3000) {
+        for (const k of seen.keys()) {
+          seen.delete(k)
+          if (seen.size <= 1500) break
+        }
+      }
+    }
+
+    return false
+  } catch {
+    return false
+  }
+}
+
 const ensureStore = () => {
   if (!global.db.data.panel) global.db.data.panel = {}
   if (!global.db.data.panel.pedidos) global.db.data.panel.pedidos = {}
@@ -133,7 +166,7 @@ const searchProviderLibrary = async (panel, proveedorJid, pedido, limit = 5) => 
   return { query, results: top }
 }
 
-const formatSearchResults = (pedido, query, results, usedPrefix) => {
+const formatSearchResults = (pedido, query, results, usedPrefix, proveedorJid) => {
   const panelUrl = getPanelUrl()
   const lines = []
   lines.push(`🔎 *Resultados para Pedido #${pedido.id}*`)
@@ -141,7 +174,13 @@ const formatSearchResults = (pedido, query, results, usedPrefix) => {
   if (!results.length) {
     lines.push('')
     lines.push('❌ No encontré coincidencias en la biblioteca de este proveedor.')
-    lines.push(`💡 Tip: prueba con otro nombre o agrega más detalle en la descripción.`)
+    lines.push(`📌 Esto significa que *aún no está en el almacenamiento* (biblioteca).`)
+    if (panelUrl && proveedorJid) {
+      lines.push(`🌐 Biblioteca: ${panelUrl}/proveedores/${encodeURIComponent(String(proveedorJid))}`)
+    }
+    lines.push(`👑 Un admin/owner/mod puede subir el contenido y luego volver a intentar:`)
+    lines.push(`   ${usedPrefix}procesarpedido ${pedido.id}`)
+    lines.push(`💡 Tip: incluye capítulo (ej: "Jinx cap 10") o agrega más detalle en la descripción.`)
     return lines.join('\n')
   }
 
@@ -276,6 +315,8 @@ let handler = async (m, { args, usedPrefix, command, conn }) => {
   ensureStore()
   const panel = global.db.data.panel
 
+  if (shouldSkipDuplicateCommand(m, command)) return null
+
   switch (command) {
     case 'pedido':
     case 'pedir': {
@@ -335,21 +376,28 @@ Prioridades: alta, media, baja`)
       } catch {}
 
       // Auto-procesar pedido en grupos proveedor si está activado en el proveedor
+      let autoSearchText = ''
       try {
         const proveedor = panel?.proveedores?.[m.chat] || null
         const auto = Boolean(proveedor?.auto_procesar_pedidos)
         if (m.isGroup && auto) {
-          pedido.estado = 'en_proceso'
-          pedido.fecha_actualizacion = new Date().toISOString()
           const { query, results } = await searchProviderLibrary(panel, m.chat, pedido, 5)
-          pedido.bot = { processedAt: new Date().toISOString(), query, matches: results.map((r) => ({ id: r.it?.id, score: r.score })) }
+          const hasMatches = results.length > 0
+          pedido.estado = hasMatches ? 'en_proceso' : 'pendiente'
+          pedido.fecha_actualizacion = new Date().toISOString()
+          pedido.bot = {
+            processedAt: new Date().toISOString(),
+            query,
+            matches: results.map((r) => ({ id: r.it?.id, score: r.score })),
+            note: hasMatches ? 'matches_found' : 'no_matches',
+          }
           panel.pedidos[id] = pedido
           if (global.db?.write) await global.db.write().catch(() => {})
           try {
             const { emitPedidoUpdated } = await import('../lib/socket-io.js')
             emitPedidoUpdated(pedido)
           } catch {}
-          await m.reply(formatSearchResults(pedido, query, results, usedPrefix))
+          autoSearchText = formatSearchResults(pedido, query, results, usedPrefix, m.chat)
         }
       } catch {}
 
@@ -360,7 +408,15 @@ Prioridades: alta, media, baja`)
 📋 Descripción: ${descripcion || 'Sin descripción'}
 ${prioridadEmoji[prioridad]} Prioridad: ${prioridad}`
       if (media) msg += `\n📎 Archivo: ${media.filename}`
-      msg += `\n\nUsa ${usedPrefix}verpedido ${id} para ver detalles`
+
+      if (autoSearchText) {
+        msg += `\n\n${autoSearchText}`
+      } else if (m.isGroup && panel?.proveedores?.[m.chat]) {
+        msg += `\n\n💡 Para buscar en la biblioteca: ${usedPrefix}procesarpedido ${id}`
+      } else {
+        msg += `\n\nℹ️ Para que el bot lo busque en la biblioteca, crea el pedido en el *grupo proveedor* o un admin lo procesa desde el panel.`
+        msg += `\nUsa ${usedPrefix}verpedido ${id} para ver detalles`
+      }
       
       return m.reply(msg)
     }
@@ -541,10 +597,16 @@ ${msg}
       const proveedor = panel?.proveedores?.[targetGroup] || null
       if (!proveedor) return m.reply('❌ El grupo asociado no está marcado como proveedor')
 
-      pedido.estado = 'en_proceso'
-      pedido.fecha_actualizacion = new Date().toISOString()
       const { query, results } = await searchProviderLibrary(panel, targetGroup, pedido, 5)
-      pedido.bot = { processedAt: new Date().toISOString(), query, matches: results.map((r) => ({ id: r.it?.id, score: r.score })) }
+      const hasMatches = results.length > 0
+      pedido.estado = hasMatches ? 'en_proceso' : 'pendiente'
+      pedido.fecha_actualizacion = new Date().toISOString()
+      pedido.bot = {
+        processedAt: new Date().toISOString(),
+        query,
+        matches: results.map((r) => ({ id: r.it?.id, score: r.score })),
+        note: hasMatches ? 'matches_found' : 'no_matches',
+      }
       panel.pedidos[id] = pedido
       if (global.db?.write) await global.db.write().catch(() => {})
       try {
@@ -552,7 +614,7 @@ ${msg}
         emitPedidoUpdated(pedido)
       } catch {}
 
-      return m.reply(formatSearchResults(pedido, query, results, usedPrefix))
+      return m.reply(formatSearchResults(pedido, query, results, usedPrefix, targetGroup))
     }
 
     case 'enviarlib': {
