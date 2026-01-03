@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { cn } from '@/lib/utils';
 
 /* =========================
@@ -25,36 +24,41 @@ function toneFromColor(color?: string): ChartTone {
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 /* =========================
-   PROGRESS RING (FIXED)
+   PROGRESS RING (COMPAT)
 ========================= */
 
-interface ProgressRingProps {
-  value: number;
-  total: number;
+type ProgressRingBaseProps = {
   size?: number;
   strokeWidth?: number;
   label?: string;
-}
+  color?: string;
+  className?: string;
+};
 
-export const ProgressRing: React.FC<ProgressRingProps> = ({
-  value,
-  total,
-  size = 120,
-  strokeWidth = 8,
-  label,
-}) => {
+type ProgressRingProps =
+  | (ProgressRingBaseProps & { progress: number })
+  | (ProgressRingBaseProps & { value: number; total: number });
+
+export const ProgressRing: React.FC<ProgressRingProps> = (props) => {
   const reduceMotion = useReducedMotion();
 
-  const safeTotal = total > 0 ? total : 1;
-  const ratio = clamp01(value / safeTotal);
+  const ratio =
+    'progress' in props
+      ? clamp01(props.progress / 100)
+      : clamp01(props.value / (props.total > 0 ? props.total : 1));
   const percent = Math.round(ratio * 100);
+
+  const size = props.size ?? 120;
+  const strokeWidth = props.strokeWidth ?? 8;
+  const label = props.label;
+  const stroke = props.color ?? 'rgb(var(--primary))';
 
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const dashOffset = circumference * (1 - ratio);
 
   return (
-    <div className="relative grid place-items-center">
+    <div className={cn("relative grid place-items-center", props.className)}>
       <svg width={size} height={size} className="-rotate-90">
         {/* background */}
         <circle
@@ -71,7 +75,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgb(var(--primary))"
+          stroke={stroke}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -91,45 +95,159 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
 };
 
 /* =========================
+   DONUT CHART (SAFE)
+========================= */
+
+interface DonutChartProps {
+  data: { label: string; value: number; color?: string }[];
+  size?: number;
+  strokeWidth?: number;
+  centerValue?: React.ReactNode;
+  centerLabel?: React.ReactNode;
+  className?: string;
+}
+
+export const DonutChart: React.FC<DonutChartProps> = ({
+  data,
+  size = 140,
+  strokeWidth = 14,
+  centerValue,
+  centerLabel,
+  className,
+}) => {
+  const reduceMotion = useReducedMotion();
+
+  const total = data.reduce((sum, item) => sum + Math.max(0, item.value || 0), 0) || 1;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+
+  let offset = 0;
+
+  return (
+    <div className={cn("relative grid place-items-center", className)}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgb(var(--border) / 0.18)"
+          strokeWidth={strokeWidth}
+        />
+
+        {data.map((item, i) => {
+          const value = Math.max(0, item.value || 0);
+          const segmentLength = (value / total) * circumference;
+          const dashArray = `${segmentLength} ${circumference - segmentLength}`;
+          const dashOffset = -offset;
+
+          offset += segmentLength;
+
+          return (
+            <motion.circle
+              key={`${item.label}-${i}`}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={item.color ?? 'rgb(var(--primary))'}
+              strokeWidth={strokeWidth}
+              strokeLinecap="butt"
+              strokeDasharray={dashArray}
+              strokeDashoffset={dashOffset}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.4, delay: i * 0.05 }}
+            />
+          );
+        })}
+      </svg>
+
+      {(centerValue || centerLabel) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
+          {centerValue && <div className="text-2xl font-bold text-white leading-none">{centerValue}</div>}
+          {centerLabel && <div className="text-xs text-gray-400 mt-1">{centerLabel}</div>}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* =========================
    BAR CHART (FIXED)
 ========================= */
 
 interface BarChartProps {
   data: { label: string; value: number; color?: string }[];
   height?: number;
+  animated?: boolean;
+  scale?: 'linear' | 'sqrt' | 'log';
+  minBarHeight?: number;
+  className?: string;
 }
 
 export const BarChart: React.FC<BarChartProps> = ({
   data,
   height = 200,
+  animated = true,
+  scale = 'linear',
+  minBarHeight = 0,
+  className,
 }) => {
   const reduceMotion = useReducedMotion();
+
   const maxValue = Math.max(...data.map(d => d.value), 1);
 
+  const scaleFn = (v: number) => {
+    const safe = Math.max(0, v);
+    switch (scale) {
+      case 'sqrt':
+        return Math.sqrt(safe);
+      case 'log':
+        return Math.log1p(safe);
+      case 'linear':
+      default:
+        return safe;
+    }
+  };
+
+  const scaledMax = Math.max(scaleFn(maxValue), 1);
+  const minScale = minBarHeight > 0 ? minBarHeight / height : 0;
+  const shouldAnimate = animated && !reduceMotion;
+
   return (
-    <div className="chart-frame">
+    <div className={cn("chart-frame", className)}>
       <div
         className="relative flex items-end gap-1"
         style={{ height }}
       >
         {data.map((item, i) => {
-          const ratio = clamp01(item.value / maxValue);
+          const ratio = clamp01(scaleFn(item.value) / scaledMax);
+          const visibleRatio = item.value > 0 ? Math.max(ratio, minScale) : 0;
 
           return (
             <div key={i} className="flex-1 flex flex-col items-center">
-              <motion.div
-                className="bar w-full rounded-md"
-                style={{
-                  background: item.color ?? 'rgb(var(--primary))',
-                }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: ratio }}
-                transition={
-                  reduceMotion
-                    ? { duration: 0 }
-                    : { duration: 0.8, delay: i * 0.05, ease: 'easeOut' }
-                }
-              />
+              {shouldAnimate ? (
+                <motion.div
+                  className="bar w-full rounded-md"
+                  style={{
+                    background: item.color ?? 'rgb(var(--primary))',
+                    transformOrigin: 'bottom',
+                  }}
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: visibleRatio }}
+                  transition={{ duration: 0.8, delay: i * 0.05, ease: 'easeOut' }}
+                />
+              ) : (
+                <div
+                  className="bar w-full rounded-md"
+                  style={{
+                    background: item.color ?? 'rgb(var(--primary))',
+                    transform: `scaleY(${visibleRatio})`,
+                    transformOrigin: 'bottom',
+                  }}
+                />
+              )}
               <span className="mt-2 text-xs text-gray-500 truncate">
                 {item.label}
               </span>
@@ -183,4 +301,3 @@ export const Sparkline: React.FC<SparklineProps> = ({
     </svg>
   );
 };
-
