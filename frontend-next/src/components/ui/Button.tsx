@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'btn-sheen relative overflow-hidden press-scale focus-ring-animated inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50',
+  'btn-sheen relative overflow-hidden press-scale focus-ring-animated inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-semibold tracking-wide transition-all duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-50 ring-1 ring-white/10 hover:ring-white/20 hover:-translate-y-0.5 active:translate-y-0',
   {
     variants: {
       variant: {
@@ -18,15 +18,15 @@ const buttonVariants = cva(
         glow: 'btn-glow',
         ghost: [
           'px-4 py-2',
-          'text-gray-400 hover:text-white hover:bg-white/5',
+          'text-gray-300 hover:text-white hover:bg-white/10 hover:shadow-inner-glow',
           '[html.light_&]:text-gray-600 [html.light_&]:hover:text-gray-900 [html.light_&]:hover:bg-gray-100/50',
         ],
       },
       size: {
         default: '',
         sm: '!px-4 !py-2 text-xs',
-        lg: '!px-8 !py-4',
-        icon: '!p-2.5 h-10 w-10',
+        lg: '!px-8 !py-4 text-base',
+        icon: '!p-2.5 h-11 w-11',
       },
     },
     defaultVariants: {

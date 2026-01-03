@@ -4,11 +4,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, MessageSquare, Package, ShoppingCart, Bot, Zap,
-  TrendingUp, Activity, Clock, CheckCircle, RefreshCw, Radio, Settings,
+  TrendingUp, Activity, Clock, CheckCircle, RefreshCw, Settings,
 } from 'lucide-react';
 import { StatCard, GlowCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { ActionButton } from '@/components/ui/ActionButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/Accordion';
 import { ProgressRing, BarChart, DonutChart } from '@/components/ui/Charts';
 import { RealTimeBadge, StatusIndicator } from '@/components/ui/StatusIndicator';
@@ -21,7 +23,6 @@ import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useDashboardStats, useBotStatus, useSystemStats, useSubbotsStatus, useRecentActivity } from '@/hooks/useRealTime';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
-import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { useSocket, SOCKET_EVENTS } from '@/contexts/SocketContext';
 import { formatUptime } from '@/lib/utils';
 import { Magnetic } from '@/components/ui/Magnetic';
@@ -120,8 +121,8 @@ export default function DashboardPage() {
         icon={<TrendingUp className="w-6 h-6 text-primary-400" />}
         actions={
           <>
-            <Button
-              variant="secondary"
+            <ActionButton
+              tone="glow"
               onClick={handleRefresh}
               icon={
                 <motion.div
@@ -133,24 +134,11 @@ export default function DashboardPage() {
               }
             >
               Actualizar
-            </Button>
+            </ActionButton>
 
-            <Badge variant={isSocketConnected ? 'success' : 'danger'} className="gap-2">
-              <motion.div
-                animate={
-                  isSocketConnected
-                    ? {
-                        scale: [1, 1.2, 1],
-                        opacity: [1, 0.7, 1],
-                      }
-                    : {}
-                }
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Radio className="w-3 h-3" />
-              </motion.div>
-              {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexión'}
-            </Badge>
+            <StatusBadge tone={isSocketConnected ? 'success' : 'danger'} pulse={isSocketConnected}>
+              {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexion'}
+            </StatusBadge>
             <RealTimeBadge isActive={isConnected && isGloballyOn} />
           </>
         }

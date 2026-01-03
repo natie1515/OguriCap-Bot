@@ -25,15 +25,32 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   const offset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
+    <div className="relative progress-ring" style={{ width: size, height: size }}>
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 rounded-full blur-2xl opacity-60"
+        style={{
+          background: `radial-gradient(circle at 30% 30%, ${color}55, transparent 60%)`,
+          transform: 'translate3d(0,0,0)',
+        }}
+      />
+
+      <svg width={size} height={size} className="relative transform -rotate-90 drop-shadow-[0_0_18px_rgba(0,0,0,0.35)]">
+        <defs>
+          <linearGradient id={`ring-${color.replace('#', '')}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="55%" stopColor="#8b5cf6" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.95" />
+          </linearGradient>
+        </defs>
+
         {/* Background circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.1)"
+          stroke="rgba(255,255,255,0.12)"
           strokeWidth={strokeWidth}
         />
         {/* Progress circle */}
@@ -42,33 +59,33 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={color}
+          stroke={`url(#ring-${color.replace('#', '')})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           initial={reduceMotion ? false : { strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 1.5, ease: 'easeOut' }}
-          style={{ 
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.65, ease: [0.16, 1, 0.3, 1] }}
+          style={{
             strokeDasharray: circumference,
-            filter: 'drop-shadow(0 0 8px rgba(99, 102, 241, 0.5))'
+            filter: `drop-shadow(0 0 10px ${color}80) drop-shadow(0 0 24px ${color}40)`,
           }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <motion.span 
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.5 }}
-          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.5 }}
-          className="text-2xl font-bold text-white"
+        <motion.span
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.6, filter: 'blur(8px)' }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.6, delay: 0.35, ease: 'easeOut' }}
+          className="text-2xl font-extrabold text-white tracking-tight"
         >
           {progress}%
         </motion.span>
         {label && (
-          <motion.span 
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.7 }}
-            className="text-xs text-gray-400"
+          <motion.span
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.55, ease: 'easeOut' }}
+            className="mt-1 text-[11px] font-bold tracking-[0.22em] uppercase text-gray-400"
           >
             {label}
           </motion.span>
@@ -103,7 +120,16 @@ export const BarChart: React.FC<BarChartProps> = ({
   }, []);
 
   return (
-    <div className="flex items-end gap-1" style={{ height }}>
+    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-3 shadow-inner-glow">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-60"
+        style={{
+          background:
+            'radial-gradient(circle at 20% 10%, rgb(var(--page-a) / 0.22), transparent 55%), radial-gradient(circle at 80% 30%, rgb(var(--page-c) / 0.18), transparent 55%)',
+        }}
+      />
+      <div className="relative flex items-end gap-1" style={{ height }}>
       {data.map((item, index) => {
         const rawRatio = maxValue > 0 ? item.value / maxValue : 0;
         const ratio = Math.max(0, Math.min(1, rawRatio));
@@ -130,14 +156,14 @@ export const BarChart: React.FC<BarChartProps> = ({
                 animate={{ height: heightPct, opacity: 1 }}
                 transition={transition}
                 whileHover={!reduceMotion ? { scale: 1.05, filter: "brightness(1.2)" } : undefined}
-                className="w-full rounded-t-lg transition-all duration-200 cursor-pointer relative"
+                className="w-full rounded-2xl transition-all duration-300 cursor-pointer relative shadow-glow"
                 style={{
                   background: `linear-gradient(180deg, ${item.color || '#6366f1'} 0%, rgba(0,0,0,0.12) 100%)`,
                   minHeight: barMinHeight
                 }}
               >
                 {/* Tooltip on hover */}
-                <div className="tooltip -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <div className="tooltip -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap">
                   {reduceMotion ? item.value : <AnimatedNumber value={item.value} duration={0.4} />}
                 </div>
               </motion.div>
@@ -153,6 +179,7 @@ export const BarChart: React.FC<BarChartProps> = ({
           </div>
         );
       })}
+      </div>
     </div>
   );
 };

@@ -8,8 +8,22 @@ import { SocketProvider } from '@/contexts/SocketContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { LoadingOverlayProvider } from '@/contexts/LoadingOverlayContext';
 import { NotificationEffectsListener } from '@/components/effects/NotificationEffectsListener';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MotionConfig } from 'framer-motion';
+import { usePathname } from 'next/navigation';
+import { getPageKeyFromPathname } from '@/lib/pageTheme';
+
+function PageThemeSync() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const page = getPageKeyFromPathname(pathname);
+    document.documentElement.dataset.page = page;
+    document.body.dataset.page = page;
+  }, [pathname]);
+
+  return null;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -25,6 +39,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <QueryClientProvider client={queryClient}>
+        <PageThemeSync />
         <MotionConfig
           reducedMotion="user"
           transition={{ type: 'spring', stiffness: 420, damping: 32, mass: 0.8 }}

@@ -17,9 +17,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, animated = false, delay = 0, hover = true, glow = false, children, ...props }, ref) => {
     const reduceMotion = useReducedMotion();
     const cardClassName = cn(
-      'glass-card',
-      hover && 'glass-hover hover-lift-soft',
-      glow && 'shadow-glow',
+      'ultra-card ultra-card--glow',
+      hover && 'ultra-card--interactive glass-hover hover-lift-soft',
+      glow && 'shadow-glow-lg',
       className
     );
     if (animated) {

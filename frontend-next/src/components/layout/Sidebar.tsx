@@ -10,8 +10,8 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
-import { useAutoRefresh } from '@/hooks/useAutoRefresh';
-import { StatusIndicator, RealTimeBadge } from '@/components/ui/StatusIndicator';
+import { StatusIndicator } from '@/components/ui/StatusIndicator';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Home, Bot, Users, MessageSquare, Package, ShoppingCart, Settings,
@@ -92,20 +92,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <aside
         className={cn(
           'fixed top-0 left-0 z-50 h-screen w-72',
-          'glass-dark border-r border-white/10',
+          'glass-dark border-r border-white/10 relative overflow-hidden',
           'flex flex-col',
           'transform transition-transform duration-300 ease-out',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0'
         )}
       >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none opacity-60"
+          style={{
+            background:
+              'radial-gradient(circle at 30% 10%, rgb(var(--page-a) / 0.22), transparent 55%), radial-gradient(circle at 80% 30%, rgb(var(--page-b) / 0.18), transparent 60%), radial-gradient(circle at 30% 90%, rgb(var(--page-c) / 0.16), transparent 62%)',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-[2px] opacity-90"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent 0%, rgb(var(--page-a) / 0.85) 20%, rgb(var(--page-b) / 0.85) 55%, rgb(var(--page-c) / 0.85) 85%, transparent 100%)',
+          }}
+        />
+        <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <Link href="/" className="flex items-center gap-3">
             <motion.div
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.5 }}
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-glow hover-lift-soft"
+              className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-500 via-violet-600 to-cyan-500 flex items-center justify-center shadow-glow-lg hover-lift-soft"
             >
               <Bot className="w-6 h-6 text-white" />
             </motion.div>
@@ -127,7 +144,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               }
               size="sm"
             />
-            <RealTimeBadge isActive={isConnected && isGloballyOn} />
+            <StatusBadge
+              tone={!isGloballyOn ? 'neutral' : isConnected ? 'success' : isConnecting ? 'warning' : 'danger'}
+              pulse={isConnected && isGloballyOn}
+            >
+              {!isGloballyOn ? 'OFF' : isConnecting ? 'SYNC' : isConnected ? 'LIVE' : 'DOWN'}
+            </StatusBadge>
           </div>
           <div className="text-xs text-gray-400">
             {!isGloballyOn ? 'Bot Desactivado' : 
@@ -223,6 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <LogOut className="w-5 h-5" />
             </motion.button>
           </div>
+        </div>
         </div>
       </aside>
     </>

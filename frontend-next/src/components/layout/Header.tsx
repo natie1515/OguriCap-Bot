@@ -7,9 +7,10 @@ import { useTheme } from 'next-themes';
 import { useSocket } from '@/contexts/SocketContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
 import { usePreferences } from '@/contexts/PreferencesContext';
-import { Bell, Search, Moon, Sun, RefreshCw, Menu, X, Radio, Volume2, VolumeX, Smartphone } from 'lucide-react';
+import { Bell, Search, Moon, Sun, RefreshCw, Menu, X, Volume2, VolumeX, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { LiveIndicator } from '@/components/ui/LiveIndicator';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
@@ -76,7 +77,23 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   }, [showNotifications]);
 
   return (
-    <header className="sticky top-0 z-30 glass-dark border-b border-white/10">
+    <header className="sticky top-0 z-30 glass-dark border-b border-white/10 relative overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 -top-24 h-48 opacity-60 blur-3xl"
+        style={{
+          background:
+            'radial-gradient(circle at 30% 30%, rgb(var(--page-a) / 0.22), transparent 60%), radial-gradient(circle at 70% 40%, rgb(var(--page-c) / 0.18), transparent 62%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 h-[2px] opacity-90"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, rgb(var(--page-a) / 0.85) 20%, rgb(var(--page-b) / 0.85) 55%, rgb(var(--page-c) / 0.85) 85%, transparent 100%)',
+        }}
+      />
       <div className="flex items-center justify-between px-4 lg:px-6 h-16">
         {/* Left side */}
         <div className="flex items-center gap-4">
@@ -95,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
           </div>
 
           <div className="hidden sm:block">
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-2xl font-extrabold gradient-text-animated tracking-tight">
               {currentPage?.label || 'Panel'}
             </h2>
           </div>
@@ -116,25 +133,18 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
         {/* Right side */}
         <div className="flex items-center gap-3">
           {/* Socket.IO status */}
-          <div
-            className={cn(
-              'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border hover-glass-bright',
-              isSocketConnected ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'
-            )}
-          >
-            <Radio className={`w-3 h-3 ${isSocketConnected ? 'text-emerald-400 animate-pulse' : 'text-red-400'}`} />
-            <span className={`text-xs ${isSocketConnected ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isSocketConnected ? 'Real-Time' : 'Offline'}
-            </span>
-          </div>
+          <LiveIndicator
+            className="hidden sm:inline-flex"
+            state={isSocketConnected ? 'live' : 'danger'}
+            label={isSocketConnected ? 'Real-Time' : 'Offline'}
+          />
 
           {/* Bot status */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-xs text-gray-400">
-              {isConnected ? 'Bot Online' : 'Bot Offline'}
-            </span>
-          </div>
+          <LiveIndicator
+            className="hidden sm:inline-flex"
+            state={isConnecting ? 'warning' : isConnected ? 'live' : 'danger'}
+            label={isConnecting ? 'Bot Connecting' : isConnected ? 'Bot Online' : 'Bot Offline'}
+          />
 
           {/* Notifications */}
           <div className="relative" ref={notificationsRef}>
