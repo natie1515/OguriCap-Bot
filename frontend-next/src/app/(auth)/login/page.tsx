@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
 import { Bot, Eye, EyeOff, Lock, User, Sparkles, Zap, Shield, Crown, UserCheck, Users, Wrench, AlertTriangle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { notify } from '@/lib/notify';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -86,7 +86,7 @@ export default function LoginPage() {
       const role = params.get('role');
       if (registered === '1') {
         const roleText = role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Usuario';
-        toast.success(`Tu rol es ${roleText}. Iniciá sesión para continuar.`);
+        notify.success(`Tu rol es ${roleText}. Iniciá sesión para continuar.`);
 
         params.delete('registered');
         params.delete('role');
@@ -104,7 +104,7 @@ export default function LoginPage() {
       
       if (data.maintenanceMode) {
         setIsMaintenanceMode(true);
-        toast.error('El sistema está en modo de mantenimiento');
+        notify.warning('El sistema está en modo de mantenimiento');
       } else {
         setIsMaintenanceMode(false);
       }
@@ -122,33 +122,33 @@ export default function LoginPage() {
     
     // Verificar modo de mantenimiento antes de proceder
     if (isMaintenanceMode) {
-      toast.error('El sistema está en modo de mantenimiento. Solo los administradores pueden acceder.');
+      notify.warning('El sistema está en modo de mantenimiento. Solo los administradores pueden acceder.');
       return;
     }
     
     // Validaciones mejoradas
     if (!username.trim()) {
-      toast.error('El nombre de usuario es requerido');
+      notify.error('El nombre de usuario es requerido');
       return;
     }
 
     if (username.trim().length < 3) {
-      toast.error('El usuario debe tener al menos 3 caracteres');
+      notify.error('El usuario debe tener al menos 3 caracteres');
       return;
     }
 
     if (!password.trim()) {
-      toast.error('La contraseña es requerida');
+      notify.error('La contraseña es requerida');
       return;
     }
 
     if (password.length < 4) {
-      toast.error('La contraseña debe tener al menos 4 caracteres');
+      notify.error('La contraseña debe tener al menos 4 caracteres');
       return;
     }
 
     if (!selectedRole) {
-      toast.error('Debes seleccionar un rol para continuar');
+      notify.error('Debes seleccionar un rol para continuar');
       return;
     }
 
@@ -156,7 +156,7 @@ export default function LoginPage() {
     try {
       await login(username.trim(), password, selectedRole);
       const selectedRoleData = roles.find(r => r.value === selectedRole);
-      toast.success(`¡Bienvenido como ${selectedRoleData?.label}!`);
+      notify.success(`¡Bienvenido como ${selectedRoleData?.label}!`);
       router.push('/');
     } catch (error: any) {
       console.error('Login error:', error);
@@ -184,7 +184,7 @@ export default function LoginPage() {
         errorMessage = 'Error del servidor. Inténtalo más tarde';
       }
       
-      toast.error(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

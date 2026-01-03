@@ -98,7 +98,73 @@ interface ModalProps {
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className }) => {
   const [mounted, setMounted] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const previousFocusRef = React.useRef<HTMLElement | null>(null);
   React.useEffect(() => setMounted(true), []);
+
+  const getFocusable = React.useCallback(() => {
+    const root = contentRef.current;
+    if (!root) return [] as HTMLElement[];
+    const candidates = root.querySelectorAll<HTMLElement>(
+      [
+        'a[href]',
+        'button:not([disabled])',
+        'textarea:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(',')
+    );
+    return Array.from(candidates).filter(el => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+
+    const focusFirst = () => {
+      const focusables = getFocusable();
+      const target = focusables[0] ?? contentRef.current;
+      target?.focus?.();
+    };
+    // Wait a tick so the portal content exists.
+    const t = window.setTimeout(focusFirst, 0);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Tab') return;
+      const focusables = getFocusable();
+      if (focusables.length === 0) {
+        e.preventDefault();
+        contentRef.current?.focus?.();
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (e.shiftKey) {
+        if (!active || active === first || !contentRef.current?.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (!active || active === last || !contentRef.current?.contains(active)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('keydown', onKeyDown);
+      previousFocusRef.current?.focus?.();
+      previousFocusRef.current = null;
+    };
+  }, [getFocusable, isOpen, onClose]);
 
   if (!isOpen || !mounted) return null;
 
@@ -108,19 +174,24 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="modal-overlay"
         onClick={onClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className={cn('glass-card p-6 w-full max-w-lg max-h-[90vh] overflow-auto', className)}
+          className={cn('modal-content', className)}
           onClick={(e) => e.stopPropagation()}
+          ref={contentRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
         >
           {title && (
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">{title}</h3>
+              <h3 id={titleId} className="text-xl font-semibold text-white">{title}</h3>
               <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>

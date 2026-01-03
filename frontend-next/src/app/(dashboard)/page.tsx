@@ -8,8 +8,9 @@ import {
 } from 'lucide-react';
 import { Card, StatCard, GlowCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/Accordion';
 import { ProgressRing, BarChart, DonutChart } from '@/components/ui/Charts';
-import { RealTimeBadge } from '@/components/ui/StatusIndicator';
+import { RealTimeBadge, StatusIndicator } from '@/components/ui/StatusIndicator';
 import PerformanceIndicator from '@/components/ui/PerformanceIndicator';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -237,13 +238,14 @@ export default function DashboardPage() {
               color="cyan"
               delay={0}
               loading={statsLoading}
+              active={onlineCount > 0}
               animated={true}
             />
           </Magnetic>
         </StaggerItem>
       </Stagger>
 
-      {/* Main Content Grid */}      {/* Main Content Grid */}
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bot Status */}
         <Card animated delay={0.5} className="p-6" hover={true} glow={isConnected && isGloballyOn}>
@@ -256,17 +258,7 @@ export default function DashboardPage() {
             >
               Estado del Bot
             </motion.h3>
-            <motion.div 
-              className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse shadow-glow-emerald' : 'bg-red-500'}`}
-              animate={isConnected ? { 
-                boxShadow: [
-                  "0 0 10px rgba(16, 185, 129, 0.5)",
-                  "0 0 20px rgba(16, 185, 129, 0.8)",
-                  "0 0 10px rgba(16, 185, 129, 0.5)"
-                ]
-              } : {}}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
+            <StatusIndicator status={isConnecting ? 'connecting' : isConnected ? 'online' : 'offline'} showLabel={false} />
           </div>
 
           <div className="flex items-center justify-center mb-6">
@@ -349,7 +341,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Activity Chart */}
-        <Card animated delay={0.6} className="lg:col-span-2 p-6" hover={true}>
+        <Card animated delay={0.6} className="lg:col-span-2 chart-container" hover={true}>
           <div className="flex items-center justify-between mb-6">
             <motion.h3 
               className="text-lg font-semibold text-white"
@@ -448,7 +440,7 @@ export default function DashboardPage() {
       {/* Second Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Resources */}
-        <Card animated delay={0.7} className="p-6">
+        <Card animated delay={0.7} className="chart-container">
           <h3 className="text-lg font-semibold text-white mb-6">Recursos del Sistema</h3>
           
           <div className="flex items-center justify-center mb-6">
@@ -664,83 +656,150 @@ export default function DashboardPage() {
 
       {/* System Information */}
       <Card animated delay={1.0} className="p-6">
-        <h3 className="text-lg font-semibold text-white mb-6">Información del Sistema</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-300">Procesador</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Uso CPU</span>
-                <span className="text-white font-mono">{cpuUsage.toFixed(2)}%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Núcleos</span>
-                <span className="text-white font-mono">{systemInfo?.cpu?.cores || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Modelo</span>
-                <span className="text-white font-mono text-xs truncate" title={systemInfo?.cpu?.model}>
-                  {systemInfo?.cpu?.model ? systemInfo.cpu.model.slice(0, 20) + '...' : '-'}
-                </span>
-              </div>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h3 className="text-lg font-semibold text-white">Información del Sistema</h3>
+          <span className="badge-info">Live</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass p-4 rounded-2xl hover-lift-soft">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-300">CPU</span>
+              <span className="badge-info">{cpuUsage.toFixed(0)}%</span>
+            </div>
+            <div className="progress-bar mt-3">
+              <div
+                className="progress-bar-fill"
+                style={{ width: `${Math.min(100, Math.max(0, cpuUsage))}%` }}
+              />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
+              <span className="truncate">
+                {systemInfo?.cpu?.cores ? `${systemInfo.cpu.cores} núcleos` : '—'}
+              </span>
+              <span className="truncate max-w-[170px]" title={systemInfo?.cpu?.model}>
+                {systemInfo?.cpu?.model || '—'}
+              </span>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-300">Memoria RAM</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Uso</span>
-                <span className="text-white font-mono">{(memoryUsage?.systemPercentage ?? 0).toFixed(2)}%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Total</span>
-                <span className="text-white font-mono">{systemInfo?.memory?.totalGB || '-'} GB</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Libre</span>
-                <span className="text-white font-mono">{systemInfo?.memory?.freeGB || '-'} GB</span>
-              </div>
+          <div className="glass p-4 rounded-2xl hover-lift-soft">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-300">Memoria</span>
+              <span className="badge-primary">{(memoryUsage?.systemPercentage ?? 0).toFixed(0)}%</span>
+            </div>
+            <div className="progress-bar mt-3">
+              <div
+                className="progress-bar-fill"
+                style={{ width: `${Math.min(100, Math.max(0, memoryUsage?.systemPercentage ?? 0))}%` }}
+              />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
+              <span className="truncate">Total: {systemInfo?.memory?.totalGB || '—'} GB</span>
+              <span className="truncate">Libre: {systemInfo?.memory?.freeGB || '—'} GB</span>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-300">Sistema</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Plataforma</span>
-                <span className="text-white font-mono">{systemInfo?.platform || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Arquitectura</span>
-                <span className="text-white font-mono">{systemInfo?.arch || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Node.js</span>
-                <span className="text-white font-mono">{systemInfo?.node || '-'}</span>
-              </div>
+          <div className="glass p-4 rounded-2xl hover-lift-soft">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-300">Disco</span>
+              <span className="badge-warning">{(diskUsage?.percentage ?? 0).toFixed(0)}%</span>
             </div>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-300">Almacenamiento</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Uso</span>
-                <span className="text-white font-mono">{(diskUsage?.percentage ?? 0).toFixed(2)}%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Total</span>
-                <span className="text-white font-mono">{diskUsage?.totalGB || '-'} GB</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Libre</span>
-                <span className="text-white font-mono">{diskUsage?.freeGB || '-'} GB</span>
-              </div>
+            <div className="progress-bar mt-3">
+              <div
+                className="progress-bar-fill"
+                style={{ width: `${Math.min(100, Math.max(0, diskUsage?.percentage ?? 0))}%` }}
+              />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
+              <span className="truncate">Total: {diskUsage?.totalGB || '—'} GB</span>
+              <span className="truncate">Libre: {diskUsage?.freeGB || '—'} GB</span>
             </div>
           </div>
         </div>
+
+        <Accordion type="single" defaultValue="details" className="mt-4">
+          <AccordionItem value="details">
+            <AccordionTrigger>Detalles del sistema</AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-300">Procesador</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Uso CPU</span>
+                      <span className="text-white font-mono">{cpuUsage.toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Núcleos</span>
+                      <span className="text-white font-mono">{systemInfo?.cpu?.cores || '-'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Modelo</span>
+                      <span className="text-white font-mono text-xs truncate" title={systemInfo?.cpu?.model}>
+                        {systemInfo?.cpu?.model ? systemInfo.cpu.model.slice(0, 20) + '...' : '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-300">Memoria RAM</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Uso</span>
+                      <span className="text-white font-mono">{(memoryUsage?.systemPercentage ?? 0).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Total</span>
+                      <span className="text-white font-mono">{systemInfo?.memory?.totalGB || '-'} GB</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Libre</span>
+                      <span className="text-white font-mono">{systemInfo?.memory?.freeGB || '-'} GB</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-300">Sistema</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Plataforma</span>
+                      <span className="text-white font-mono">{systemInfo?.platform || '-'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Arquitectura</span>
+                      <span className="text-white font-mono">{systemInfo?.arch || '-'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Node.js</span>
+                      <span className="text-white font-mono">{systemInfo?.node || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-300">Almacenamiento</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Uso</span>
+                      <span className="text-white font-mono">{(diskUsage?.percentage ?? 0).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Total</span>
+                      <span className="text-white font-mono">{diskUsage?.totalGB || '-'} GB</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Libre</span>
+                      <span className="text-white font-mono">{diskUsage?.freeGB || '-'} GB</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </Card>
     </div>
   );

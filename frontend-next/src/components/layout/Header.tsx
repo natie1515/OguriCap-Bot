@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -8,6 +8,9 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { Bell, Search, Moon, Sun, RefreshCw, Menu, X, Radio, Volume2, VolumeX, Smartphone } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { cn } from '@/lib/utils';
 
 const menuItems = [
   { path: '/', label: 'Dashboard' },
@@ -36,6 +39,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
@@ -48,19 +52,47 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   const currentPage = menuItems.find(item => item.path === pathname);
   const isConnected = pollingConnected;
 
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowNotifications(false);
+    };
+
+    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [showNotifications]);
+
   return (
     <header className="sticky top-0 z-30 glass-dark border-b border-white/10">
       <div className="flex items-center justify-between px-4 lg:px-6 h-16">
         {/* Left side */}
         <div className="flex items-center gap-4">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </motion.button>
+          <div className="lg:hidden">
+            <Tooltip content={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'} side="bottom">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onMenuClick}
+                aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+                className="hover-glass-bright"
+              >
+                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </Button>
+            </Tooltip>
+          </div>
 
           <div className="hidden sm:block">
             <h2 className="text-xl font-bold text-white">
@@ -76,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
             <input
               type="text"
               placeholder="Buscar..."
-              className="input-search w-full"
+              className="input-search w-full hover-glass-bright focus-ring-animated"
             />
           </div>
         </div>
@@ -84,11 +116,12 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
         {/* Right side */}
         <div className="flex items-center gap-3">
           {/* Socket.IO status */}
-          <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-            isSocketConnected 
-              ? 'bg-emerald-500/10 border-emerald-500/30' 
-              : 'bg-red-500/10 border-red-500/30'
-          }`}>
+          <div
+            className={cn(
+              'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border hover-glass-bright',
+              isSocketConnected ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'
+            )}
+          >
             <Radio className={`w-3 h-3 ${isSocketConnected ? 'text-emerald-400 animate-pulse' : 'text-red-400'}`} />
             <span className={`text-xs ${isSocketConnected ? 'text-emerald-400' : 'text-red-400'}`}>
               {isSocketConnected ? 'Real-Time' : 'Offline'}
@@ -104,31 +137,32 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
           </div>
 
           {/* Notifications */}
-          <div className="relative">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <motion.div
-                animate={
-                  !reduceMotion && unreadCount > 0
-                    ? { rotate: [0, -10, 10, -6, 6, 0] }
-                    : { rotate: 0 }
-                }
-                transition={
-                  !reduceMotion && unreadCount > 0
-                    ? { duration: 0.6, ease: 'easeOut', repeat: Infinity, repeatDelay: 4 }
-                    : undefined
-                }
+          <div className="relative" ref={notificationsRef}>
+            <Tooltip content="Notificaciones" side="bottom">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowNotifications(v => !v)}
+                aria-label="Abrir notificaciones"
+                className={cn('relative hover-glass-bright', unreadCount > 0 && 'pulse-on-alert')}
               >
-                <Bell className="w-5 h-5" />
-              </motion.div>
-              {unreadCount > 0 && (
-                <span className="notification-dot">{unreadCount}</span>
-              )}
-            </motion.button>
+                <motion.div
+                  animate={
+                    !reduceMotion && unreadCount > 0
+                      ? { rotate: [0, -10, 10, -6, 6, 0] }
+                      : { rotate: 0 }
+                  }
+                  transition={
+                    !reduceMotion && unreadCount > 0
+                      ? { duration: 0.6, ease: 'easeOut', repeat: Infinity, repeatDelay: 4 }
+                      : undefined
+                  }
+                >
+                  <Bell className="w-5 h-5" />
+                </motion.div>
+                {unreadCount > 0 && <span className="notification-dot">{unreadCount}</span>}
+              </Button>
+            </Tooltip>
 
             <AnimatePresence>
               {showNotifications && (
@@ -136,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-80 glass-card rounded-xl border border-white/10 shadow-2xl overflow-hidden z-50"
+                  className="dropdown w-80 py-0 overflow-hidden"
                 >
                   <div className="p-4 border-b border-white/10 flex items-center justify-between">
                     <h3 className="font-semibold text-white">Notificaciones</h3>
@@ -154,9 +188,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                           animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                           transition={reduceMotion ? undefined : { duration: 0.2, delay: index * 0.03 }}
-                          className={`p-3 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
-                            !notif.leida ? 'bg-primary-500/5' : ''
-                          }`}
+                          className={cn(
+                            'dropdown-item border-b border-white/5 hover-glass-bright hover-outline-gradient',
+                            !notif.leida && 'bg-primary-500/5 highlight-change'
+                          )}
                         >
                           <p className="text-sm text-white font-medium truncate">
                             {notif.titulo || notif.title || 'Notificación'}
@@ -217,24 +252,30 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
           </div>
 
           {/* Theme toggle */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </motion.button>
+          <Tooltip content={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'} side="bottom">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label="Cambiar tema"
+              className="hover-glass-bright"
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </Button>
+          </Tooltip>
 
           {/* Refresh */}
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 180 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => window.location.reload()}
-            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </motion.button>
+          <Tooltip content="Refrescar" side="bottom">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.location.reload()}
+              aria-label="Refrescar"
+              className="hover-glass-bright group"
+            >
+              <RefreshCw className={cn('w-5 h-5 transition-transform duration-300', !reduceMotion && 'group-hover:rotate-180')} />
+            </Button>
+          </Tooltip>
         </div>
       </div>
     </header>

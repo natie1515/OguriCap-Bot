@@ -16,6 +16,7 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useBotStatus, useBotGlobalState, useSystemStats } from '@/hooks/useRealTime';
 import { useSocket } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLoadingOverlay } from '@/contexts/LoadingOverlayContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
@@ -32,6 +33,7 @@ export default function BotStatusPage() {
   const { memoryUsage, cpuUsage, diskUsage, uptime } = useSystemStats(10000);
   const { isConnected: isSocketConnected, botStatus: socketBotStatus } = useSocket();
   const { user } = useAuth();
+  const { withLoading } = useLoadingOverlay();
 
   const connected = socketBotStatus?.connected ?? isConnected;
   const connecting = socketBotStatus?.connecting ?? botConnecting ?? isConnecting;
@@ -116,7 +118,7 @@ export default function BotStatusPage() {
       return;
     }
     try {
-      await api.disconnectMainBot();
+      await withLoading(() => api.disconnectMainBot(), { message: 'Desconectando bot...' });
       toast.success('Bot desconectado');
       refetch();
     } catch (error) {
@@ -130,7 +132,7 @@ export default function BotStatusPage() {
       return;
     }
     try {
-      await api.restartMainBot();
+      await withLoading(() => api.restartMainBot(), { message: 'Reiniciando bot...', details: 'Esto puede tardar unos segundos.' });
       toast.success('Bot reiniciado');
       refetch();
     } catch (error) {
@@ -144,7 +146,10 @@ export default function BotStatusPage() {
       return;
     }
     try {
-      await setGlobalState(!isOn);
+      await withLoading(() => setGlobalState(!isOn), {
+        message: !isOn ? 'Activando bot globalmente...' : 'Desactivando bot globalmente...',
+        details: 'Aplicando cambios en todos los grupos.',
+      });
       toast.success(isOn ? 'Bot desactivado globalmente' : 'Bot activado globalmente');
     } catch (error) {
       toast.error('Error al cambiar estado global');
@@ -326,7 +331,7 @@ export default function BotStatusPage() {
                     ) : (
                       <div className="text-center">
                         <QrCode className="w-12 h-12 text-gray-500 mx-auto mb-2" />
-                        <p className="text-gray-400 text-sm">Haz clic en "Generar QR" para generar el QR</p>
+                        <p className="text-gray-400 text-sm">Haz clic en &quot;Generar QR&quot; para generar el QR</p>
                       </div>
                     )}
                   </div>

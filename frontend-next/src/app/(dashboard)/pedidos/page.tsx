@@ -19,6 +19,8 @@ import api from '@/services/api';
 import toast from 'react-hot-toast';
 import { Pedido } from '@/types';
 
+const PENDING_LIBRARY_PROCESS_STORAGE_KEY = 'panel:pedidos:pending-library-process:v1';
+
 export default function PedidosPage() {
   const { user } = useAuth();
   const { isAdmin: isAdminFn, isModerator: isModeratorFn } = usePermissions();
@@ -45,6 +47,8 @@ export default function PedidosPage() {
   const [markCompletedOnSend, setMarkCompletedOnSend] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Pedido | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingLibraryProcessIds, setPendingLibraryProcessIds] = useState<Set<number>>(() => new Set());
+  const lastAutoLibraryAttemptRef = React.useRef<string>('');
 
   const loadPedidos = useCallback(async () => {
     try {
@@ -81,6 +85,30 @@ export default function PedidosPage() {
   }, [loadPedidos, loadStats]);
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PENDING_LIBRARY_PROCESS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const ids = parsed.map((v: any) => Number(v)).filter((n: number) => Number.isFinite(n) && n > 0);
+      setPendingLibraryProcessIds(new Set(ids));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        PENDING_LIBRARY_PROCESS_STORAGE_KEY,
+        JSON.stringify(Array.from(pendingLibraryProcessIds.values()))
+      );
+    } catch {
+      // ignore
+    }
+  }, [pendingLibraryProcessIds]);
+
+  useEffect(() => {
     if (!selectedPedido) {
       setLibraryMatches(null);
       setProviderGroupJid('');
@@ -112,10 +140,36 @@ export default function PedidosPage() {
     }
   }, [selectedPedido]);
 
-  const processPedido = async (pedido: Pedido) => {
-    const groupJid = String((pedido as any)?.grupo_id || providerGroupJid || '').trim();
+  const markPendingLibraryProcess = useCallback((pedidoId: number, message: string) => {
+    setPendingLibraryProcessIds(prev => {
+      if (prev.has(pedidoId)) return prev;
+      const next = new Set(prev);
+      next.add(pedidoId);
+      return next;
+    });
+    toast(message);
+  }, []);
+
+  const clearPendingLibraryProcess = useCallback((pedidoId: number) => {
+    setPendingLibraryProcessIds(prev => {
+      if (!prev.has(pedidoId)) return prev;
+      const next = new Set(prev);
+      next.delete(pedidoId);
+      return next;
+    });
+  }, []);
+
+  const processPedido = useCallback(async (pedido: Pedido) => {
+    const providerOverride = providerGroupJid.trim();
+    const baseGroup = String((pedido as any)?.grupo_id || '').trim();
+    const groupJid =
+      providerOverride && providerOverride.endsWith('@g.us') ? providerOverride : baseGroup;
+
     if (!groupJid || !groupJid.endsWith('@g.us')) {
-      toast.error('Define el JID del grupo proveedor (…@g.us) para buscar en su biblioteca.');
+      markPendingLibraryProcess(
+        pedido.id,
+        'Búsqueda no disponible: falta configurar un grupo proveedor. Pedido en espera.'
+      );
       return;
     }
 
@@ -125,12 +179,41 @@ export default function PedidosPage() {
       const data = await api.getPedidoLibraryMatches(pedido.id);
       setLibraryMatches(data);
       toast.success('Pedido procesado y listado');
+      clearPendingLibraryProcess(pedido.id);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Error procesando pedido');
+      const status = Number(err?.response?.status || 0);
+      const apiError = String(err?.response?.data?.error || '').trim();
+
+      if (status === 404 && apiError.toLowerCase().includes('proveedor')) {
+        markPendingLibraryProcess(
+          pedido.id,
+          'Proveedor no configurado para este grupo. Pedido en espera: marcá el grupo como proveedor y reintentá.'
+        );
+        return;
+      }
+
+      toast.error(apiError || 'Error procesando pedido');
     } finally {
       setLibraryLoading(false);
     }
-  };
+  }, [clearPendingLibraryProcess, markPendingLibraryProcess, providerGroupJid]);
+
+  useEffect(() => {
+    if (!selectedPedido?.id) return;
+    if (!pendingLibraryProcessIds.has(selectedPedido.id)) return;
+    if (libraryLoading) return;
+
+    const providerOverride = providerGroupJid.trim();
+    const baseGroup = String((selectedPedido as any)?.grupo_id || '').trim();
+    const groupJid =
+      providerOverride && providerOverride.endsWith('@g.us') ? providerOverride : baseGroup;
+    if (!groupJid.endsWith('@g.us')) return;
+
+    const attemptKey = `${selectedPedido.id}:${groupJid}`;
+    if (lastAutoLibraryAttemptRef.current === attemptKey) return;
+    lastAutoLibraryAttemptRef.current = attemptKey;
+    void processPedido(selectedPedido);
+  }, [libraryLoading, pendingLibraryProcessIds, processPedido, providerGroupJid, selectedPedido]);
 
   const sendItemToWhatsApp = async (itemId: number) => {
     const jid = sendToJid.trim();
@@ -605,16 +688,24 @@ export default function PedidosPage() {
                   <p className="text-sm font-medium text-white">Entrega de contenido</p>
                   <p className="text-xs text-gray-500">Lista de capítulos/archivos encontrados en la biblioteca del proveedor.</p>
                 </div>
-                {(isAdmin || isModerator) && (
-                  <Button
-                    variant="secondary"
-                    icon={<Bot className={`w-4 h-4 ${libraryLoading ? 'animate-spin' : ''}`} />}
-                    onClick={() => processPedido(selectedPedido)}
-                    disabled={libraryLoading}
-                  >
-                    Procesar
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {pendingLibraryProcessIds.has(selectedPedido.id) && (
+                    <span className="badge-warning">
+                      <Clock className="w-3 h-3" />
+                      <span className="ml-1">En espera</span>
+                    </span>
+                  )}
+                  {(isAdmin || isModerator) && (
+                    <Button
+                      variant="secondary"
+                      icon={<Bot className={`w-4 h-4 ${libraryLoading ? 'animate-spin' : ''}`} />}
+                      onClick={() => processPedido(selectedPedido)}
+                      disabled={libraryLoading}
+                    >
+                      Procesar
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">

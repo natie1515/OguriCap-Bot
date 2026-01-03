@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <motion.div
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.5 }}
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-glow"
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-glow hover-lift-soft"
             >
               <Bot className="w-6 h-6 text-white" />
             </motion.div>
@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Bot Status Mini */}
-        <div className="px-4 py-3 mx-4 mt-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="mx-4 mt-4 rounded-xl glass hover-outline-gradient hover-glass-bright p-4">
           <div className="flex items-center justify-between mb-2">
             <StatusIndicator
               status={
@@ -159,11 +159,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     href={item.path}
                     onClick={onClose}
                     className={cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-xl',
-                      'transition-all duration-300 group relative',
-                      isActive
-                        ? 'bg-gradient-to-r from-primary-500/20 to-transparent border-l-4 border-primary-500 text-white shadow-inner-glow'
-                        : 'text-gray-400 hover:bg-white/5 hover:text-white hover:translate-x-1'
+                      'group relative focus-ring-animated press-scale hover-outline-gradient',
+                      isActive ? 'sidebar-item-active' : 'sidebar-item'
                     )}
                   >
                     <div className={cn(
@@ -178,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="ml-auto px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full"
+                        className="ml-auto badge-danger"
                       >
                         {unreadCount}
                       </motion.span>
@@ -220,7 +217,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={logout}
-              className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors press-scale focus-ring-animated"
               title="Cerrar sesión"
             >
               <LogOut className="w-5 h-5" />
