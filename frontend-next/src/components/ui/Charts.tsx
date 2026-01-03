@@ -25,17 +25,24 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   const offset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="relative progress-ring" style={{ width: size, height: size }}>
+    <div
+      className="relative progress-ring grid place-items-center flex-none"
+      style={{ width: size, height: size }}
+    >
       <div
         aria-hidden="true"
-        className="absolute inset-0 rounded-full blur-2xl opacity-60"
+        className="absolute inset-0 rounded-full blur-2xl opacity-55"
         style={{
-          background: `radial-gradient(circle at 30% 30%, ${color}55, transparent 60%)`,
+          background: `radial-gradient(circle at 50% 50%, ${color}55, transparent 62%)`,
           transform: 'translate3d(0,0,0)',
         }}
       />
 
-      <svg width={size} height={size} className="relative transform -rotate-90 drop-shadow-[0_0_18px_rgba(0,0,0,0.35)]">
+      <svg
+        width={size}
+        height={size}
+        className="relative block transform -rotate-90 drop-shadow-[0_0_18px_rgba(0,0,0,0.35)]"
+      >
         <defs>
           <linearGradient id={`ring-${color.replace('#', '')}`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={color} stopOpacity="1" />
