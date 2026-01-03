@@ -19,6 +19,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   color = '#6366f1',
   label,
 }) => {
+  const reduceMotion = useReducedMotion();
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress / 100) * circumference;
@@ -44,9 +45,9 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          initial={{ strokeDashoffset: circumference }}
+          initial={reduceMotion ? false : { strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.5, ease: 'easeOut' }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 1.5, ease: 'easeOut' }}
           style={{ 
             strokeDasharray: circumference,
             filter: 'drop-shadow(0 0 8px rgba(99, 102, 241, 0.5))'
@@ -55,18 +56,18 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span 
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.5 }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.5 }}
           className="text-2xl font-bold text-white"
         >
           {progress}%
         </motion.span>
         {label && (
           <motion.span 
-            initial={{ opacity: 0 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.7 }}
             className="text-xs text-gray-400"
           >
             {label}
@@ -136,7 +137,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                 }}
               >
                 {/* Tooltip on hover */}
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                <div className="tooltip -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap">
                   {reduceMotion ? item.value : <AnimatedNumber value={item.value} duration={0.4} />}
                 </div>
               </motion.div>

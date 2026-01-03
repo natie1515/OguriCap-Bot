@@ -16,6 +16,12 @@ interface CardProps extends Omit<HTMLMotionProps<'div'>, 'ref'> {
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, animated = false, delay = 0, hover = true, glow = false, children, ...props }, ref) => {
     const reduceMotion = useReducedMotion();
+    const cardClassName = cn(
+      'glass-card',
+      hover && 'glass-hover hover-lift-soft',
+      glow && 'shadow-glow',
+      className
+    );
     if (animated) {
       return (
         <motion.div
@@ -23,15 +29,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
           initial={reduceMotion ? false : { opacity: 0, y: 20, scale: 0.95 }}
           whileInView={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, amount: 0.25 }}
-          whileHover={!reduceMotion && hover ? { 
-            y: -5, 
-            scale: 1.02,
-            boxShadow: glow 
-              ? "0 20px 40px rgba(99, 102, 241, 0.3)" 
-              : "0 20px 40px rgba(0,0,0,0.2)"
-          } : undefined}
           transition={{ duration: 0.3, delay, ease: "easeOut" }}
-          className={cn('glass-card', glow && 'shadow-glow', className)}
+          className={cardClassName}
           {...props}
         >
           {children}
@@ -40,15 +39,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     }
 
     return (
-      <motion.div
-        ref={ref}
-        whileHover={!reduceMotion && hover ? { y: -2, scale: 1.01 } : undefined}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className={cn('glass-card', glow && 'shadow-glow', className)}
-        {...props}
-      >
+      <div ref={ref} className={cardClassName} {...(props as any)}>
         {children}
-      </motion.div>
+      </div>
     );
   }
 );
@@ -156,11 +149,11 @@ export const StatCard: React.FC<StatCardProps> = ({
   if (loading) {
     return (
       <motion.div
-        className={cn('card-stat', borderClasses[color], active && 'animate-pulse-glow')}
-        initial={!reduceMotion && animated ? { opacity: 0, y: 20 } : undefined}
-        whileInView={!reduceMotion && animated ? { opacity: 1, y: 0 } : undefined}
-        viewport={!reduceMotion && animated ? { once: true, amount: 0.35 } : undefined}
-        transition={!reduceMotion && animated ? { duration: 0.4, delay } : undefined}
+        className={cn('card-stat hover-lift-soft hover-glass-bright', borderClasses[color], active && 'animate-pulse-glow')}
+        initial={shouldAnimate ? { opacity: 0, y: 20 } : undefined}
+        whileInView={shouldAnimate ? { opacity: 1, y: 0 } : undefined}
+        viewport={shouldAnimate ? { once: true, amount: 0.35 } : undefined}
+        transition={shouldAnimate ? { duration: 0.4, delay } : undefined}
       >
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -177,19 +170,14 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <motion.div
       className={cn(
-        'card-stat group',
+        'card-stat group hover-lift-soft hover-glass-bright',
         active && 'animate-pulse-glow',
         borderClasses[color]
       )}
-      initial={!reduceMotion && animated ? { opacity: 0, y: 30, scale: 0.9 } : undefined}
-      whileInView={!reduceMotion && animated ? { opacity: 1, y: 0, scale: 1 } : undefined}
-      viewport={!reduceMotion && animated ? { once: true, amount: 0.35 } : undefined}
-      whileHover={!reduceMotion && animated ? { 
-        y: -8, 
-        scale: 1.02,
-        boxShadow: "0 20px 40px rgba(0,0,0,0.15)"
-      } : undefined}
-      transition={!reduceMotion && animated ? { duration: 0.4, delay, ease: "easeOut" } : undefined}
+      initial={shouldAnimate ? { opacity: 0, y: 26, scale: 0.98 } : undefined}
+      whileInView={shouldAnimate ? { opacity: 1, y: 0, scale: 1 } : undefined}
+      viewport={shouldAnimate ? { once: true, amount: 0.35 } : undefined}
+      transition={shouldAnimate ? { duration: 0.4, delay, ease: "easeOut" } : undefined}
     >
       {/* Background glow effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -198,30 +186,30 @@ export const StatCard: React.FC<StatCardProps> = ({
         <div className="flex items-center justify-between mb-4">
           <motion.h3 
             className="text-sm font-medium text-gray-300"
-            initial={animated ? { opacity: 0, x: -10 } : undefined}
-            animate={animated ? { opacity: 1, x: 0 } : undefined}
-            transition={animated ? { duration: 0.3, delay: delay + 0.1 } : undefined}
+            initial={shouldAnimate ? { opacity: 0, x: -10 } : undefined}
+            animate={shouldAnimate ? { opacity: 1, x: 0 } : undefined}
+            transition={shouldAnimate ? { duration: 0.3, delay: delay + 0.1 } : undefined}
           >
             {title}
           </motion.h3>
           <motion.div 
             className={cn('p-3 rounded-xl', colorClasses[color])}
-            initial={animated ? { opacity: 0, scale: 0, rotate: -180 } : undefined}
-            animate={animated ? { opacity: 1, scale: 1, rotate: 0 } : undefined}
-            transition={animated ? { duration: 0.5, delay: delay + 0.2 } : undefined}
+            initial={shouldAnimate ? { opacity: 0, scale: 0.9, rotate: -10 } : undefined}
+            animate={shouldAnimate ? { opacity: 1, scale: 1, rotate: 0 } : undefined}
+            transition={shouldAnimate ? { duration: 0.35, delay: delay + 0.2, ease: 'easeOut' } : undefined}
           >
             {icon}
           </motion.div>
         </div>
         
-          <motion.div 
+        <motion.div
           className={cn(
             'text-2xl font-bold text-white mb-1 rounded-lg -mx-2 px-2',
-            flash && 'flash-update'
+            flash && 'flash-update glow-on-update'
           )}
-          initial={animated ? { opacity: 0, scale: 0.5 } : undefined}
-          animate={animated ? { opacity: 1, scale: 1 } : undefined}
-          transition={animated ? { duration: 0.5, delay: delay + 0.3, type: "spring" } : undefined}
+          initial={shouldAnimate ? { opacity: 0, y: 6 } : undefined}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : undefined}
+          transition={shouldAnimate ? { duration: 0.35, delay: delay + 0.25, ease: 'easeOut' } : undefined}
         >
           {typeof value === 'number' ? (
             <AnimatedNumber value={value} duration={0.6} />
@@ -234,9 +222,9 @@ export const StatCard: React.FC<StatCardProps> = ({
           {subtitle && (
             <motion.p 
               className="text-xs text-gray-400"
-              initial={animated ? { opacity: 0, y: 10 } : undefined}
-              animate={animated ? { opacity: 1, y: 0 } : undefined}
-              transition={animated ? { duration: 0.3, delay: delay + 0.4 } : undefined}
+              initial={shouldAnimate ? { opacity: 0, y: 8 } : undefined}
+              animate={shouldAnimate ? { opacity: 1, y: 0 } : undefined}
+              transition={shouldAnimate ? { duration: 0.3, delay: delay + 0.35 } : undefined}
             >
               {subtitle}
             </motion.p>
@@ -247,12 +235,12 @@ export const StatCard: React.FC<StatCardProps> = ({
               className={`flex items-center text-xs ${
                 trend > 0 ? 'text-emerald-400' : trend < 0 ? 'text-red-400' : 'text-gray-400'
               }`}
-              initial={animated ? { opacity: 0, x: 10 } : undefined}
-              animate={animated ? { opacity: 1, x: 0 } : undefined}
-              transition={animated ? { duration: 0.3, delay: delay + 0.5 } : undefined}
+              initial={shouldAnimate ? { opacity: 0, x: 8 } : undefined}
+              animate={shouldAnimate ? { opacity: 1, x: 0 } : undefined}
+              transition={shouldAnimate ? { duration: 0.3, delay: delay + 0.45 } : undefined}
             >
               <span className="mr-1">
-                {trend > 0 ? '↗' : trend < 0 ? '↘' : '→'}
+                {trend > 0 ? '▲' : trend < 0 ? '▼' : '•'}
               </span>
               {Math.abs(trend)}%
             </motion.div>

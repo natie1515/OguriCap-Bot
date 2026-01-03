@@ -6,14 +6,16 @@ import {
   Users, MessageSquare, Package, ShoppingCart, Bot, Zap,
   TrendingUp, Activity, Clock, CheckCircle, RefreshCw, Radio, Settings,
 } from 'lucide-react';
-import { Card, StatCard, GlowCard } from '@/components/ui/Card';
+import { StatCard, GlowCard } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/Accordion';
 import { ProgressRing, BarChart, DonutChart } from '@/components/ui/Charts';
 import { RealTimeBadge, StatusIndicator } from '@/components/ui/StatusIndicator';
 import PerformanceIndicator from '@/components/ui/PerformanceIndicator';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { DashboardCard } from '@/components/ui/DashboardCard';
 import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useDashboardStats, useBotStatus, useSystemStats, useSubbotsStatus, useRecentActivity } from '@/hooks/useRealTime';
@@ -118,29 +120,22 @@ export default function DashboardPage() {
         icon={<TrendingUp className="w-6 h-6 text-primary-400" />}
         actions={
           <>
-            <motion.button
+            <Button
+              variant="secondary"
               onClick={handleRefresh}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 border border-primary-500/30 rounded-lg text-primary-400 transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.1 }}
+              icon={
+                <motion.div
+                  animate={{ rotate: statsLoading ? 360 : 0 }}
+                  transition={{ duration: 1, repeat: statsLoading ? Infinity : 0, ease: 'linear' }}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </motion.div>
+              }
             >
-              <motion.div
-                animate={{ rotate: statsLoading ? 360 : 0 }}
-                transition={{ duration: 1, repeat: statsLoading ? Infinity : 0, ease: "linear" }}
-              >
-                <RefreshCw className="w-4 h-4" />
-              </motion.div>
               Actualizar
-            </motion.button>
+            </Button>
 
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                isSocketConnected
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
-              }`}
-            >
+            <Badge variant={isSocketConnected ? 'success' : 'danger'} className="gap-2">
               <motion.div
                 animate={
                   isSocketConnected
@@ -154,8 +149,8 @@ export default function DashboardPage() {
               >
                 <Radio className="w-3 h-3" />
               </motion.div>
-              {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexi?n'}
-            </div>
+              {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexión'}
+            </Badge>
             <RealTimeBadge isActive={isConnected && isGloballyOn} />
           </>
         }
@@ -248,18 +243,14 @@ export default function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bot Status */}
-        <Card animated delay={0.5} className="p-6" hover={true} glow={isConnected && isGloballyOn}>
-          <div className="flex items-center justify-between mb-6">
-            <motion.h3 
-              className="text-lg font-semibold text-white"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.6 }}
-            >
-              Estado del Bot
-            </motion.h3>
-            <StatusIndicator status={isConnecting ? 'connecting' : isConnected ? 'online' : 'offline'} showLabel={false} />
-          </div>
+        <DashboardCard
+          title="Estado del Bot"
+          icon={<Bot className="w-5 h-5 text-primary-400" />}
+          actions={<StatusIndicator status={isConnecting ? 'connecting' : isConnected ? 'online' : 'offline'} showLabel={false} />}
+          delay={0.5}
+          hover={true}
+          glow={isConnected && isGloballyOn}
+        >
 
           <div className="flex items-center justify-center mb-6">
             <motion.div 
@@ -338,41 +329,23 @@ export default function DashboardPage() {
               </span>
             </motion.div>
           </motion.div>
-        </Card>
+        </DashboardCard>
 
         {/* Activity Chart */}
-        <Card animated delay={0.6} className="lg:col-span-2 chart-container" hover={true}>
-          <div className="flex items-center justify-between mb-6">
-            <motion.h3 
-              className="text-lg font-semibold text-white"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.7 }}
-            >
-              Actividad de Hoy
-            </motion.h3>
-            <motion.div 
-              className="flex items-center gap-4 text-sm"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.8 }}
-            >
-              <div className="flex items-center gap-2">
-                <motion.div 
-                  className="w-3 h-3 rounded-full bg-primary-500"
-                  animate={{ 
-                    boxShadow: [
-                      "0 0 5px rgba(99, 102, 241, 0.5)",
-                      "0 0 15px rgba(99, 102, 241, 0.8)",
-                      "0 0 5px rgba(99, 102, 241, 0.5)"
-                    ]
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                <span className="text-gray-400">Mensajes</span>
-              </div>
-            </motion.div>
-          </div>
+        <DashboardCard
+          title="Actividad de Hoy"
+          variant="chart"
+          className="lg:col-span-2"
+          delay={0.6}
+          hover={true}
+          loading={statsLoading}
+          actions={
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span className="w-3 h-3 rounded-full bg-primary-500" />
+              Mensajes
+            </div>
+          }
+        >
 
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -434,14 +407,18 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-400 mt-1">Usuarios Activos</p>
             </motion.div>
           </motion.div>
-        </Card>
+        </DashboardCard>
       </div>
 
       {/* Second Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Resources */}
-        <Card animated delay={0.7} className="chart-container">
-          <h3 className="text-lg font-semibold text-white mb-6">Recursos del Sistema</h3>
+        <DashboardCard
+          title="Recursos del Sistema"
+          variant="chart"
+          delay={0.7}
+          icon={<Activity className="w-5 h-5 text-primary-400" />}
+        >
           
           <div className="flex items-center justify-center mb-6">
             <DonutChart
@@ -484,11 +461,10 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </DashboardCard>
 
         {/* Quick Stats */}
-        <Card animated delay={0.8} className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Estadísticas Rápidas</h3>
+        <DashboardCard title="Estadísticas Rápidas" delay={0.8} loading={statsLoading} icon={<Zap className="w-5 h-5 text-cyan-400" />}>
           
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
@@ -530,11 +506,10 @@ export default function DashboardPage() {
               <p className="text-xl font-bold text-white">{onlineCount}/{totalCount}</p>
             </div>
           </div>
-        </Card>
+        </DashboardCard>
 
         {/* Recent Activity */}
-        <Card animated delay={0.9} className="p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Actividad Reciente</h3>
+        <DashboardCard title="Actividad Reciente" delay={0.9} icon={<Activity className="w-5 h-5 text-primary-400" />}>
           
           <div className="space-y-3">
             {activitiesLoading ? (
@@ -600,7 +575,7 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </Card>
+        </DashboardCard>
       </div>
 
       {/* Bottom Stats */}
@@ -655,11 +630,13 @@ export default function DashboardPage() {
       </div>
 
       {/* System Information */}
-      <Card animated delay={1.0} className="p-6">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h3 className="text-lg font-semibold text-white">Información del Sistema</h3>
-          <span className="badge-info">Live</span>
-        </div>
+      <DashboardCard
+        title="Información del Sistema"
+        delay={1.0}
+        loading={!systemInfo}
+        icon={<Settings className="w-5 h-5 text-primary-400" />}
+        actions={<Badge variant="info">Live</Badge>}
+      >
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="glass p-4 rounded-2xl hover-lift-soft">
@@ -800,7 +777,7 @@ export default function DashboardPage() {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </Card>
+      </DashboardCard>
     </div>
   );
 }

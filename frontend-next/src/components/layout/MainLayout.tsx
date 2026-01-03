@@ -56,18 +56,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={pathname}
-              layout="position"
-              initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.985, filter: 'blur(10px)' }}
-              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.985, filter: 'blur(10px)' }}
+              initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.99 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.99 }}
               transition={
                 reduceMotion
                   ? { duration: 0.12 }
                   : {
                       opacity: { duration: 0.18, ease: 'easeOut' },
-                      filter: { duration: 0.22, ease: 'easeOut' },
-                      y: { type: 'spring', stiffness: 380, damping: 34, mass: 0.9 },
-                      scale: { type: 'spring', stiffness: 380, damping: 34, mass: 0.9 },
+                      y: { type: 'spring', stiffness: 420, damping: 34, mass: 0.9 },
+                      scale: { type: 'spring', stiffness: 420, damping: 34, mass: 0.9 },
                     }
               }
             >

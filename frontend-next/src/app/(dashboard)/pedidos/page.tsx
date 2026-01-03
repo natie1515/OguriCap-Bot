@@ -17,6 +17,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { usePedidosSmartRefresh } from '@/hooks/useSmartRefresh';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import { notify } from '@/lib/notify';
 import { Pedido } from '@/types';
 
 const PENDING_LIBRARY_PROCESS_STORAGE_KEY = 'panel:pedidos:pending-library-process:v1';
@@ -147,7 +148,7 @@ export default function PedidosPage() {
       next.add(pedidoId);
       return next;
     });
-    toast(message);
+    notify.info(message);
   }, []);
 
   const clearPendingLibraryProcess = useCallback((pedidoId: number) => {
@@ -168,7 +169,7 @@ export default function PedidosPage() {
     if (!groupJid || !groupJid.endsWith('@g.us')) {
       markPendingLibraryProcess(
         pedido.id,
-        'Búsqueda no disponible: falta configurar un grupo proveedor. Pedido en espera.'
+        'No disponible: falta configurar un grupo proveedor. Pedido pasó a "En espera" y se reintentará al configurarlo.'
       );
       return;
     }
@@ -187,7 +188,7 @@ export default function PedidosPage() {
       if (status === 404 && apiError.toLowerCase().includes('proveedor')) {
         markPendingLibraryProcess(
           pedido.id,
-          'Proveedor no configurado para este grupo. Pedido en espera: marcá el grupo como proveedor y reintentá.'
+          'Proveedor no configurado para este grupo. Pedido pasó a "En espera". Configurá el proveedor y reintentá.'
         );
         return;
       }
