@@ -77,23 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   }, [showNotifications]);
 
   return (
-    <header className="sticky top-0 z-30 glass-dark border-b border-white/10 relative overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 -top-24 h-48 opacity-60 blur-3xl"
-        style={{
-          background:
-            'radial-gradient(circle at 30% 30%, rgb(var(--page-a) / 0.22), transparent 60%), radial-gradient(circle at 70% 40%, rgb(var(--page-c) / 0.18), transparent 62%)',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-[2px] opacity-90"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent 0%, rgb(var(--page-a) / 0.85) 20%, rgb(var(--page-b) / 0.85) 55%, rgb(var(--page-c) / 0.85) 85%, transparent 100%)',
-        }}
-      />
+    <header className="sticky top-0 z-30 glass-dark border-b border-white/10 header-chrome">
       <div className="flex items-center justify-between px-4 lg:px-6 h-16">
         {/* Left side */}
         <div className="flex items-center gap-4">

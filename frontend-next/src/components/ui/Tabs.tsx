@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 const TabsContext = React.createContext<{
@@ -41,6 +42,7 @@ const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
   ({ className, children, ...props }, forwardedRef) => {
     const { value: selectedValue } = React.useContext(TabsContext)
     const localRef = React.useRef<HTMLDivElement | null>(null)
+    const reduceMotion = useReducedMotion()
     const [indicator, setIndicator] = React.useState<{ x: number; w: number; o: number }>({
       x: 0,
       w: 0,
@@ -100,16 +102,12 @@ const TabsList = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
         {...props}
       >
         {children}
-        <span
+        <motion.span
           aria-hidden="true"
           className="tabs-indicator"
-          style={
-            {
-              ['--x' as any]: `${indicator.x}px`,
-              ['--w' as any]: `${indicator.w}px`,
-              ['--o' as any]: String(indicator.o),
-            } as React.CSSProperties
-          }
+          initial={false}
+          animate={{ x: indicator.x, width: indicator.w, opacity: indicator.o }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.26, ease: 'easeOut' }}
         />
       </div>
     )

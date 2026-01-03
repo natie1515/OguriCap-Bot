@@ -212,9 +212,9 @@ export default function NotificacionesPage() {
   };
 
   const itemVariants = {
-    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.99, filter: 'blur(10px)' },
-    show: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
-    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.99, filter: 'blur(10px)' },
+    hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.99 },
+    show: reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 },
+    exit: reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.99 },
   };
 
   return (

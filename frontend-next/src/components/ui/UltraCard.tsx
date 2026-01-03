@@ -33,6 +33,7 @@ export const UltraCard = React.forwardRef<HTMLDivElement, UltraCardProps>(
         ref={ref}
         className={cn(
           'ultra-card',
+          'preserve-3d',
           tone !== 'auto' && `ultra-card--${tone}`,
           glow && 'ultra-card--glow',
           elevated && 'ultra-card--elevated',
@@ -42,18 +43,18 @@ export const UltraCard = React.forwardRef<HTMLDivElement, UltraCardProps>(
         initial={
           reduceMotion
             ? false
-            : { opacity: 0, y: 18, scale: 0.985, filter: 'blur(10px) saturate(120%)' }
+            : { opacity: 0, y: 18, scale: 0.99 }
         }
         whileInView={
           reduceMotion
             ? { opacity: 1 }
-            : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px) saturate(100%)' }
+            : { opacity: 1, y: 0, scale: 1 }
         }
         viewport={{ once: true, amount: 0.2 }}
         transition={
           reduceMotion
             ? { duration: 0.12 }
-            : { type: 'spring', stiffness: 420, damping: 30, mass: 0.9 }
+            : { duration: 0.42, ease: [0.16, 1, 0.3, 1] }
         }
         whileHover={
           reduceMotion || !interactive
@@ -61,7 +62,6 @@ export const UltraCard = React.forwardRef<HTMLDivElement, UltraCardProps>(
             : { y: -6, scale: 1.01, rotateX: 1.2, rotateY: -1.2 }
         }
         whileTap={reduceMotion || !interactive ? undefined : { scale: 0.985 }}
-        style={{ transformStyle: 'preserve-3d' }}
         {...props}
       >
         {children}
@@ -71,4 +71,3 @@ export const UltraCard = React.forwardRef<HTMLDivElement, UltraCardProps>(
 );
 
 UltraCard.displayName = 'UltraCard';
-

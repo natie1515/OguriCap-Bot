@@ -32,9 +32,9 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
         <div className="min-w-0">
           <motion.h1
             className="text-4xl md:text-5xl font-extrabold gradient-text-animated tracking-tight"
-            initial={reduceMotion ? false : { opacity: 0, y: 12, filter: 'blur(8px)' }}
-            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-            transition={reduceMotion ? { duration: 0.12 } : { duration: 0.22, ease: 'easeOut' }}
+            initial={reduceMotion ? false : { opacity: 0, y: 12, scale: 0.99 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            transition={reduceMotion ? { duration: 0.12 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
           >
             {title}
           </motion.h1>
@@ -50,11 +50,10 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
           )}
 
           <motion.div
-            className="mt-5 h-[3px] w-28 rounded-full bg-gradient-to-r from-primary-500 via-cyan-400 to-emerald-400 header-underline-animated shadow-glow-lg"
+            className="mt-5 h-[3px] w-28 rounded-full bg-gradient-to-r from-primary-500 via-cyan-400 to-emerald-400 header-underline-animated shadow-glow-lg origin-left"
             initial={reduceMotion ? false : { opacity: 0, scaleX: 0 }}
             animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scaleX: 1 }}
             transition={reduceMotion ? { duration: 0.12 } : { type: 'spring', stiffness: 420, damping: 30, mass: 0.6 }}
-            style={{ transformOrigin: '0% 50%' }}
           />
         </div>
       </div>
@@ -62,9 +61,9 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
       {actions && (
         <motion.div
           className="flex items-center gap-3"
-          initial={reduceMotion ? false : { opacity: 0, y: 10, filter: 'blur(8px)' }}
-          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={reduceMotion ? { duration: 0.12 } : { duration: 0.22, ease: 'easeOut', delay: 0.06 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.99 }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+          transition={reduceMotion ? { duration: 0.12 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1], delay: 0.06 }}
         >
           {actions}
         </motion.div>

@@ -21,6 +21,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { latency } = useConnectionHealth();
   const reduceMotion = useReducedMotion();
   const pageKey = getPageKeyFromPathname(pathname);
+  const mainScrollRef = React.useRef<HTMLElement | null>(null);
 
   const stagedChildren = React.useMemo(() => {
     if (!children) return children;
@@ -30,6 +31,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     }
     return <div className="stagger-children">{children}</div>;
   }, [children]);
+
+  React.useEffect(() => {
+    const node = mainScrollRef.current;
+    if (!node) return;
+    node.scrollTop = 0;
+    node.scrollLeft = 0;
+  }, [pathname]);
 
   return (
     <div className="h-screen overflow-hidden mesh-bg" data-page={pageKey}>
@@ -63,32 +71,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={pathname}
-              className="relative"
-              initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.985, rotateX: -3, filter: 'blur(10px)' }}
-              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, rotateX: 0, filter: 'blur(0px)' }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -18, scale: 0.985, rotateX: 2, filter: 'blur(10px)' }}
+              className="relative page-perspective"
+              initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.99, rotateX: -2 }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.99, rotateX: 1.5 }}
               transition={
                 reduceMotion
                   ? { duration: 0.12 }
                   : {
-                      opacity: { duration: 0.35, ease: 'easeOut' },
-                      y: { type: 'spring', stiffness: 320, damping: 30, mass: 0.9 },
-                      scale: { type: 'spring', stiffness: 320, damping: 30, mass: 0.9 },
-                      filter: { duration: 0.5, ease: 'easeOut' },
+                      duration: 0.42,
+                      ease: [0.16, 1, 0.3, 1],
                     }
               }
-              style={{ transformPerspective: 1000 }}
             >
               <motion.div
                 aria-hidden="true"
                 className="page-transition-overlay"
                 initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
                 animate={reduceMotion ? { opacity: 0 } : { opacity: [0, 1, 0], scale: [0.98, 1.04, 1] }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
               />
               {stagedChildren}
             </motion.div>

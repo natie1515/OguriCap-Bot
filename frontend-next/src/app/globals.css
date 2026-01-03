@@ -139,32 +139,29 @@ body::after {
 }
 
 /* Progress bars */
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
-  overflow: hidden;
-  position: relative;
-}
+@layer components {
+  .progress-bar {
+    @apply relative w-full overflow-hidden rounded-full bg-white/10 ring-1 ring-white/10;
+    height: 8px;
+  }
 
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-  border-radius: 9999px;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-}
+  .progress-bar-fill {
+    @apply relative h-full w-full origin-left rounded-full;
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
-.progress-bar-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
-  animation: shimmer-slide 2s infinite;
+  .progress-bar-fill::after {
+    content: none;
+  }
+
+  .progress-bar[data-shimmer="true"] .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.30) 50%, transparent 100%);
+    animation: shimmer-slide 2.1s linear infinite;
+  }
 }
 
 @keyframes shimmer-slide {
@@ -979,6 +976,153 @@ body::after {
     transform: translate3d(0, 0, 0);
   }
 
+  /* Chrome overlays (no inline styles) */
+  .page-perspective { perspective: 1000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+
+  .header-chrome,
+  .sidebar-chrome {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-chrome::before {
+    content: '';
+    position: absolute;
+    inset: -96px 0 auto 0;
+    height: 192px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 30% 30%, rgb(var(--page-a) / 0.22), transparent 60%),
+      radial-gradient(circle at 70% 40%, rgb(var(--page-c) / 0.18), transparent 62%);
+    opacity: 0.6;
+    filter: blur(48px);
+  }
+
+  .header-chrome::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent 0%, rgb(var(--page-a) / 0.85) 20%, rgb(var(--page-b) / 0.85) 55%, rgb(var(--page-c) / 0.85) 85%, transparent 100%);
+    opacity: 0.9;
+  }
+
+  .sidebar-chrome::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 30% 10%, rgb(var(--page-a) / 0.22), transparent 55%),
+      radial-gradient(circle at 80% 30%, rgb(var(--page-b) / 0.18), transparent 60%),
+      radial-gradient(circle at 30% 90%, rgb(var(--page-c) / 0.16), transparent 62%);
+    opacity: 0.6;
+  }
+
+  .sidebar-chrome::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent 0%, rgb(var(--page-a) / 0.85) 20%, rgb(var(--page-b) / 0.85) 55%, rgb(var(--page-c) / 0.85) 85%, transparent 100%);
+    opacity: 0.9;
+  }
+
+  /* Conic border helper (no inline styles) */
+  .conic-border {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    pointer-events: none;
+    background:
+      conic-gradient(
+        from 180deg at 50% 50%,
+        transparent 0deg,
+        rgb(var(--conic-a) / 0.95) 75deg,
+        transparent 140deg,
+        rgb(var(--conic-b) / 0.80) 220deg,
+        transparent 360deg
+      );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .conic-border--healthy { --conic-a: 16 185 129; --conic-b: 6 182 212; }
+  .conic-border--warning { --conic-a: 245 158 11; --conic-b: 244 63 94; }
+  .conic-border--critical { --conic-a: 239 68 68; --conic-b: 244 63 94; }
+  .conic-border--updating { --conic-a: 59 130 246; --conic-b: 99 102 241; }
+
+  /* Maintenance toast (api.ts) */
+  .maintenance-toast {
+    @apply fixed top-5 right-5 z-[10000] max-w-[320px] overflow-hidden rounded-2xl border border-orange-400/30 text-white;
+    background: linear-gradient(135deg, rgb(249 115 22 / 0.92), rgb(234 88 12 / 0.86));
+    box-shadow: 0 22px 60px rgb(0 0 0 / 0.55);
+    backdrop-filter: blur(calc(var(--chrome-blur) * 0.9)) saturate(155%);
+  }
+
+  .maintenance-toast__inner { @apply p-4; }
+  .maintenance-toast__row { @apply flex items-center gap-2 mb-1; }
+  .maintenance-toast__title { @apply text-sm font-extrabold tracking-tight; }
+  .maintenance-toast__desc { @apply text-xs text-white/90; }
+
+  .chart-frame {
+    @apply relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-3 shadow-inner-glow;
+  }
+
+  .chart-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 10%, rgb(var(--page-a) / 0.22), transparent 55%),
+      radial-gradient(circle at 80% 30%, rgb(var(--page-c) / 0.18), transparent 55%);
+    opacity: 0.6;
+  }
+
+  /* Charts */
+  .progress-ring { isolation: isolate; }
+  .progress-ring__glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    pointer-events: none;
+    filter: blur(24px);
+    opacity: 0.5;
+    background: radial-gradient(circle at 50% 50%, rgb(var(--ring-glow) / 0.35), transparent 62%);
+    transform: translate3d(0,0,0);
+  }
+
+  .progress-ring--brand { --ring-glow: var(--page-a); }
+  .progress-ring--success { --ring-glow: 16 185 129; }
+  .progress-ring--warning { --ring-glow: 245 158 11; }
+  .progress-ring--danger { --ring-glow: 239 68 68; }
+
+  .progress-ring__arc { filter: drop-shadow(0 0 10px rgb(var(--ring-glow) / 0.55)) drop-shadow(0 0 20px rgb(var(--ring-glow) / 0.22)); }
+
+  .bar {
+    @apply w-full rounded-2xl transition-all duration-300 cursor-pointer relative;
+    box-shadow: 0 0 18px rgb(var(--page-a) / 0.18);
+    transform-origin: bottom;
+  }
+  .bar--brand { background: linear-gradient(180deg, rgb(var(--page-a) / 1) 0%, rgb(0 0 0 / 0.16) 100%); }
+  .bar--success { background: linear-gradient(180deg, rgb(16 185 129 / 1) 0%, rgb(0 0 0 / 0.16) 100%); }
+  .bar--warning { background: linear-gradient(180deg, rgb(245 158 11 / 1) 0%, rgb(0 0 0 / 0.16) 100%); }
+  .bar--danger { background: linear-gradient(180deg, rgb(239 68 68 / 1) 0%, rgb(0 0 0 / 0.16) 100%); }
+  .bar--info { background: linear-gradient(180deg, rgb(34 211 238 / 1) 0%, rgb(0 0 0 / 0.16) 100%); }
+  .bar--violet { background: linear-gradient(180deg, rgb(139 92 246 / 1) 0%, rgb(0 0 0 / 0.16) 100%); }
+
   .tabs-indicator {
     position: absolute;
     left: 0;
@@ -991,11 +1135,11 @@ body::after {
     box-shadow:
       0 0 28px rgb(var(--page-a) / calc(0.28 * var(--glow-boost))),
       0 0 18px rgb(var(--page-c) / calc(0.18 * var(--glow-boost)));
-    transform: translate3d(var(--x, 0px), 0, 0);
-    width: var(--w, 0px);
-    opacity: var(--o, 0);
-    transition: transform 260ms ease-out, width 260ms ease-out, opacity 180ms ease-out;
+    transform: translate3d(0, 0, 0);
+    width: 0;
+    opacity: 0;
     pointer-events: none;
+    will-change: transform, width, opacity;
   }
 
   .tooltip-panel {
@@ -1351,7 +1495,24 @@ html[data-page="bot"] .glass-card::after {
   animation: gradient 15s ease infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mesh-bg { animation: none !important; }
+  .mesh-bg::after { animation: none !important; }
+  .bg-animated { animation: none !important; }
+  .animate-blob { animation: none !important; }
+  .tabs-indicator { animation: none !important; }
+  .progress-bar[data-shimmer="true"] .progress-bar-fill::after { animation: none !important; }
+}
+
 /* Animation delays */
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
 .animation-delay-2000 {
   animation-delay: 2s;
 }

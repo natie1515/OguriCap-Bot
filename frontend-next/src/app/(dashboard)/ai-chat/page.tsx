@@ -180,9 +180,9 @@ export default function AiChatPage() {
               </div>
               <div className="bg-white/5 p-4 rounded-2xl rounded-bl-sm">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" />
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce animation-delay-150" />
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce animation-delay-300" />
                 </div>
               </div>
             </div>

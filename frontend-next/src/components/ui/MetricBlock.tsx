@@ -23,10 +23,10 @@ export function MetricBlock({ label, value, icon, hint, tone = 'auto', trend, cl
   return (
     <motion.div
       className={cn('metric-block', tone !== 'auto' && `metric-block--${tone}`, className)}
-      initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.985, filter: 'blur(10px)' }}
-      whileInView={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+      initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.99 }}
+      whileInView={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.3 }}
-      transition={reduceMotion ? { duration: 0.12 } : { duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
+      transition={reduceMotion ? { duration: 0.12 } : { duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="metric-block__bg" aria-hidden="true" />
       <div className="metric-block__inner">
@@ -53,4 +53,3 @@ export function MetricBlock({ label, value, icon, hint, tone = 'auto', trend, cl
     </motion.div>
   );
 }
-

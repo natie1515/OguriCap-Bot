@@ -30,10 +30,10 @@ export function AnimatedSection({
   return (
     <motion.section
       className={cn('animated-section', className)}
-      initial={reduceMotion ? false : { opacity: 0, y: 16, filter: 'blur(10px)' }}
-      whileInView={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+      initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.99 }}
+      whileInView={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.25 }}
-      transition={reduceMotion ? { duration: 0.12 } : { duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
+      transition={reduceMotion ? { duration: 0.12 } : { duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
     >
       {(title || description || icon || actions) && (
         <div className="mb-4 flex items-start justify-between gap-4">
@@ -52,4 +52,3 @@ export function AnimatedSection({
     </motion.section>
   );
 }
-

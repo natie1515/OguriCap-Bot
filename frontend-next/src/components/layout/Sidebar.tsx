@@ -92,29 +92,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <aside
         className={cn(
           'fixed top-0 left-0 z-50 h-screen w-72',
-          'glass-dark border-r border-white/10 relative overflow-hidden',
+          'glass-dark border-r border-white/10 sidebar-chrome',
           'flex flex-col',
           'transform transition-transform duration-300 ease-out',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0'
         )}
       >
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none opacity-60"
-          style={{
-            background:
-              'radial-gradient(circle at 30% 10%, rgb(var(--page-a) / 0.22), transparent 55%), radial-gradient(circle at 80% 30%, rgb(var(--page-b) / 0.18), transparent 60%), radial-gradient(circle at 30% 90%, rgb(var(--page-c) / 0.16), transparent 62%)',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[2px] opacity-90"
-          style={{
-            background:
-              'linear-gradient(90deg, transparent 0%, rgb(var(--page-a) / 0.85) 20%, rgb(var(--page-b) / 0.85) 55%, rgb(var(--page-c) / 0.85) 85%, transparent 100%)',
-          }}
-        />
         <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div className="p-6 border-b border-white/10">

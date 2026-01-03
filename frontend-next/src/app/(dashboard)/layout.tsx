@@ -24,9 +24,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen mesh-bg flex items-center justify-center p-6">
         <motion.div
-          initial={{ opacity: 0, y: 18, scale: 0.985, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, y: 18, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           className="ultra-card ultra-card--glow ultra-card--interactive p-10 text-center w-full max-w-md"
         >
           <motion.div
@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-sm font-black tracking-[0.22em] uppercase text-gray-400">Cargando</p>
           <p className="mt-2 text-xl font-extrabold text-white tracking-tight">Verificando autenticacion...</p>
           <div className="mt-6 progress-bar">
-            <div className="progress-bar-fill" style={{ width: '70%' }} />
+            <div className="progress-bar-fill w-[70%]" />
           </div>
         </motion.div>
       </div>

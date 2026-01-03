@@ -26,6 +26,7 @@ import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useSocket, SOCKET_EVENTS } from '@/contexts/SocketContext';
 import { formatUptime } from '@/lib/utils';
 import { Magnetic } from '@/components/ui/Magnetic';
+import { Progress } from '@/components/ui/Progress';
 
 export default function DashboardPage() {
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useDashboardStats(10000);
@@ -426,27 +427,21 @@ export default function DashboardPage() {
                 <span className="text-gray-400">CPU</span>
                 <span className="text-white">{cpuUsage.toFixed(2)}%</span>
               </div>
-              <div className="progress-bar">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${cpuUsage}%` }} transition={{ duration: 1 }} className="progress-bar-fill" />
-              </div>
+              <Progress value={cpuUsage} max={100} fillClassName="bg-gradient-to-r from-cyan-400 via-primary-500 to-violet-500" />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-400">Memoria</span>
                 <span className="text-white">{(memoryUsage?.systemPercentage ?? 0).toFixed(2)}%</span>
               </div>
-              <div className="progress-bar">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${memoryUsage?.systemPercentage || 0}%` }} transition={{ duration: 1 }} className="progress-bar-fill" />
-              </div>
+              <Progress value={memoryUsage?.systemPercentage ?? 0} max={100} fillClassName="bg-gradient-to-r from-primary-500 via-violet-500 to-cyan-400" />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-400">Disco</span>
                 <span className="text-white">{(diskUsage?.percentage ?? 0).toFixed(2)}%</span>
               </div>
-              <div className="progress-bar">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${diskUsage?.percentage || 0}%` }} transition={{ duration: 1 }} className="progress-bar-fill" />
-              </div>
+              <Progress value={diskUsage?.percentage ?? 0} max={100} fillClassName="bg-gradient-to-r from-amber-400 via-rose-400 to-violet-500" />
             </div>
           </div>
         </DashboardCard>
@@ -632,12 +627,12 @@ export default function DashboardPage() {
               <span className="text-sm font-medium text-gray-300">CPU</span>
               <span className="badge-info">{cpuUsage.toFixed(0)}%</span>
             </div>
-            <div className="progress-bar mt-3">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${Math.min(100, Math.max(0, cpuUsage))}%` }}
-              />
-            </div>
+            <Progress
+              value={Math.min(100, Math.max(0, cpuUsage))}
+              max={100}
+              className="mt-3"
+              fillClassName="bg-gradient-to-r from-cyan-400 via-primary-500 to-violet-500"
+            />
             <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
               <span className="truncate">
                 {systemInfo?.cpu?.cores ? `${systemInfo.cpu.cores} núcleos` : '—'}
@@ -653,12 +648,12 @@ export default function DashboardPage() {
               <span className="text-sm font-medium text-gray-300">Memoria</span>
               <span className="badge-primary">{(memoryUsage?.systemPercentage ?? 0).toFixed(0)}%</span>
             </div>
-            <div className="progress-bar mt-3">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${Math.min(100, Math.max(0, memoryUsage?.systemPercentage ?? 0))}%` }}
-              />
-            </div>
+            <Progress
+              value={Math.min(100, Math.max(0, memoryUsage?.systemPercentage ?? 0))}
+              max={100}
+              className="mt-3"
+              fillClassName="bg-gradient-to-r from-primary-500 via-violet-500 to-cyan-400"
+            />
             <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
               <span className="truncate">Total: {systemInfo?.memory?.totalGB || '—'} GB</span>
               <span className="truncate">Libre: {systemInfo?.memory?.freeGB || '—'} GB</span>
@@ -670,12 +665,12 @@ export default function DashboardPage() {
               <span className="text-sm font-medium text-gray-300">Disco</span>
               <span className="badge-warning">{(diskUsage?.percentage ?? 0).toFixed(0)}%</span>
             </div>
-            <div className="progress-bar mt-3">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${Math.min(100, Math.max(0, diskUsage?.percentage ?? 0))}%` }}
-              />
-            </div>
+            <Progress
+              value={Math.min(100, Math.max(0, diskUsage?.percentage ?? 0))}
+              max={100}
+              className="mt-3"
+              fillClassName="bg-gradient-to-r from-amber-400 via-rose-400 to-violet-500"
+            />
             <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
               <span className="truncate">Total: {diskUsage?.totalGB || '—'} GB</span>
               <span className="truncate">Libre: {diskUsage?.freeGB || '—'} GB</span>

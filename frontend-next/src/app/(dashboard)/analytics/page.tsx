@@ -32,6 +32,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -282,6 +283,24 @@ export default function AnalyticsPage() {
 
   const MetricCard: React.FC<{ metric: MetricCard }> = ({ metric }) => {
     const IconComponent = metric.icon;
+    const tone = (() => {
+      const c = String(metric.color || '').toLowerCase();
+      if (c.includes('10b981') || c.includes('16b981') || c.includes('emerald')) return 'success';
+      if (c.includes('f59e0b') || c.includes('amber') || c.includes('orange')) return 'warning';
+      if (c.includes('ef4444') || c.includes('f43f5e') || c.includes('red') || c.includes('rose')) return 'danger';
+      if (c.includes('06b6d4') || c.includes('22d3ee') || c.includes('cyan')) return 'info';
+      if (c.includes('8b5cf6') || c.includes('a78bfa') || c.includes('violet') || c.includes('purple')) return 'violet';
+      return 'primary';
+    })() as 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'violet';
+
+    const toneStyles: Record<typeof tone, { chip: string; icon: string }> = {
+      primary: { chip: 'bg-primary-500/16 border-primary-500/30', icon: 'text-primary-200' },
+      success: { chip: 'bg-emerald-500/14 border-emerald-500/30', icon: 'text-emerald-200' },
+      warning: { chip: 'bg-amber-500/14 border-amber-500/30', icon: 'text-amber-200' },
+      danger: { chip: 'bg-red-500/14 border-red-500/30', icon: 'text-red-200' },
+      info: { chip: 'bg-cyan-500/14 border-cyan-500/30', icon: 'text-cyan-200' },
+      violet: { chip: 'bg-violet-500/14 border-violet-500/30', icon: 'text-violet-200' },
+    };
     
     return (
       <div className="glass-card p-6">
@@ -305,8 +324,13 @@ export default function AnalyticsPage() {
               </span>
             </div>
           </div>
-          <div className="p-3 rounded-lg" style={{ backgroundColor: `${metric.color}20` }}>
-            <div className="w-6 h-6" style={{ color: metric.color }}>
+          <div
+            className={cn(
+              'p-3 rounded-2xl border shadow-inner-glow ring-1 ring-white/10',
+              toneStyles[tone].chip
+            )}
+          >
+            <div className={cn('w-6 h-6', toneStyles[tone].icon)}>
               <IconComponent />
             </div>
           </div>

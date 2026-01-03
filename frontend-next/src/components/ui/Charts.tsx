@@ -3,6 +3,21 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { cn } from '@/lib/utils';
+
+type ChartTone = 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'violet';
+
+function toneFromColor(color?: string): ChartTone {
+  if (!color) return 'brand';
+  const c = color.toLowerCase();
+  if (c.includes('10b981') || c.includes('16b981') || c.includes('emerald') || c === '#10b981') return 'success';
+  if (c.includes('f59e0b') || c.includes('amber') || c === '#f59e0b') return 'warning';
+  if (c.includes('ef4444') || c.includes('f43f5e') || c.includes('red') || c.includes('rose')) return 'danger';
+  if (c.includes('06b6d4') || c.includes('22d3ee') || c.includes('cyan')) return 'info';
+  if (c.includes('8b5cf6') || c.includes('a78bfa') || c.includes('violet') || c.includes('purple')) return 'violet';
+  if (c.includes('6366f1') || c.includes('818cf8') || c.includes('primary') || c.includes('indigo')) return 'brand';
+  return 'brand';
+}
 
 interface ProgressRingProps {
   progress: number;
@@ -20,23 +35,17 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   label,
 }) => {
   const reduceMotion = useReducedMotion();
+  const inferred = toneFromColor(color);
+  const tone: 'brand' | 'success' | 'warning' | 'danger' =
+    inferred === 'success' || inferred === 'warning' || inferred === 'danger' ? inferred : 'brand';
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress / 100) * circumference;
+  const gradientId = `ring-${tone}`;
 
   return (
-    <div
-      className="relative progress-ring grid place-items-center flex-none"
-      style={{ width: size, height: size }}
-    >
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 rounded-full blur-2xl opacity-55"
-        style={{
-          background: `radial-gradient(circle at 50% 50%, ${color}55, transparent 62%)`,
-          transform: 'translate3d(0,0,0)',
-        }}
-      />
+    <div className={cn('relative progress-ring grid place-items-center flex-none', `progress-ring--${tone}`)}>
+      <div aria-hidden="true" className="progress-ring__glow" />
 
       <svg
         width={size}
@@ -44,10 +53,25 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         className="relative block transform -rotate-90 drop-shadow-[0_0_18px_rgba(0,0,0,0.35)]"
       >
         <defs>
-          <linearGradient id={`ring-${color.replace('#', '')}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={color} stopOpacity="1" />
+          <linearGradient id="ring-brand" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity="1" />
             <stop offset="55%" stopColor="#8b5cf6" stopOpacity="0.95" />
             <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.95" />
+          </linearGradient>
+          <linearGradient id="ring-success" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="1" />
+            <stop offset="60%" stopColor="#06b6d4" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.9" />
+          </linearGradient>
+          <linearGradient id="ring-warning" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#f59e0b" stopOpacity="1" />
+            <stop offset="55%" stopColor="#fb7185" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.85" />
+          </linearGradient>
+          <linearGradient id="ring-danger" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ef4444" stopOpacity="1" />
+            <stop offset="55%" stopColor="#f43f5e" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.85" />
           </linearGradient>
         </defs>
 
@@ -66,22 +90,20 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke={`url(#ring-${color.replace('#', '')})`}
+          stroke={`url(#${gradientId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
+          strokeDasharray={circumference}
           initial={reduceMotion ? false : { strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={reduceMotion ? { duration: 0 } : { duration: 1.65, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            strokeDasharray: circumference,
-            filter: `drop-shadow(0 0 10px ${color}80) drop-shadow(0 0 24px ${color}40)`,
-          }}
+          className="progress-ring__arc"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.6, filter: 'blur(8px)' }}
-          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
+          animate={reduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 0.6, delay: 0.35, ease: 'easeOut' }}
           className="text-2xl font-extrabold text-white tracking-tight"
         >
@@ -121,23 +143,16 @@ export const BarChart: React.FC<BarChartProps> = ({
   const didMountRef = React.useRef(false);
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animated && !reduceMotion;
+  const heightClass = height === 160 ? 'h-40' : height === 200 ? 'h-[200px]' : 'h-[200px]';
 
   React.useEffect(() => {
     didMountRef.current = true;
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-3 shadow-inner-glow">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 opacity-60"
-        style={{
-          background:
-            'radial-gradient(circle at 20% 10%, rgb(var(--page-a) / 0.22), transparent 55%), radial-gradient(circle at 80% 30%, rgb(var(--page-c) / 0.18), transparent 55%)',
-        }}
-      />
-      <div className="relative flex items-end gap-1" style={{ height }}>
-      {data.map((item, index) => {
+    <div className="chart-frame">
+      <div className={cn('relative flex items-end gap-1', heightClass)}>
+        {data.map((item, index) => {
         const rawRatio = maxValue > 0 ? item.value / maxValue : 0;
         const ratio = Math.max(0, Math.min(1, rawRatio));
         const scaled =
@@ -146,28 +161,25 @@ export const BarChart: React.FC<BarChartProps> = ({
             : scale === 'log'
               ? Math.log(item.value + 1) / Math.log(maxValue + 1)
               : ratio;
-        const heightPct = item.value > 0 ? `${scaled * 100}%` : '0%';
-        const barMinHeight = item.value > 0 ? minBarHeight : 0;
+        const minScale = height > 0 ? Math.min(1, Math.max(0, minBarHeight / height)) : 0;
+        const targetScaleY = item.value > 0 ? Math.max(minScale, scaled) : 0;
         const delay = shouldAnimate && !didMountRef.current ? index * 0.05 : 0;
         const transition = shouldAnimate
           ? didMountRef.current
             ? { type: 'spring' as const, stiffness: 260, damping: 30, mass: 0.9 }
             : { type: 'spring' as const, stiffness: 220, damping: 26, mass: 0.9, delay }
           : { duration: 0 };
+        const tone = toneFromColor(item.color);
 
         return (
           <div key={index} className="flex-1 h-full flex flex-col items-center">
             <div className="w-full flex-1 flex items-end group">
               <motion.div
-                initial={shouldAnimate ? { height: 0, opacity: 0 } : false}
-                animate={{ height: heightPct, opacity: 1 }}
+                initial={shouldAnimate ? { scaleY: 0, opacity: 0 } : false}
+                animate={{ scaleY: targetScaleY, opacity: 1 }}
                 transition={transition}
-                whileHover={!reduceMotion ? { scale: 1.05, filter: "brightness(1.2)" } : undefined}
-                className="w-full rounded-2xl transition-all duration-300 cursor-pointer relative shadow-glow"
-                style={{
-                  background: `linear-gradient(180deg, ${item.color || '#6366f1'} 0%, rgba(0,0,0,0.12) 100%)`,
-                  minHeight: barMinHeight
-                }}
+                whileHover={!reduceMotion ? { scaleX: 1.04 } : undefined}
+                className={cn('bar', `bar--${tone}`, 'group-hover:brightness-110 group-hover:shadow-glow-lg')}
               >
                 {/* Tooltip on hover */}
                 <div className="tooltip -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap">
@@ -185,7 +197,7 @@ export const BarChart: React.FC<BarChartProps> = ({
             </motion.span>
           </div>
         );
-      })}
+        })}
       </div>
     </div>
   );
@@ -214,7 +226,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   let accumulatedPercentage = 0;
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative inline-grid place-items-center">
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Background circle */}
         <circle
@@ -231,6 +243,19 @@ export const DonutChart: React.FC<DonutChartProps> = ({
           const percentage = total > 0 ? (item.value / total) * 100 : 0;
           const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
           const strokeDashoffset = -((accumulatedPercentage / 100) * circumference);
+          const tone = toneFromColor(item.color);
+          const stroke =
+            tone === 'success'
+              ? '#10b981'
+              : tone === 'warning'
+                ? '#f59e0b'
+                : tone === 'danger'
+                  ? '#ef4444'
+                  : tone === 'info'
+                    ? '#06b6d4'
+                    : tone === 'violet'
+                      ? '#8b5cf6'
+                      : '#6366f1';
           
           accumulatedPercentage += percentage;
 
@@ -241,16 +266,14 @@ export const DonutChart: React.FC<DonutChartProps> = ({
               cy={size / 2}
               r={radius}
               fill="none"
-              stroke={item.color}
+              stroke={stroke}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
+              strokeDashoffset={strokeDashoffset}
               initial={animated ? { strokeDasharray: `0 ${circumference}` } : undefined}
               animate={animated ? { strokeDasharray } : undefined}
               transition={animated ? { duration: 1.5, delay: index * 0.2, ease: 'easeOut' } : undefined}
-              style={{
-                strokeDashoffset,
-                filter: `drop-shadow(0 0 6px ${item.color}40)`
-              }}
+              className="drop-shadow-[0_0_10px_rgba(0,0,0,0.25)]"
             />
           );
         })}
@@ -321,7 +344,7 @@ export const Sparkline: React.FC<SparklineProps> = ({
         initial={animated ? { pathLength: 0, opacity: 0 } : undefined}
         animate={animated ? { pathLength: 1, opacity: 1 } : undefined}
         transition={animated ? { duration: 1.5, ease: "easeOut" } : undefined}
-        style={{ filter: `drop-shadow(0 0 4px ${color}60)` }}
+        className="drop-shadow-[0_0_10px_rgba(0,0,0,0.25)]"
       />
       {/* Data points */}
       {animated && data.map((value, index) => {
@@ -357,6 +380,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   height = 200,
   animated = true,
 }) => {
+  const gradientId = React.useId();
   if (!data.length) return null;
 
   const maxValue = Math.max(...data.map(d => d.value), 1);
@@ -373,32 +397,28 @@ export const LineChart: React.FC<LineChartProps> = ({
   const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
 
   return (
-    <div className="relative" style={{ width, height }}>
+    <div className="relative inline-block">
       <svg width={width} height={height} className="overflow-visible">
         {/* Grid lines */}
         <defs>
           <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
           </pattern>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
         </defs>
         <rect width={width} height={height} fill="url(#grid)" />
         
         {/* Area under curve */}
         <motion.path
           d={`${pathData} L ${width},${height} L 0,${height} Z`}
-          fill={`url(#gradient-${color.replace('#', '')})`}
+          fill={`url(#${gradientId})`}
           initial={animated ? { opacity: 0 } : undefined}
           animate={animated ? { opacity: 0.2 } : undefined}
           transition={animated ? { duration: 1, delay: 0.5 } : undefined}
         />
-        
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
         
         {/* Line */}
         <motion.path
@@ -411,7 +431,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           initial={animated ? { pathLength: 0 } : undefined}
           animate={animated ? { pathLength: 1 } : undefined}
           transition={animated ? { duration: 2, ease: "easeOut" } : undefined}
-          style={{ filter: `drop-shadow(0 0 8px ${color}60)` }}
+          className="drop-shadow-[0_0_12px_rgba(0,0,0,0.35)]"
         />
         
         {/* Data points */}

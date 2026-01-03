@@ -279,7 +279,7 @@ export default function MultimediaPage() {
                   <StaggerItem
                     key={item.id}
                     layout="position"
-                    exit={{ opacity: 0, y: -12, scale: 0.985, filter: 'blur(8px)' }}
+                    exit={{ opacity: 0, y: -12, scale: 0.99 }}
                     whileHover={{ y: -8, scale: 1.01, boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
                   >
                     <Card hover={false} className="group overflow-hidden hover:border-pink-500/30 transition-all cursor-pointer">
