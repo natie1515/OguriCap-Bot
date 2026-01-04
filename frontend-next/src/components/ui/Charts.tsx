@@ -67,7 +67,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = (props) => {
 
   return (
     <div className={cn("relative grid place-items-center progress-ring", `progress-ring--${tone}`, props.className)}>
-      <div aria-hidden="true" className="progress-ring__glow" />
+      {!performanceMode && <div aria-hidden="true" className="progress-ring__glow" />}
       <svg width={size} height={size} className="-rotate-90">
         {/* background */}
         <circle
@@ -200,6 +200,7 @@ interface BarChartProps {
   animated?: boolean;
   scale?: 'linear' | 'sqrt' | 'log';
   minBarHeight?: number;
+  showGrid?: boolean;
   className?: string;
 }
 
@@ -209,12 +210,14 @@ export const BarChart: React.FC<BarChartProps> = ({
   animated = true,
   scale = 'linear',
   minBarHeight = 0,
+  showGrid = true,
   className,
 }) => {
   const reduceMotion = useReducedMotion();
   const { performanceMode } = useDevicePerformance();
 
-  const maxValue = Math.max(...data.map(d => d.value), 1);
+  const values = data.map((d) => (Number.isFinite(Number(d.value)) ? Number(d.value) : 0));
+  const maxValue = values.length ? Math.max(...values, 1) : 1;
 
   const scaleFn = (v: number) => {
     const safe = Math.max(0, v);
@@ -233,23 +236,33 @@ export const BarChart: React.FC<BarChartProps> = ({
   const minScale = minBarHeight > 0 ? minBarHeight / height : 0;
   const shouldAnimate = animated && !reduceMotion;
 
+  const labelGridStyle =
+    data.length > 0 ? ({ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` } as React.CSSProperties) : undefined;
+
   return (
     <div className={cn("chart-frame", className)}>
-      <div
-        className="relative flex items-end gap-1"
-        style={{ height }}
-      >
-        {data.map((item, i) => {
-          const ratio = clamp01(scaleFn(item.value) / scaledMax);
-          const visibleRatio = item.value > 0 ? Math.max(ratio, minScale) : 0;
-          const tone = toneFromColor(item.color);
+      <div className="relative" style={{ height }}>
+        {showGrid && (
+          <div aria-hidden="true" className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            <div className="border-t border-border/15" />
+            <div className="border-t border-border/10" />
+            <div className="border-t border-border/15" />
+          </div>
+        )}
 
-          return (
-            <div key={i} className="flex-1 flex flex-col items-center self-stretch">
-              <div className="w-full flex-1 flex items-end">
+        <div className="relative z-10 flex items-end gap-1 h-full">
+          {data.map((item, i) => {
+            const raw = Number.isFinite(Number(item.value)) ? Number(item.value) : 0;
+            const ratio = clamp01(scaleFn(raw) / scaledMax);
+            const visibleRatio = raw > 0 ? Math.max(ratio, minScale) : 0;
+            const tone = toneFromColor(item.color);
+            const title = `${item.label}: ${raw}`;
+
+            return (
+              <div key={`${item.label}-${i}`} className="flex-1 flex items-end h-full">
                 {shouldAnimate ? (
                   <motion.div
-                    className={cn("bar h-full", `bar--${tone}`)}
+                    className={cn("bar h-full transform-gpu", `bar--${tone}`)}
                     style={item.color ? { background: item.color } : undefined}
                     initial={{ scaleY: 0 }}
                     animate={{ scaleY: visibleRatio }}
@@ -258,24 +271,33 @@ export const BarChart: React.FC<BarChartProps> = ({
                         ? { duration: 0.35, delay: 0, ease: 'easeOut' }
                         : { duration: 0.8, delay: i * 0.05, ease: 'easeOut' }
                     }
+                    title={title}
                   />
                 ) : (
                   <div
-                    className={cn("bar h-full", `bar--${tone}`)}
+                    className={cn("bar h-full transform-gpu", `bar--${tone}`)}
                     style={{
                       ...(item.color ? { background: item.color } : null),
-                      transform: `scaleY(${visibleRatio})`,
+                      transform: `scaleY(${visibleRatio}) translateZ(0)`,
                     }}
+                    title={title}
                   />
                 )}
               </div>
-              <span className="mt-2 text-xs text-muted truncate">
-                {item.label}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      {data.length > 0 && (
+        <div className="mt-2 grid gap-1" style={labelGridStyle}>
+          {data.map((item, i) => (
+            <div key={`${item.label}-label-${i}`} className="text-[11px] text-muted truncate text-center">
+              {item.label}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

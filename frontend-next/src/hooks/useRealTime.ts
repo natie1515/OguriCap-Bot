@@ -187,7 +187,7 @@ export function useSubbotsStatus(_interval = 10000) {
       const data = await api.getSubbotStatus();
       const subbots = data.subbots || [];
       setTotalCount(subbots.length);
-      setOnlineCount(subbots.filter((s: any) => s.connected || s.isConnected).length);
+      setOnlineCount(subbots.filter((s: any) => s?.isOnline || s?.connected || s?.isConnected).length);
     } catch (err) {
       // Silent fail
     }

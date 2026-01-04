@@ -379,6 +379,10 @@ html[data-perf="low"] .progress-ring__arc {
   filter: none !important;
 }
 
+html[data-perf="low"] .bar {
+  box-shadow: none !important;
+}
+
 body>* {
   position: relative;
   z-index: 1;
@@ -614,6 +618,14 @@ body::after {
       inset 0 0 0 1px rgb(var(--shine) / 0.06),
       inset 0 0 40px rgb(var(--shine) / 0.03);
     backdrop-filter: blur(var(--chrome-blur)) saturate(var(--chrome-sat));
+  }
+
+  .card {
+    @apply glass-card;
+  }
+
+  .soft-shadow {
+    box-shadow: 0 14px 44px rgb(var(--shadow-rgb) / 0.18);
   }
 
   .glass-card::before {
@@ -1700,7 +1712,10 @@ body::after {
   }
 
   .chart-frame {
-    @apply relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-3 shadow-inner-glow;
+    @apply relative overflow-hidden rounded-3xl border p-3 shadow-inner-glow;
+    border-color: rgb(var(--border) / 0.16);
+    background: rgb(var(--card) / 0.12);
+    backdrop-filter: blur(calc(var(--chrome-blur) * 0.9)) saturate(var(--chrome-sat));
   }
 
   .chart-frame::before {
@@ -1741,12 +1756,12 @@ body::after {
 
   .progress-ring__glow {
     position: absolute;
-    inset: 0;
+    inset: -12%;
     border-radius: 9999px;
     pointer-events: none;
-    filter: blur(24px);
-    opacity: 0.5;
-    background: radial-gradient(circle at 50% 50%, rgb(var(--ring-glow) / 0.35), transparent 62%);
+    filter: blur(18px);
+    opacity: 0.42;
+    background: radial-gradient(circle at 50% 50%, transparent 42%, rgb(var(--ring-glow) / 0.32) 56%, transparent 72%);
     transform: translate3d(0, 0, 0);
   }
 

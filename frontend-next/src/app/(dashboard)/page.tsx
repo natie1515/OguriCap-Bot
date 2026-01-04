@@ -95,9 +95,9 @@ export default function DashboardPage() {
     refetchBot();
   };
 
-  const getHourlyActivity = () => {
-    // Datos basados en estadísticas reales del backend
-    const activity = (currentStats as any)?.actividadPorHora;
+  const actividadPorHora = (currentStats as any)?.actividadPorHora;
+  const hourlyActivity = React.useMemo(() => {
+    const activity = actividadPorHora;
     if (Array.isArray(activity) && activity.length > 0) {
       return activity.map((item: any, i: number) => ({
         label: String(item?.label ?? `${(i * 2).toString().padStart(2, '0')}:00`),
@@ -111,7 +111,7 @@ export default function DashboardPage() {
       value: 0,
       color: 'rgb(var(--primary))',
     }));
-  };
+  }, [actividadPorHora]);
 
   return (
     <div className="space-y-6">
@@ -138,7 +138,7 @@ export default function DashboardPage() {
             </ActionButton>
 
             <StatusBadge tone={isSocketConnected ? 'success' : 'danger'} pulse={isSocketConnected}>
-              {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexion'}
+              {isSocketConnected ? 'Tiempo Real Activo' : 'Sin conexión'}
             </StatusBadge>
             <RealTimeBadge isActive={isConnected && isGloballyOn} />
           </>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.9 }}
           >
-            <BarChart data={getHourlyActivity()} height={180} animated={true} scale="sqrt" minBarHeight={3} />
+            <BarChart data={hourlyActivity} height={180} animated={true} scale="sqrt" minBarHeight={3} showGrid />
           </motion.div>
 
           <motion.div 
