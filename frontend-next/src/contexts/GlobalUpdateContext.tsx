@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useSocket } from './SocketContext';
+import { useSocketConnection } from './SocketContext';
 import { useBotGlobalState } from './BotGlobalStateContext';
 import api from '@/services/api';
 
@@ -39,7 +39,7 @@ export const GlobalUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [lastUpdate, setLastUpdate] = React.useState<Date | null>(null);
 
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected } = useSocketConnection();
   const { isGloballyOn } = useBotGlobalState();
 
   const refreshDashboard = React.useCallback(async () => {

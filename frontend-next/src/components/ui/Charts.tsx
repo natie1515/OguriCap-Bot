@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useDevicePerformance } from '@/contexts/DevicePerformanceContext';
 
 /* =========================
    HELPERS
@@ -41,6 +42,7 @@ type ProgressRingProps =
 
 export const ProgressRing: React.FC<ProgressRingProps> = (props) => {
   const reduceMotion = useReducedMotion();
+  const { performanceMode } = useDevicePerformance();
 
   const ratio =
     'progress' in props
@@ -52,13 +54,20 @@ export const ProgressRing: React.FC<ProgressRingProps> = (props) => {
   const strokeWidth = props.strokeWidth ?? 8;
   const label = props.label;
   const stroke = props.color ?? 'rgb(var(--primary))';
+  const tone = toneFromColor(stroke);
 
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const dashOffset = circumference * (1 - ratio);
+  const transition = reduceMotion
+    ? { duration: 0 }
+    : performanceMode
+      ? { duration: 0.65, ease: [0.16, 1, 0.3, 1] as any }
+      : { duration: 1.15, ease: [0.16, 1, 0.3, 1] as any };
 
   return (
-    <div className={cn("relative grid place-items-center", props.className)}>
+    <div className={cn("relative grid place-items-center progress-ring", `progress-ring--${tone}`, props.className)}>
+      <div aria-hidden="true" className="progress-ring__glow" />
       <svg width={size} height={size} className="-rotate-90">
         {/* background */}
         <circle
@@ -81,14 +90,15 @@ export const ProgressRing: React.FC<ProgressRingProps> = (props) => {
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: dashOffset }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          transition={transition}
+          className="progress-ring__arc"
           style={{ transformOrigin: '50% 50%' }}
         />
       </svg>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-white">{percent}%</span>
-        {label && <span className="text-xs text-gray-400 mt-1">{label}</span>}
+        <span className="text-2xl font-bold text-foreground">{percent}%</span>
+        {label && <span className="text-xs text-muted mt-1">{label}</span>}
       </div>
     </div>
   );
@@ -116,6 +126,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   className,
 }) => {
   const reduceMotion = useReducedMotion();
+  const { performanceMode } = useDevicePerformance();
 
   const total = data.reduce((sum, item) => sum + Math.max(0, item.value || 0), 0) || 1;
   const radius = (size - strokeWidth) / 2;
@@ -157,7 +168,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({
               strokeDashoffset={dashOffset}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.4, delay: i * 0.05 }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : performanceMode
+                    ? { duration: 0.25, delay: i * 0.02 }
+                    : { duration: 0.4, delay: i * 0.05 }
+              }
             />
           );
         })}
@@ -165,8 +182,8 @@ export const DonutChart: React.FC<DonutChartProps> = ({
 
       {(centerValue || centerLabel) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
-          {centerValue && <div className="text-2xl font-bold text-white leading-none">{centerValue}</div>}
-          {centerLabel && <div className="text-xs text-gray-400 mt-1">{centerLabel}</div>}
+          {centerValue && <div className="text-2xl font-bold text-foreground leading-none">{centerValue}</div>}
+          {centerLabel && <div className="text-xs text-muted mt-1">{centerLabel}</div>}
         </div>
       )}
     </div>
@@ -195,6 +212,7 @@ export const BarChart: React.FC<BarChartProps> = ({
   className,
 }) => {
   const reduceMotion = useReducedMotion();
+  const { performanceMode } = useDevicePerformance();
 
   const maxValue = Math.max(...data.map(d => d.value), 1);
 
@@ -235,7 +253,11 @@ export const BarChart: React.FC<BarChartProps> = ({
                     style={item.color ? { background: item.color } : undefined}
                     initial={{ scaleY: 0 }}
                     animate={{ scaleY: visibleRatio }}
-                    transition={{ duration: 0.8, delay: i * 0.05, ease: 'easeOut' }}
+                    transition={
+                      performanceMode
+                        ? { duration: 0.35, delay: 0, ease: 'easeOut' }
+                        : { duration: 0.8, delay: i * 0.05, ease: 'easeOut' }
+                    }
                   />
                 ) : (
                   <div
@@ -247,7 +269,7 @@ export const BarChart: React.FC<BarChartProps> = ({
                   />
                 )}
               </div>
-              <span className="mt-2 text-xs text-gray-500 truncate">
+              <span className="mt-2 text-xs text-muted truncate">
                 {item.label}
               </span>
             </div>

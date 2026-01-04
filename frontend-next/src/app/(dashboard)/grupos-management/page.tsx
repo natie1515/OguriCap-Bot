@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { RealTimeBadge } from '@/components/ui/StatusIndicator';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useLoadingOverlay } from '@/contexts/LoadingOverlayContext';
 import { notify } from '@/lib/notify';
@@ -65,7 +65,7 @@ export default function GruposManagementPage() {
   const [isShuttingDown, setIsShuttingDown] = useState(false);
   const [isStartingUp, setIsStartingUp] = useState(false);
 
-  const { isConnected: isSocketConnected } = useSocket();
+  const { isConnected: isSocketConnected } = useSocketConnection();
   const { withLoading } = useLoadingOverlay();
 
   const fetchData = useCallback(async () => {

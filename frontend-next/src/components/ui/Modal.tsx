@@ -44,7 +44,7 @@ const DialogContent = React.forwardRef<
         {...props}
       >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 text-muted hover:text-foreground hover:bg-card/40 transition-colors">
         <X className="h-4 w-4" />
         <span className="sr-only">Cerrar</span>
       </DialogPrimitive.Close>
@@ -69,7 +69,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-xl font-semibold text-white', className)}
+    className={cn('text-xl font-semibold text-foreground', className)}
     {...props}
   />
 ));
@@ -81,7 +81,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-gray-400', className)}
+    className={cn('text-sm text-muted', className)}
     {...props}
   />
 ));
@@ -191,8 +191,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
         >
           {title && (
             <div className="flex items-center justify-between mb-6">
-              <h3 id={titleId} className="text-xl font-semibold text-white">{title}</h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+              <h3 id={titleId} className="text-xl font-semibold text-foreground">{title}</h3>
+              <button onClick={onClose} className="text-muted hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

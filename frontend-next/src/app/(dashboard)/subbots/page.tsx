@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/services/api';
@@ -54,7 +54,7 @@ export default function SubbotsPage() {
   const [currentPairingCode, setCurrentPairingCode] = useState<string | null>(null);
   const [currentPairingSubbot, setCurrentPairingSubbot] = useState<string | null>(null);
 
-  const { isConnected: isSocketConnected, socket } = useSocket();
+  const { isConnected: isSocketConnected, socket } = useSocketConnection();
   const { isGloballyOn } = useBotGlobalState();
   const { user } = useAuth();
   const canDeleteSubbots = !!user && ['owner', 'admin', 'administrador'].includes(String(user.rol || '').toLowerCase());

@@ -14,7 +14,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useBotStatus, useBotGlobalState, useSystemStats } from '@/hooks/useRealTime';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketBotStatus, useSocketConnection } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLoadingOverlay } from '@/contexts/LoadingOverlayContext';
 import api from '@/services/api';
@@ -31,7 +31,8 @@ export default function BotStatusPage() {
   const { status, isConnected, isConnecting: botConnecting, refetch } = useBotStatus(3000);
   const { isOn, setGlobalState, refetch: refetchGlobal } = useBotGlobalState(5000);
   const { memoryUsage, cpuUsage, diskUsage, uptime } = useSystemStats(10000);
-  const { isConnected: isSocketConnected, botStatus: socketBotStatus } = useSocket();
+  const { isConnected: isSocketConnected } = useSocketConnection();
+  const socketBotStatus = useSocketBotStatus();
   const { user } = useAuth();
   const { withLoading } = useLoadingOverlay();
 

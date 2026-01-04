@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useTheme } from 'next-themes';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { Bell, Search, Moon, Sun, RefreshCw, Menu, X, Volume2, VolumeX, Smartphone } from 'lucide-react';
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { isConnected: isSocketConnected } = useSocket();
+  const { isConnected: isSocketConnected } = useSocketConnection();
   const { isConnected: pollingConnected, isConnecting } = useBotStatus(5000);
   const { notifications, unreadCount } = useNotifications(30000);
   const reduceMotion = useReducedMotion();

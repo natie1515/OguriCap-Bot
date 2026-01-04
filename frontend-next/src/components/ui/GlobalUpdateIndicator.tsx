@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 export const GlobalUpdateIndicator: React.FC = () => {
   const { isRefreshing, lastUpdate, dashboardStats } = useGlobalUpdate();
   const { isGloballyOn } = useBotGlobalState();
-  const { isConnected } = useSocket();
+  const { isConnected } = useSocketConnection();
   const reduceMotion = useReducedMotion();
 
   const getSystemStatus = () => {
@@ -236,7 +236,7 @@ export const GlobalUpdateIndicator: React.FC = () => {
 export const MiniUpdateIndicator: React.FC = () => {
   const { isRefreshing } = useGlobalUpdate();
   const { isGloballyOn } = useBotGlobalState();
-  const { isConnected } = useSocket();
+  const { isConnected } = useSocketConnection();
 
   const getStatusConfig = () => {
     if (!isGloballyOn) return {

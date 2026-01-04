@@ -19,8 +19,7 @@ const buttonVariants = cva(
         glow: 'btn-glow',
         ghost: [
           'px-4 py-2',
-          'text-gray-300 hover:text-white hover:bg-white/10 hover:shadow-inner-glow',
-          '[html[data-theme=light]_&]:text-gray-600 [html[data-theme=light]_&]:hover:text-gray-900 [html[data-theme=light]_&]:hover:bg-gray-100/50',
+          'text-muted hover:text-foreground hover:bg-card/40 hover:shadow-inner-glow',
         ],
       },
       size: {

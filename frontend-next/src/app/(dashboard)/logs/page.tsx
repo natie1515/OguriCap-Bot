@@ -45,7 +45,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
-import { SOCKET_EVENTS, useSocket } from '@/contexts/SocketContext';
+import { SOCKET_EVENTS, useSocketConnection } from '@/contexts/SocketContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -160,7 +160,7 @@ export default function LogsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const { socket } = useSocket();
+  const { socket } = useSocketConnection();
   const { user } = useAuth();
   const canControl = !!user && ['owner', 'admin', 'administrador'].includes(String(user.rol || '').toLowerCase());
   const reduceMotion = useReducedMotion();

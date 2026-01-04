@@ -30,7 +30,7 @@ import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Progress } from '@/components/ui/Progress';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -133,7 +133,7 @@ export default function RecursosPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [updateInterval, setUpdateInterval] = useState(5000);
 
-  const { socket } = useSocket();
+  const { socket } = useSocketConnection();
 
   useEffect(() => {
     loadResourceStats();

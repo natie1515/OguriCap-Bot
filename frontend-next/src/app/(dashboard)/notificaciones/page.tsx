@@ -11,7 +11,7 @@ import { Skeleton, SkeletonCircle } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
-import { SOCKET_EVENTS, useSocket } from '@/contexts/SocketContext';
+import { SOCKET_EVENTS, useSocketConnection } from '@/contexts/SocketContext';
 import { useFlashTokens } from '@/hooks/useFlashTokens';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
@@ -42,7 +42,7 @@ export default function NotificacionesPage() {
     tipo: 'info' as 'info' | 'success' | 'warning' | 'error',
     categoria: 'sistema'
   });
-  const { socket } = useSocket();
+  const { socket } = useSocketConnection();
   const reduceMotion = useReducedMotion();
   const flash = useFlashTokens({ ttlMs: 1200 });
   const hasLoadedOnceRef = useRef(false);

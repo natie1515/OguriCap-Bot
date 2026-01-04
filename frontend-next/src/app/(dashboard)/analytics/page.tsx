@@ -26,7 +26,7 @@ import {
   RefreshCw,
   AlertTriangle
 } from 'lucide-react';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Reveal } from '@/components/motion/Reveal';
@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
   const [topCommands, setTopCommands] = useState<ChartData[]>([]);
   const [responseTimeData, setResponseTimeData] = useState<ChartData[]>([]);
 
-  const { socket } = useSocket();
+  const { socket } = useSocketConnection();
 
   // Colores para gráficos
   const colors = useMemo(
@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
       info: 'rgb(var(--accent))',
       purple: 'rgb(var(--secondary))',
       grid: 'rgb(var(--border) / 0.18)',
-      axis: 'rgb(var(--text-muted))',
+      axis: 'rgb(var(--muted))',
     }),
     []
   );

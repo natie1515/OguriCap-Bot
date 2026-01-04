@@ -31,6 +31,9 @@
   /* Backwards-compatible aliases */
   --background: var(--bg-0);
   --bg: var(--bg-0);
+  --card: var(--bg-1);
+  --text: 226 232 240;
+  --muted: 100 116 139;
 }
 
 /* Theme tokens (authoritative) */
@@ -41,6 +44,7 @@ html[data-theme="dark"] {
   /* deep slate */
   --surface-elevated: var(--bg-1);
   --border: var(--shine);
+  --card: var(--surface-elevated);
 
   --primary: var(--page-a);
   --secondary: var(--page-b);
@@ -53,6 +57,8 @@ html[data-theme="dark"] {
   --text-secondary: 148 163 184;
   --text-muted: 100 116 139;
   --text-on-accent: 245 247 255;
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
 
   --ring: var(--primary);
   --shadow-rgb: var(--mask);
@@ -267,7 +273,7 @@ body {
     radial-gradient(900px 700px at 15% 85%, rgb(var(--page-d) / 0.14), transparent 58%),
     linear-gradient(135deg, rgb(var(--surface-elevated) / 1) 0%, rgb(var(--bg) / 1) 60%, rgb(var(--surface-elevated) / 1) 100%);
   background-attachment: fixed;
-  color: rgb(var(--text-primary) / 1);
+  color: rgb(var(--text) / 1);
   overflow-x: hidden;
   position: relative;
 }
@@ -285,6 +291,9 @@ html[data-theme="light"] {
   --text-secondary: 51 65 85;
   --text-muted: 71 85 105;
   --text-on-accent: 248 250 252;
+  --card: var(--surface-elevated);
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
   --chrome-blur: 14px;
   --grid-opacity: 0.08;
   --noise-opacity: 0.08;
@@ -364,6 +373,10 @@ html[data-perf="low"] .nav-particle {
 html[data-perf="low"] .progress-ring__glow {
   filter: none !important;
   opacity: 0.22 !important;
+}
+
+html[data-perf="low"] .progress-ring__arc {
+  filter: none !important;
 }
 
 body>* {
@@ -879,7 +892,7 @@ body::after {
       radial-gradient(900px 700px at 20% 20%, rgb(var(--page-a) / 0.22), transparent 60%),
       radial-gradient(900px 700px at 80% 25%, rgb(var(--page-b) / 0.18), transparent 62%),
       radial-gradient(900px 700px at 50% 90%, rgb(var(--page-c) / 0.14), transparent 60%),
-      rgb(var(--shadow-rgb) / 0.62);
+      rgb(var(--bg) / 0.78);
     backdrop-filter: blur(calc(var(--chrome-blur) * 0.95)) saturate(var(--chrome-sat));
   }
 
@@ -888,7 +901,7 @@ body::after {
       radial-gradient(900px 700px at 20% 20%, rgb(var(--page-a) / 0.22), transparent 60%),
       radial-gradient(900px 700px at 80% 25%, rgb(var(--page-b) / 0.18), transparent 62%),
       radial-gradient(900px 700px at 50% 90%, rgb(var(--page-c) / 0.14), transparent 60%),
-      rgb(var(--shadow-rgb) / 0.62);
+      rgb(var(--bg) / 0.78);
     backdrop-filter: blur(calc(var(--chrome-blur) * 0.95)) saturate(var(--chrome-sat));
   }
 
@@ -1751,6 +1764,14 @@ body::after {
 
   .progress-ring--danger {
     --ring-glow: var(--danger);
+  }
+
+  .progress-ring--info {
+    --ring-glow: var(--accent);
+  }
+
+  .progress-ring--violet {
+    --ring-glow: var(--secondary);
   }
 
   .progress-ring__arc {

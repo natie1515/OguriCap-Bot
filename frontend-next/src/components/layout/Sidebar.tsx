@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketBotStatus } from '@/contexts/SocketContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useBotStatus, useNotifications } from '@/hooks/useRealTime';
@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const { hasPermission } = usePermissions();
   const { isConnected: pollingConnected, isConnecting } = useBotStatus(5000);
-  const { botStatus } = useSocket();
+  const botStatus = useSocketBotStatus();
   const { unreadCount } = useNotifications(30000);
   const { isGloballyOn } = useBotGlobalState();
   const { dashboardStats, botStatus: globalBotStatus, refreshAll } = useGlobalUpdate();

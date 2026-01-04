@@ -20,11 +20,10 @@ export function LoadingOverlay({ open, message = 'Procesando...', details }: Loa
     <div className="modal-overlay" aria-live="polite" aria-busy="true">
       <div className={cn('modal-content max-w-sm text-center')}>
         <div className="loading-spinner mx-auto mb-4" />
-        <p className="text-white font-semibold">{message}</p>
-        {details && <p className="text-xs text-gray-400 mt-2">{details}</p>}
+        <p className="text-foreground font-semibold">{message}</p>
+        {details && <p className="text-xs text-muted mt-2">{details}</p>}
       </div>
     </div>,
     document.body
   );
 }
-

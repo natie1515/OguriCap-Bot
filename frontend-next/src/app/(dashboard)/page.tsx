@@ -23,7 +23,7 @@ import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { useDashboardStats, useBotStatus, useSystemStats, useSubbotsStatus, useRecentActivity } from '@/hooks/useRealTime';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
 import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
-import { useSocket, SOCKET_EVENTS } from '@/contexts/SocketContext';
+import { useSocketConnection, SOCKET_EVENTS } from '@/contexts/SocketContext';
 import { formatUptime } from '@/lib/utils';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Progress } from '@/components/ui/Progress';
@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const { dashboardStats, botStatus: globalBotStatus, refreshAll } = useGlobalUpdate();
   const { memoryUsage, cpuUsage, diskUsage, uptime, systemInfo } = useSystemStats(8000);
   const { onlineCount, totalCount } = useSubbotsStatus(8000);
-  const { isConnected: isSocketConnected, socket } = useSocket();
+  const { isConnected: isSocketConnected, socket } = useSocketConnection();
   const { activities: recentActivity, isLoading: activitiesLoading } = useRecentActivity(15000);
 
   // Auto-refresh del dashboard - DISABLED to prevent resource exhaustion

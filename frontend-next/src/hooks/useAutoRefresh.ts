@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useGlobalUpdate } from '@/contexts/GlobalUpdateContext';
 import { useBotGlobalState } from '@/contexts/BotGlobalStateContext';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 
 interface UseAutoRefreshOptions {
   interval?: number; // Intervalo en milisegundos (fallback sin Socket.IO)
@@ -18,7 +18,7 @@ export const useAutoRefresh = (
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const { isGloballyOn } = useBotGlobalState();
-  const { isConnected } = useSocket();
+  const { isConnected } = useSocketConnection();
   const { lastUpdate } = useGlobalUpdate();
 
   const refreshFnRef = useRef(refreshFunction);

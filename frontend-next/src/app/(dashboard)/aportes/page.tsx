@@ -14,7 +14,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Reveal } from '@/components/motion/Reveal';
 import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
-import { useSocket } from '@/contexts/SocketContext';
+import { useSocketConnection } from '@/contexts/SocketContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAportesSmartRefresh } from '@/hooks/useSmartRefresh';
 import api from '@/services/api';
@@ -39,7 +39,7 @@ export default function AportesPage() {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isConnected: isSocketConnected } = useSocket();
+  const { isConnected: isSocketConnected } = useSocketConnection();
   const [deleteTarget, setDeleteTarget] = useState<Aporte | null>(null);
   const [deleting, setDeleting] = useState(false);
 
