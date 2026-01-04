@@ -379,7 +379,7 @@ export default function LoginPage() {
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-glow mb-4">
                 <Bot className="w-8 h-8 text-white" />
               </div>
-              <h1 className="text-3xl font-bold gradient-text">Oguri Bot</h1>
+              <h1 className="text-3xl font-black gradient-text-animated">Oguri Bot</h1>
             </motion.div>
 
             {/* Login card */}
@@ -387,16 +387,18 @@ export default function LoginPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="glass-card p-8"
+              className="glass-card p-6 sm:p-7"
             >
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-foreground mb-2">Bienvenido</h2>
-                <p className="text-muted">Inicia sesión para continuar</p>
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-black tracking-tight mb-1">
+                  <span className="gradient-text-animated">Bienvenido</span>
+                </h2>
+                <p className="text-sm text-muted">Inicia sesión para continuar</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-muted mb-2">Usuario</label>
+                  <label className="block text-xs font-semibold text-muted mb-1.5">Usuario</label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                     <input
@@ -407,14 +409,14 @@ export default function LoginPage() {
                         if (fieldErrors.username) setFieldErrors((prev) => ({ ...prev, username: false }));
                       }}
                       placeholder="Ingresa tu usuario"
-                      className={cn('input-glass pl-12', fieldErrors.username && 'is-error')}
+                      className={cn('input-glass !py-2.5 pl-12', fieldErrors.username && 'is-error')}
                       autoComplete="username"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-muted mb-2">Contraseña</label>
+                  <label className="block text-xs font-semibold text-muted mb-1.5">Contraseña</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                     <input
@@ -425,7 +427,7 @@ export default function LoginPage() {
                         if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: false }));
                       }}
                       placeholder="Ingresa tu contraseña"
-                      className={cn('input-glass pl-12 pr-12', fieldErrors.password && 'is-error')}
+                      className={cn('input-glass !py-2.5 pl-12 pr-12', fieldErrors.password && 'is-error')}
                       autoComplete="current-password"
                     />
                     <button
@@ -452,12 +454,12 @@ export default function LoginPage() {
                       <span aria-hidden="true">⚠</span> Selecciona el rol con el que deseas acceder
                     </p>
                   )}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {roles.map((role) => {
                       const IconComponent = role.icon;
                       const isSelected = selectedRole === role.value;
                       const tone = roleToneClasses[role.value as keyof typeof roleToneClasses];
-
+                      
                       return (
                         <motion.button
                           key={role.value}
@@ -469,7 +471,7 @@ export default function LoginPage() {
                           whileHover={performanceMode ? undefined : { scale: 1.02 }}
                           whileTap={{ scale: 0.985 }}
                           className={cn(
-                            'p-3 rounded-2xl border transition-all duration-200 text-left hover-outline-gradient press-scale',
+                            'p-2.5 rounded-2xl border transition-all duration-200 text-left hover-outline-gradient press-scale',
                             isSelected
                               ? `${tone.bg} ${tone.border} shadow-[0_18px_60px_rgb(var(--shadow-rgb)_/_0.28)]`
                               : 'bg-card/15 border-border/20 hover:bg-card/25 hover:border-border/35',
@@ -482,7 +484,7 @@ export default function LoginPage() {
                               {role.label}
                             </span>
                           </div>
-                          <p className={cn('text-xs leading-snug', isSelected ? 'text-muted' : 'text-muted/80')}>
+                          <p className={cn('text-xs leading-snug hidden sm:block', isSelected ? 'text-muted' : 'text-muted/80')}>
                             {role.description}
                           </p>
                         </motion.button>
@@ -547,7 +549,7 @@ export default function LoginPage() {
               transition={{ delay: 0.8 }}
               className="text-center text-sm text-muted/80 mt-6"
             >
-              © 2025 Oguri Bot. Todos los derechos reservados.
+              © 2026 Oguri Bot. Todos los derechos reservados.
             </motion.p>
           </div>
         </motion.div>
