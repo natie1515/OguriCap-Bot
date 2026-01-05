@@ -67,7 +67,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
   useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
-  const toggleOpen = useCallback(() => { setIsOpen(!isOpenRef.current); }, []);
+  const toggleOpen = useCallback(() => { const next = !isOpenRef.current; setIsOpen(next); if (typeof window !== 'undefined') console.debug('Notificaciones: toggleOpen', next); }, []);
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
