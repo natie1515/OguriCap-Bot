@@ -30,12 +30,14 @@ export interface NotificationSettings {
 
 interface NotificationContextValue {
   notifications: Notification[];
+
   unreadCount: number;
   settings: NotificationSettings;
   isLoading: boolean;
   isOpen: boolean;
   hasMore: boolean;
   setIsOpen: (open: boolean) => void;
+  toggleOpen: () => void;
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: number) => Promise<void>;
@@ -63,6 +65,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const isOpenRef = useRef(false);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  const toggleOpen = useCallback(() => { setIsOpen(!isOpenRef.current); }, []);
+
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const { socket } = useSocketConnection();
@@ -123,12 +129,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setNotifications(list);
       }
 
-      // Recalculate unread count from all notifications
+      // Recalculate unread count
       if (!append) {
         const unread = list.filter((n: Notification) => !n.leida).length;
         setUnreadCount(unread);
       } else {
-        // When appending, just add new unread count
         const unread = list.filter((n: Notification) => !n.leida).length;
         setUnreadCount(prev => prev + unread);
       }
@@ -215,7 +220,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           audio.volume = 0.3;
           audio.play().catch(() => { });
         } catch {
-          // ignore
         }
       }
 
@@ -224,7 +228,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         try {
           navigator.vibrate([40, 30, 90]);
         } catch {
-          // ignore
         }
       }
 
@@ -238,7 +241,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             requireInteraction: notification.tipo === 'error',
           });
         } catch {
-          // ignore
         }
       }
     };
@@ -314,13 +316,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     isOpen,
     hasMore,
     setIsOpen,
+    toggleOpen,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     loadMore,
     updateSettings,
     refresh,
-  }), [notifications, unreadCount, settings, isLoading, isOpen, hasMore, markAsRead, markAllAsRead, deleteNotification, loadMore, updateSettings, refresh]);
+  }), [notifications, unreadCount, settings, isLoading, isOpen, hasMore, setIsOpen, toggleOpen, markAsRead, markAllAsRead, deleteNotification, loadMore, updateSettings, refresh]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
@@ -341,4 +344,3 @@ function getNotificationIcon(tipo: string): string {
   };
   return icons[tipo] || '🔔';
 }
-

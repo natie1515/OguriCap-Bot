@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   const { theme, setTheme } = useTheme();
   const { isConnected: isSocketConnected } = useSocketConnection();
   const { isConnected: pollingConnected, isConnecting } = useBotStatus(5000);
-  const { unreadCount, isOpen, setIsOpen } = useNotifications();
+  const { unreadCount, isOpen, setIsOpen, toggleOpen } = useNotifications();
   const reduceMotion = useReducedMotion();
 
   const currentPage = menuItems.find(item => item.path === pathname);
@@ -111,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleOpen}
                 aria-label="Abrir notificaciones"
                 className={cn('relative hover-glass-bright', unreadCount > 0 && 'pulse-on-alert')}
               >
