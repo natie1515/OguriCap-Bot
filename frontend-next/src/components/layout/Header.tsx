@@ -177,7 +177,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                     <span className="text-xs text-gray-400">Efectos</span>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => togglePreference('soundEnabled')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePreference('soundEnabled');
+                        }}
                         title={preferences.soundEnabled ? 'Sonido: activado' : 'Sonido: desactivado'}
                         className={`p-2 rounded-lg border transition-colors ${
                           preferences.soundEnabled
@@ -188,7 +191,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                         {preferences.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                       </button>
                       <button
-                        onClick={() => togglePreference('hapticsEnabled')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePreference('hapticsEnabled');
+                        }}
                         title={preferences.hapticsEnabled ? 'Vibración: activada' : 'Vibración: desactivada'}
                         className={`p-2 rounded-lg border transition-colors ${
                           preferences.hapticsEnabled
