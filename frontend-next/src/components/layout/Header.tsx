@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { LiveIndicator } from '@/components/ui/LiveIndicator';
 import { cn } from '@/lib/utils';
-import { motion, useReducedMotion } from 'framer-motion';
 
 const menuItems = [
   { path: '/', label: 'Dashboard' },
