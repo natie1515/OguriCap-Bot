@@ -191,9 +191,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                         top: `${dropdownPosition.top}px`,
                         right: `${dropdownPosition.right}px`,
                       }}
-                      className="w-96 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[9999]"
+                      className="w-96 max-h-[80vh] bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[9999] flex flex-col"
                     >
-                      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                      <div className="p-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                         <h3 className="font-semibold text-white">Notificaciones</h3>
                         {unreadCount > 0 && (
                           <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
@@ -201,9 +201,27 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                           </span>
                         )}
                       </div>
-                      <div className="max-h-80 overflow-y-auto">
+                      <div className="flex-1 overflow-y-auto" style={{
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(255,255,255,0.3) transparent'
+                      }}>
+                        <style jsx>{`
+                          div::-webkit-scrollbar {
+                            width: 6px;
+                          }
+                          div::-webkit-scrollbar-track {
+                            background: transparent;
+                          }
+                          div::-webkit-scrollbar-thumb {
+                            background: rgba(255,255,255,0.3);
+                            border-radius: 3px;
+                          }
+                          div::-webkit-scrollbar-thumb:hover {
+                            background: rgba(255,255,255,0.5);
+                          }
+                        `}</style>
                         {notifications && notifications.length > 0 ? (
-                          notifications.slice(0, 5).map((notif: any, index: number) => (
+                          notifications.map((notif: any, index: number) => (
                             <motion.div
                               key={notif.id || index}
                               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
@@ -227,7 +245,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                           </div>
                         )}
                       </div>
-                      <div className="p-3 border-t border-white/10 flex items-center justify-between">
+                      <div className="p-3 border-t border-white/10 flex items-center justify-between flex-shrink-0">
                         <span className="text-xs text-gray-400">Efectos</span>
                         <div className="flex items-center gap-2">
                           <button
@@ -257,17 +275,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                             <Smartphone className="w-4 h-4" />
                           </button>
                         </div>
-                      </div>
-                      <div className="p-3 border-t border-white/10">
-                        <button
-                          onClick={() => {
-                            setIsOpen(false);
-                            router.push('/notificaciones');
-                          }}
-                          className="w-full py-2 text-sm text-primary-400 hover:text-primary-300 font-medium transition-colors"
-                        >
-                          Ver todas las notificaciones
-                        </button>
                       </div>
                     </motion.div>
                   </>
