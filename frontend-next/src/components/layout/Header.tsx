@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   const isConnected = pollingConnected;
 
   return (
-    <header className="sticky top-0 z-30 glass-dark border-b border-white/10 header-chrome">
+    <header className="sticky top-0 z-50 glass-dark border-b border-white/10 header-chrome">
       <div className="flex items-center justify-between px-4 lg:px-6 h-16">
         {/* Left side */}
         <div className="flex items-center gap-4">
@@ -111,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
           />
 
           {/* Notifications */}
-          <div className="relative inline-flex" ref={notificationsRef}>
+          <div className="relative" ref={notificationsRef}>
             <Tooltip content="Notificaciones" side="bottom">
               <Button
                 variant="ghost"
@@ -155,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-[100]"
                     onClick={() => setIsOpen(false)}
                   />
 
@@ -165,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                     animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
                     exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 top-full mt-2 w-96 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-50"
+                    className="absolute right-0 top-full mt-2 w-96 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-[101]"
                   >
                     <div className="p-4 border-b border-white/10 flex items-center justify-between">
                       <h3 className="font-semibold text-white">Notificaciones</h3>
