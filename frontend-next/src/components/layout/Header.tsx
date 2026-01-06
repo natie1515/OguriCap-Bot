@@ -211,8 +211,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                           }}
                           title={preferences.soundEnabled ? 'Sonido: activado' : 'Sonido: desactivado'}
                           className={`p-2 rounded-lg border transition-colors ${preferences.soundEnabled
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                              : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                             }`}
                         >
                           {preferences.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -224,8 +224,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                           }}
                           title={preferences.hapticsEnabled ? 'Vibración: activada' : 'Vibración: desactivada'}
                           className={`p-2 rounded-lg border transition-colors ${preferences.hapticsEnabled
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                              : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                             }`}
                         >
                           <Smartphone className="w-4 h-4" />
