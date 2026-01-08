@@ -42,3 +42,4 @@ storage/
 frontend-next/package-lock.json
 
 .monitoring
+database/backups
